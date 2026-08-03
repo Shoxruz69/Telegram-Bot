@@ -8,8 +8,9 @@ from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 from flask import Flask, render_template, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
-from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
+from flask_admin import Admin, AdminIndexView, expose
+from flask import redirect, url_for
 from markupsafe import Markup
 
 load_dotenv()
@@ -543,7 +544,15 @@ class OrderItemAdminView(ModelView):
 class ThemedModelView(ModelView):
     extra_css = ['/static/admin_theme.css']
 
-admin = Admin(app, name='☕ Cafe Express Admin')
+class MyHomeView(AdminIndexView):
+    @expose('/')
+    def index(self):
+        return redirect('/admin/order/')
+    
+    def is_visible(self):
+        return False
+
+admin = Admin(app, name='☕ Cafe Express Admin', index_view=MyHomeView(url='/admin'))
 admin.add_view(OrderAdminView(Order, db.session, name="📦 Buyurtmalar"))
 admin.add_view(MenuAdminView(Menu, db.session, name="🍔 Menyu (Taomlar)"))
 admin.add_view(ThemedModelView(Category, db.session, name="📁 Kategoriyalar"))
