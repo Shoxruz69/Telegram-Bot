@@ -538,7 +538,7 @@ class OrderItemAdminView(ModelView):
 
 
 # --- Admin Panel Ko'rinishlari (Views) ---
-admin = Admin(app, name='Restoran Admin Panel')
+admin = Admin(app, name='☕ Cafe Express Admin', base_template='admin/custom_base.html', template_mode='bootstrap3')
 admin.add_view(OrderAdminView(Order, db.session, name="📦 Buyurtmalar"))
 admin.add_view(MenuAdminView(Menu, db.session, name="🍔 Menyu (Taomlar)"))
 admin.add_view(ModelView(Category, db.session, name="📁 Kategoriyalar"))

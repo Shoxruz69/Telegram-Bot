@@ -3,464 +3,503 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Restoran Menyu</title>
+    <title>Cafe Express</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-color: var(--tg-theme-bg-color, #f8f9fa);
-            --text-color: var(--tg-theme-text-color, #222);
-            --hint-color: var(--tg-theme-hint-color, #888);
-            --primary-color: #ff4757; /* Appetizing red/orange */
-            --card-bg: var(--tg-theme-secondary-bg-color, #ffffff);
-            --radius: 16px;
+            --gold:       #c9a227;
+            --gold-light: #e0b84a;
+            --gold-dark:  #a07c10;
+            --black:      #111111;
+            --black-soft: #1e1e1e;
+            --card-dark:  #242424;
+            --cream:      #fdf8f0;
+            --cream-muted:#f5edd8;
+            --text-light: #f0e6cc;
+            --text-muted: #9a8a6a;
+            --radius:     16px;
         }
+
+        * { box-sizing: border-box; }
 
         body {
             font-family: 'Poppins', sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
+            background-color: var(--black);
+            color: var(--text-light);
             margin: 0;
             padding: 0;
-            padding-bottom: 90px;
+            padding-bottom: 100px;
             overflow-x: hidden;
+            min-height: 100vh;
         }
 
-        /* Glassmorphism Header */
+        /* ── HEADER ── */
         .header {
             position: sticky;
             top: 0;
             z-index: 100;
-            padding: 15px 20px;
-            background: rgba(255, 255, 255, 0.7);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
+            padding: 14px 20px;
+            background: rgba(17,17,17,0.92);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid rgba(0,0,0,0.05);
+            border-bottom: 1px solid rgba(201,162,39,0.25);
         }
 
-        body.dark-mode .header {
-            background: rgba(30, 30, 30, 0.7);
-            border-bottom: 1px solid rgba(255,255,255,0.05);
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header-logo {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            box-shadow: 0 0 12px rgba(201,162,39,0.4);
         }
 
         .header h3 {
             margin: 0;
+            font-family: 'Playfair Display', serif;
             font-size: 20px;
             font-weight: 700;
-            background: linear-gradient(45deg, #ff4757, #ff6b81);
+            background: linear-gradient(90deg, var(--gold-light), var(--gold));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            letter-spacing: 0.5px;
         }
 
-        /* Categories */
+        .header-sub {
+            font-size: 10px;
+            color: var(--text-muted);
+            font-weight: 400;
+            display: block;
+            margin-top: -2px;
+            -webkit-text-fill-color: var(--text-muted);
+        }
+
+        /* ── CATEGORIES ── */
         .category-tabs {
             display: flex;
             overflow-x: auto;
-            padding: 15px 20px;
-            gap: 12px;
+            padding: 16px 20px 8px;
+            gap: 10px;
             scroll-behavior: smooth;
         }
-
-        .category-tabs::-webkit-scrollbar {
-            display: none;
-        }
+        .category-tabs::-webkit-scrollbar { display: none; }
 
         .tab {
             padding: 8px 20px;
-            background: var(--card-bg);
+            background: var(--card-dark);
+            border: 1px solid rgba(201,162,39,0.15);
             border-radius: 20px;
             white-space: nowrap;
             font-weight: 600;
-            font-size: 14px;
-            color: var(--hint-color);
-            box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+            font-size: 13px;
+            color: var(--text-muted);
             cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
         }
-
         .tab.active {
-            background: var(--primary-color);
-            color: #ffffff;
-            box-shadow: 0 4px 12px rgba(255, 71, 87, 0.3);
+            background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+            color: var(--black);
+            border-color: transparent;
+            box-shadow: 0 4px 14px rgba(201,162,39,0.45);
             transform: translateY(-2px);
         }
 
-        /* Menu Grid */
+        /* ── MENU GRID ── */
         .menu-list {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 15px;
-            padding: 0 20px;
+            gap: 14px;
+            padding: 10px 16px 0;
         }
 
         .menu-item {
-            background: var(--card-bg);
+            background: var(--card-dark);
             border-radius: var(--radius);
             overflow: hidden;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.04);
+            border: 1px solid rgba(201,162,39,0.1);
             display: flex;
             flex-direction: column;
-            transition: transform 0.2s;
+            transition: transform 0.2s, box-shadow 0.2s;
             position: relative;
         }
-
-        .menu-item:active {
-            transform: scale(0.97);
+        .menu-item:active { transform: scale(0.97); }
+        .menu-item.in-cart {
+            border-color: rgba(201,162,39,0.4);
+            box-shadow: 0 0 16px rgba(201,162,39,0.15);
         }
 
         .img-container {
             width: 100%;
-            height: 140px;
+            height: 130px;
             overflow: hidden;
             position: relative;
+            background: #1a1a1a;
         }
-
         .menu-item img {
             width: 100%;
             height: 100%;
             object-fit: cover;
-            transition: transform 0.3s;
+            transition: transform 0.4s;
         }
+        .menu-item:hover img { transform: scale(1.07); }
 
-        .menu-item:hover img {
-            transform: scale(1.05);
+        /* Gold shimmer overlay on image */
+        .img-container::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to top, rgba(17,17,17,0.55) 0%, transparent 60%);
+            pointer-events: none;
         }
 
         .item-info {
-            padding: 12px;
+            padding: 10px 12px 12px;
             flex-grow: 1;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
         }
-
         .item-name {
-            font-size: 15px;
+            font-size: 14px;
             font-weight: 700;
-            margin: 0 0 4px 0;
+            margin: 0 0 3px 0;
             line-height: 1.2;
+            color: var(--cream);
         }
-
         .item-desc {
-            font-size: 11px;
-            color: var(--hint-color);
-            margin: 0 0 10px 0;
+            font-size: 10.5px;
+            color: var(--text-muted);
+            margin: 0 0 8px 0;
             line-height: 1.4;
             display: -webkit-box;
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
-
         .price-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-top: auto;
         }
-
         .item-price {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 700;
-            color: var(--text-color);
+            color: var(--gold-light);
         }
 
-        /* Buttons */
+        /* ── ADD / QTY BUTTONS ── */
         .add-btn {
-            background: var(--primary-color);
-            color: #fff;
+            background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+            color: var(--black);
             border: none;
-            width: 32px;
-            height: 32px;
-            border-radius: 10px;
+            width: 30px;
+            height: 30px;
+            border-radius: 9px;
             font-size: 18px;
             font-weight: bold;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 4px 10px rgba(255, 71, 87, 0.2);
+            box-shadow: 0 3px 10px rgba(201,162,39,0.4);
             transition: 0.2s;
         }
-        
-        .add-btn:active {
-            transform: scale(0.9);
-        }
+        .add-btn:active { transform: scale(0.88); }
 
         .qty-controls {
             display: none;
             align-items: center;
-            gap: 10px;
-            background: var(--bg-color);
-            border-radius: 10px;
-            padding: 2px;
+            gap: 6px;
+            background: rgba(201,162,39,0.1);
+            border-radius: 9px;
+            padding: 2px 4px;
+            border: 1px solid rgba(201,162,39,0.3);
         }
-
         .qty-btn {
             background: transparent;
-            color: var(--text-color);
+            color: var(--gold-light);
             border: none;
-            width: 28px;
-            height: 28px;
-            font-size: 16px;
-            font-weight: 600;
+            width: 26px;
+            height: 26px;
+            font-size: 17px;
+            font-weight: 700;
             cursor: pointer;
+            line-height: 1;
         }
-
         .qty-val {
             font-weight: 700;
             font-size: 13px;
-            min-width: 15px;
+            min-width: 14px;
             text-align: center;
+            color: var(--gold-light);
         }
-
         .menu-item.in-cart .add-btn { display: none; }
         .menu-item.in-cart .qty-controls { display: flex; }
 
-        /* Floating Cart Bar */
+        /* ── BOTTOM CART BAR ── */
         .bottom-bar {
             position: fixed;
-            bottom: 15px;
-            left: 20px;
-            right: 20px;
-            background: var(--text-color);
-            color: var(--bg-color);
-            padding: 12px 20px;
+            bottom: 14px;
+            left: 16px;
+            right: 16px;
+            background: linear-gradient(135deg, var(--gold-dark), var(--gold));
+            color: var(--black);
+            padding: 12px 18px;
             border-radius: 20px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            box-shadow: 0 8px 30px rgba(201,162,39,0.5);
             display: flex;
             justify-content: space-between;
             align-items: center;
             z-index: 100;
             transform: translateY(150%);
-            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transition: transform 0.4s cubic-bezier(0.175,0.885,0.32,1.275);
         }
+        .bottom-bar.visible { transform: translateY(0); }
 
-        .bottom-bar.visible {
-            transform: translateY(0);
-        }
-
-        body.dark-mode .bottom-bar {
-            background: #fff;
-            color: #000;
-        }
-
-        .cart-info {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .cart-count {
-            font-size: 12px;
-            opacity: 0.8;
-            font-weight: 500;
-        }
-
-        .cart-total {
-            font-size: 18px;
-            font-weight: 700;
-        }
+        .cart-info { display: flex; flex-direction: column; }
+        .cart-count { font-size: 11px; opacity: 0.75; font-weight: 600; }
+        .cart-total { font-size: 17px; font-weight: 800; }
 
         .checkout-btn {
-            background: var(--primary-color);
-            color: #fff;
+            background: var(--black);
+            color: var(--gold-light);
             border: none;
-            padding: 10px 24px;
-            border-radius: 14px;
-            font-weight: 600;
-            font-size: 14px;
+            padding: 9px 22px;
+            border-radius: 13px;
+            font-weight: 700;
+            font-size: 13px;
             cursor: pointer;
-            box-shadow: 0 4px 15px rgba(255, 71, 87, 0.4);
             font-family: inherit;
+            letter-spacing: 0.3px;
         }
-        
-        /* Shimmer loading effect */
+
+        /* ── SKELETON ── */
         .skeleton {
-            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background: linear-gradient(90deg, #242424 25%, #2e2e2e 50%, #242424 75%);
             background-size: 200% 100%;
             animation: loading 1.5s infinite;
         }
-        body.dark-mode .skeleton {
-            background: linear-gradient(90deg, #2a2a2a 25%, #333 50%, #2a2a2a 75%);
-            background-size: 200% 100%;
-        }
         @keyframes loading {
-            0% { background-position: 200% 0; }
+            0%   { background-position: 200% 0; }
             100% { background-position: -200% 0; }
         }
 
-        /* Cart Modal */
+        /* ── MODAL ── */
         .modal-overlay {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.5);
+            background: rgba(0,0,0,0.75);
             z-index: 1000;
             display: none;
             opacity: 0;
             transition: opacity 0.3s;
         }
-        .modal-overlay.active {
-            display: block;
-            opacity: 1;
-        }
+        .modal-overlay.active { display: block; opacity: 1; }
+
         .modal-content {
             position: absolute;
             bottom: 0; left: 0; right: 0;
-            background: var(--bg-color);
+            background: var(--black-soft);
             border-radius: 24px 24px 0 0;
-            padding: 20px;
+            border-top: 2px solid rgba(201,162,39,0.35);
+            padding: 20px 20px 30px;
             transform: translateY(100%);
-            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            max-height: 80vh;
+            transition: transform 0.4s cubic-bezier(0.175,0.885,0.32,1.275);
+            max-height: 85vh;
             overflow-y: auto;
         }
-        .modal-overlay.active .modal-content {
-            transform: translateY(0);
+        .modal-overlay.active .modal-content { transform: translateY(0); }
+
+        .modal-handle {
+            width: 40px;
+            height: 4px;
+            background: rgba(201,162,39,0.35);
+            border-radius: 4px;
+            margin: 0 auto 16px;
         }
+
         .modal-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 18px;
         }
         .modal-header h3 {
             margin: 0;
             font-size: 18px;
+            font-weight: 700;
+            color: var(--gold-light);
+            font-family: 'Playfair Display', serif;
         }
         .close-btn {
-            background: #eee;
-            border: none;
+            background: rgba(201,162,39,0.1);
+            border: 1px solid rgba(201,162,39,0.25);
             width: 32px; height: 32px;
-            border-radius: 16px;
+            border-radius: 50%;
             font-weight: bold;
-            color: #333;
+            color: var(--gold-light);
             cursor: pointer;
+            font-size: 14px;
         }
-        body.dark-mode .close-btn { background: #333; color: #fff; }
-        
-        .cart-list { margin-bottom: 20px; }
+
+        .cart-list { margin-bottom: 18px; }
         .cart-list-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
             padding: 10px 0;
-            border-bottom: 1px solid rgba(0,0,0,0.05);
+            border-bottom: 1px solid rgba(201,162,39,0.1);
         }
-        body.dark-mode .cart-list-item { border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .cart-list-item-name { font-weight: 600; font-size: 14px; flex: 1;}
-        .cart-list-item-qty { font-weight: 700; color: var(--primary-color); margin: 0 15px;}
-        .cart-list-item-price { font-weight: 600; font-size: 14px;}
-        
-        .payment-method { margin-bottom: 20px; }
-        .payment-method p { font-weight: 600; margin-bottom: 10px; font-size: 15px;}
-        .payment-options {
-            display: flex; gap: 10px;
-        }
+        .cart-list-item-name { font-weight: 600; font-size: 13px; flex: 1; color: var(--cream); }
+        .cart-list-item-qty  { font-weight: 700; color: var(--gold); margin: 0 12px; font-size: 13px; }
+        .cart-list-item-price{ font-weight: 700; font-size: 13px; color: var(--gold-light); }
+
+        /* ── PAYMENT OPTIONS ── */
+        .payment-method { margin-bottom: 16px; }
+        .payment-method p { font-weight: 600; margin-bottom: 10px; font-size: 14px; color: var(--text-muted); }
+        .payment-options { display: flex; gap: 10px; }
         .pay-opt {
             flex: 1;
-            padding: 12px;
+            padding: 11px;
             text-align: center;
-            border: 2px solid #eee;
+            border: 2px solid rgba(201,162,39,0.2);
             border-radius: 12px;
             font-weight: 600;
+            font-size: 13px;
             cursor: pointer;
             transition: 0.2s;
+            color: var(--text-muted);
+            background: var(--card-dark);
         }
-        body.dark-mode .pay-opt { border-color: #333; }
         .pay-opt.active {
-            border-color: var(--primary-color);
-            background: rgba(255, 71, 87, 0.05);
-            color: var(--primary-color);
+            border-color: var(--gold);
+            background: rgba(201,162,39,0.12);
+            color: var(--gold-light);
         }
-        .final-checkout-btn {
-            width: 100%;
-            padding: 14px;
-            background: var(--primary-color);
-            color: #fff;
-            border: none;
-            border-radius: 14px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-        }
+
+        /* ── FORM INPUTS ── */
         .form-input {
             width: 100%;
-            padding: 12px;
+            padding: 12px 14px;
             margin-top: 10px;
-            border: 1px solid var(--border-color);
+            border: 1px solid rgba(201,162,39,0.2);
             border-radius: 10px;
-            font-size: 14px;
-            background: var(--bg-color);
-            color: var(--text-color);
+            font-size: 13px;
+            background: var(--card-dark);
+            color: var(--cream);
             box-sizing: border-box;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.2s;
         }
+        .form-input:focus { border-color: var(--gold); }
+        .form-input::placeholder { color: var(--text-muted); }
+
+        /* ── CARD DETAILS ── */
         .card-details {
-            margin-top: 15px;
-            padding: 15px;
-            background: rgba(255,140,0,0.1);
+            margin-top: 14px;
+            padding: 14px;
+            background: rgba(201,162,39,0.07);
             border-radius: 12px;
-            border: 1px dashed var(--primary-color);
+            border: 1px dashed rgba(201,162,39,0.4);
         }
+        .card-details p { margin: 0 0 8px; font-size: 13px; color: var(--text-muted); }
         .card-box {
-            background: #fff;
-            padding: 10px;
-            border-radius: 8px;
-            margin-top: 10px;
-            color: #333;
+            background: linear-gradient(135deg, #2a2010, #1e1a0e);
+            padding: 12px 14px;
+            border-radius: 10px;
+            border: 1px solid rgba(201,162,39,0.3);
+            color: var(--gold-light);
         }
-        .dark-mode .card-box {
-            background: #222;
-            color: #fff;
-        }
+        .card-box strong { font-size: 16px; letter-spacing: 1px; }
+        .card-box small  { color: var(--text-muted); font-size: 12px; }
+
+        /* ── LOCATION BUTTON ── */
         .loc-btn {
             width: 100%;
             padding: 12px;
             margin-top: 10px;
-            border: 2px dashed var(--primary-color);
+            border: 2px dashed rgba(201,162,39,0.4);
             border-radius: 10px;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 600;
-            background: rgba(255,71,87,0.08);
-            color: var(--primary-color);
+            background: rgba(201,162,39,0.06);
+            color: var(--gold);
             cursor: pointer;
             transition: all 0.3s;
+            font-family: inherit;
         }
-        .loc-btn:hover { background: rgba(255,71,87,0.15); }
+        .loc-btn:hover { background: rgba(201,162,39,0.12); }
         .loc-btn.done {
             border-style: solid;
-            background: rgba(46,213,115,0.1);
+            background: rgba(46,213,115,0.08);
             border-color: #2ed573;
             color: #2ed573;
         }
+
+        /* ── FINAL CHECKOUT ── */
+        .final-checkout-btn {
+            width: 100%;
+            margin-top: 16px;
+            padding: 15px;
+            background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+            color: var(--black);
+            border: none;
+            border-radius: 14px;
+            font-size: 15px;
+            font-weight: 800;
+            cursor: pointer;
+            font-family: inherit;
+            box-shadow: 0 6px 20px rgba(201,162,39,0.45);
+            letter-spacing: 0.2px;
+            transition: 0.2s;
+        }
+        .final-checkout-btn:active { transform: scale(0.98); }
+        .final-checkout-btn:disabled { opacity: 0.6; }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <h3>Cafe Express</h3>
+        <div class="header-brand">
+            <div class="header-logo">☕</div>
+            <div>
+                <h3>Cafe Express</h3>
+                <span class="header-sub">Tez yetkazib berish</span>
+            </div>
+        </div>
     </div>
 
     <div class="category-tabs" id="categories">
-        <!-- Categories -->
         <div class="tab skeleton" style="width: 80px; height: 35px;"></div>
         <div class="tab skeleton" style="width: 100px; height: 35px;"></div>
     </div>
 
     <div class="menu-list" id="menu-items">
-        <!-- Items skeleton -->
-        <div class="menu-item skeleton" style="height: 240px;"></div>
-        <div class="menu-item skeleton" style="height: 240px;"></div>
+        <div class="menu-item skeleton" style="height: 230px;"></div>
+        <div class="menu-item skeleton" style="height: 230px;"></div>
     </div>
 
     <div class="bottom-bar" id="bottom-bar">
         <div class="cart-info">
-            <span class="cart-count"><span id="cart-count">0</span> ta mahsulot</span>
+            <span class="cart-count">🛒 <span id="cart-count">0</span> ta mahsulot</span>
             <span class="cart-total"><span id="cart-total">0</span> so'm</span>
         </div>
-        <button class="checkout-btn" onclick="openModal()">Savat</button>
+        <button class="checkout-btn" onclick="openModal()">Savat →</button>
     </div>
 
     <!-- Muvaffaqiyat Ekrani -->
@@ -468,7 +507,7 @@
         display:none;
         position:fixed;
         top:0;left:0;right:0;bottom:0;
-        background:linear-gradient(135deg,#1a1a2e,#16213e);
+        background:linear-gradient(135deg,#0d0d0d,#1a1500);
         z-index:9999;
         flex-direction:column;
         align-items:center;
@@ -477,29 +516,42 @@
         padding:40px;
     ">
         <div style="
-            width:100px;height:100px;
-            background:linear-gradient(135deg,#00b09b,#96c93d);
+            width:110px;height:110px;
+            background:linear-gradient(135deg,#c9a227,#a07c10);
             border-radius:50%;
             display:flex;align-items:center;justify-content:center;
-            font-size:48px;
-            margin-bottom:24px;
+            font-size:52px;
+            margin-bottom:28px;
+            box-shadow: 0 0 40px rgba(201,162,39,0.5);
             animation:popIn 0.4s ease;
         ">✅</div>
-        <h2 id="success-title" style="color:#fff;font-size:24px;margin:0 0 12px;">Buyurtma qabul qilindi!</h2>
-        <p id="success-sub" style="color:#aaa;font-size:15px;margin:0 0 32px;">Admin tasdiqlashini kutmoqda...</p>
-        <p style="color:#666;font-size:13px;">Tasdiqlangach Telegramda xabar olasiz</p>
+        <h2 id="success-title" style="
+            font-family:'Playfair Display',serif;
+            color:#c9a227;
+            font-size:26px;
+            margin:0 0 12px;
+        ">Buyurtma qabul qilindi!</h2>
+        <p id="success-sub" style="color:#9a8a6a;font-size:14px;margin:0 0 12px;">Admin tasdiqlashini kutmoqda...</p>
+        <p style="color:#555;font-size:12px;">Tasdiqlangach Telegramda xabar olasiz</p>
+        <style>
+            @keyframes popIn {
+                0% { transform: scale(0); }
+                80% { transform: scale(1.1); }
+                100% { transform: scale(1); }
+            }
+        </style>
     </div>
 
     <!-- Modal -->
     <div class="modal-overlay" id="cart-modal">
         <div class="modal-content">
+            <div class="modal-handle"></div>
             <div class="modal-header">
-                <h3>Savatdagi mahsulotlar</h3>
+                <h3>🛒 Savatcha</h3>
                 <button class="close-btn" onclick="closeModal()">✕</button>
             </div>
-            <div class="cart-list" id="modal-cart-list">
-                <!-- Items appended here -->
-            </div>
+            <div class="cart-list" id="modal-cart-list"></div>
+
             <div class="payment-method">
                 <p>To'lov turini tanlang:</p>
                 <div class="payment-options">
@@ -507,15 +559,15 @@
                     <div class="pay-opt" onclick="setPayment('Naqd')" id="pay-naqd">💵 Naqd</div>
                 </div>
             </div>
-            
+
             <div class="checkout-form">
-                <input type="tel" id="form-phone" placeholder="Telefon raqamingiz (+998901234567)" class="form-input">
+                <input type="tel" id="form-phone" placeholder="Telefon raqam (+998901234567)" class="form-input">
                 <input type="text" id="form-address" placeholder="Manzil (Tuman, ko'cha, uy...)" class="form-input">
                 <button type="button" class="loc-btn" id="loc-btn" onclick="getLocation()">
                     📍 Lokatsiyani aniqlash
                 </button>
-                <small id="loc-status" style="display:block;margin-top:6px;color:var(--hint-color);"></small>
-                
+                <small id="loc-status" style="display:block;margin-top:6px;color:#9a8a6a;"></small>
+
                 <div id="card-details" class="card-details">
                     <p>Karta raqamiga pul o'tkazing:</p>
                     <div class="card-box">
@@ -526,25 +578,25 @@
                     <input type="file" id="form-receipt" accept="image/*" class="form-input">
                 </div>
             </div>
-            
-            <button class="final-checkout-btn" id="submit-btn" onclick="checkout()">Rasmiylashtirish (<span id="modal-total">0</span> so'm)</button>
+
+            <button class="final-checkout-btn" id="submit-btn" onclick="checkout()">
+                Buyurtma berish — <span id="modal-total">0</span> so'm
+            </button>
         </div>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
-        
-        // Setup dark mode based on TG theme
-        if (tg.colorScheme === 'dark') {
-            document.body.classList.add('dark-mode');
+
+        if (tg.colorScheme === 'dark' || true) {
+            // Always dark mode for our theme
         }
-        
-        // Hide TG main button since we have our own beautiful floating bar
+
         tg.MainButton.hide();
 
         let allItems = [];
-        let cart = {}; 
+        let cart = {};
         let globalSettings = {};
         let userLat = null;
         let userLon = null;
@@ -553,23 +605,21 @@
             try {
                 const res = await fetch('/api/data');
                 const data = await res.json();
-                
+
                 allItems = data.menu;
                 globalSettings = data.settings;
-                
+
                 document.getElementById('card-num-text').innerText = globalSettings.card_number;
                 document.getElementById('card-name-text').innerText = globalSettings.card_name;
-                
+
                 renderCategories(data.categories);
                 if(data.categories.length > 0) renderMenu(data.categories[0].id);
 
-                // Telefon raqamni localStoragedan yuklash
                 const savedPhone = localStorage.getItem('user_phone');
                 if (savedPhone) {
                     document.getElementById('form-phone').value = savedPhone;
                 }
-                
-                // Lokatsiyani fonda yuklash
+
                 getLocation(true);
             } catch (e) {
                 console.error("Error loading data", e);
@@ -595,23 +645,23 @@
         function renderMenu(categoryId) {
             const container = document.getElementById('menu-items');
             container.innerHTML = '';
-            
+
             const filtered = allItems.filter(i => i.category_id === categoryId);
-            
+
             filtered.forEach(item => {
                 const inCart = cart[item.id] ? cart[item.id].qty : 0;
-                
+
                 const div = document.createElement('div');
                 div.className = `menu-item ${inCart > 0 ? 'in-cart' : ''}`;
                 div.id = `item-${item.id}`;
-                
-                const imgUrl = item.image_url && item.image_url.startsWith('http') ? 
-                               item.image_url : 
-                               (item.image_url ? '/static/uploads/' + item.image_url : 'https://via.placeholder.com/300');
-                
+
+                const imgUrl = item.image_url && item.image_url.startsWith('http') ?
+                               item.image_url :
+                               (item.image_url ? '/static/uploads/' + item.image_url : 'https://placehold.co/300x200/1e1e1e/c9a227?text=Cafe+Express');
+
                 div.innerHTML = `
                     <div class="img-container">
-                        <img src="${imgUrl}" alt="${item.name}" loading="lazy" onerror="this.src='https://via.placeholder.com/300'">
+                        <img src="${imgUrl}" alt="${item.name}" loading="lazy" onerror="this.src='https://placehold.co/300x200/1e1e1e/c9a227?text=Cafe+Express'">
                     </div>
                     <div class="item-info">
                         <div>
@@ -619,10 +669,10 @@
                             <p class="item-desc">${item.description || ''}</p>
                         </div>
                         <div class="price-row">
-                            <span class="item-price">${item.price.toLocaleString()} s</span>
+                            <span class="item-price">${item.price.toLocaleString()} so'm</span>
                             <button class="add-btn" onclick="add(${item.id})">+</button>
                             <div class="qty-controls">
-                                <button class="qty-btn" onclick="minus(${item.id})">-</button>
+                                <button class="qty-btn" onclick="minus(${item.id})">−</button>
                                 <span class="qty-val" id="qty-${item.id}">${inCart}</span>
                                 <button class="qty-btn" onclick="add(${item.id})">+</button>
                             </div>
@@ -667,17 +717,17 @@
                 total += cart[id].item.price * cart[id].qty;
                 count += cart[id].qty;
             }
-            
+
             document.getElementById('cart-count').innerText = count;
             document.getElementById('cart-total').innerText = total.toLocaleString();
             document.getElementById('modal-total').innerText = total.toLocaleString();
-            
+
             const bottomBar = document.getElementById('bottom-bar');
             if (count > 0) {
                 bottomBar.classList.add('visible');
             } else {
                 bottomBar.classList.remove('visible');
-                closeModal(); // agar hamma narsani olib tashlasa oynani yopadi
+                closeModal();
             }
         }
 
@@ -706,13 +756,12 @@
                     <div class="cart-list-item">
                         <div class="cart-list-item-name">${c.item.name}</div>
                         <div class="cart-list-item-qty">${c.qty} x</div>
-                        <div class="cart-list-item-price">${(c.item.price * c.qty).toLocaleString()} s</div>
+                        <div class="cart-list-item-price">${(c.item.price * c.qty).toLocaleString()} so'm</div>
                     </div>
                 `;
             }
             document.getElementById('cart-modal').classList.add('active');
-            
-            // Agar fonda aniqlanmagan bo'lsa, bu yerda yana so'rash
+
             if (!userLat || !userLon) {
                 getLocation(false);
             }
@@ -725,12 +774,12 @@
         function getLocation(isSilent = false) {
             const btn = document.getElementById('loc-btn');
             const status = document.getElementById('loc-status');
-            
+
             if (!isSilent) {
                 btn.innerText = '⏳ Aniqlanmoqda...';
                 status.innerText = '';
             }
-            
+
             if (!navigator.geolocation) {
                 if (!isSilent) {
                     status.innerText = 'Brauzeringiz geolokatsiyani qo\'llab-quvvatlamaydi.';
@@ -738,7 +787,7 @@
                 }
                 return;
             }
-            
+
             navigator.geolocation.getCurrentPosition(
                 (pos) => {
                     userLat = pos.coords.latitude;
@@ -746,7 +795,7 @@
                     btn.innerText = '✅ Lokatsiya aniqlandi!';
                     btn.classList.add('done');
                     status.innerText = `${userLat.toFixed(5)}, ${userLon.toFixed(5)}`;
-                    
+
                     const addrInput = document.getElementById('form-address');
                     if (!addrInput.value) {
                         addrInput.value = `Lokatsiya: ${userLat.toFixed(5)}, ${userLon.toFixed(5)}`;
@@ -803,7 +852,7 @@
 
             const receiptInput = document.getElementById('form-receipt');
             let receiptBase64 = null;
-            
+
             if (selectedPayment === 'Karta') {
                 if (receiptInput.files.length === 0) {
                     tg.showAlert("Iltimos, to'lov chekini (screenshot) yuklang!");
@@ -826,7 +875,6 @@
             const orderItems = Object.values(cart).map(c => ({ id: c.item.id, qty: c.qty }));
             const userId = tg.initDataUnsafe?.user?.id || '0';
 
-            // --- 1-QADAM: Buyurtmani JSON orqali tezda yuborish ---
             let orderId = null;
             try {
                 const controller = new AbortController();
@@ -852,30 +900,27 @@
                 const data = await resp.json();
                 if (!data.success) {
                     tg.showAlert("❌ " + (data.error || "Xatolik yuz berdi!"));
-                    btn.innerText = `Rasmiylashtirish (${document.getElementById('modal-total').innerText} so'm)`;
+                    btn.innerText = `Buyurtma berish — ${document.getElementById('modal-total').innerText} so'm`;
                     btn.disabled = false;
                     return;
                 }
                 orderId = data.order_id;
                 localStorage.setItem('user_phone', phone);
             } catch (e) {
-                tg.showAlert("🌐 Tarmoq xatosi: " + (e.name === 'AbortError' ? 'Vaqt tugadi (15s)' : e.message));
-                btn.innerText = `Rasmiylashtirish (${document.getElementById('modal-total').innerText} so'm)`;
+                tg.showAlert("🌐 Tarmoq xatosi: " + (e.name === 'AbortError' ? 'Vaqt tugadi' : e.message));
+                btn.innerText = `Buyurtma berish — ${document.getElementById('modal-total').innerText} so'm`;
                 btn.disabled = false;
                 return;
             }
 
-            // --- MUVAFFAQIYAT ---
             tg.HapticFeedback.notificationOccurred('success');
             cart = {};
             updateCart();
             closeModal();
 
-            // Chiroyli success ekrani ko'rsat
             const overlay = document.getElementById('success-overlay');
             overlay.style.display = 'flex';
 
-            // Darhol avtomatik yopiladi (reski yopish)
             tg.close();
         }
 

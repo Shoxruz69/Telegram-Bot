@@ -1,0 +1,238 @@
+{% extends 'admin/base.html' %}
+
+{% block head_css %}
+{{ super() }}
+<style>
+/* ====== CAFE EXPRESS - ADMIN PANEL CUSTOM THEME ====== */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@400;500;600;700&display=swap');
+
+:root {
+    --gold:       #c9a227;
+    --gold-light: #e0b84a;
+    --gold-dark:  #a07c10;
+    --black:      #111111;
+    --black-soft: #181818;
+    --card-dark:  #1e1e1e;
+    --border:     rgba(201,162,39,0.2);
+}
+
+body {
+    background-color: #111111 !important;
+    font-family: 'Poppins', sans-serif !important;
+    color: #d4c4a0 !important;
+}
+
+/* ── NAVBAR ── */
+.navbar {
+    background: linear-gradient(135deg, #0d0d0d, #1a1400) !important;
+    border-bottom: 2px solid rgba(201,162,39,0.4) !important;
+    box-shadow: 0 2px 20px rgba(201,162,39,0.15) !important;
+}
+.navbar-brand {
+    font-family: 'Playfair Display', serif !important;
+    font-size: 22px !important;
+    font-weight: 700 !important;
+    background: linear-gradient(90deg, #e0b84a, #c9a227) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    padding: 8px 0 !important;
+}
+.navbar-nav > li > a {
+    color: #b8a882 !important;
+    font-weight: 500 !important;
+    font-size: 13px !important;
+    transition: color 0.2s !important;
+}
+.navbar-nav > li > a:hover,
+.navbar-nav > li.active > a {
+    color: var(--gold-light) !important;
+    background: rgba(201,162,39,0.1) !important;
+}
+.navbar-nav > li.active > a {
+    border-bottom: 2px solid var(--gold) !important;
+}
+
+/* ── SIDEBAR ── */
+.nav-sidebar,
+.sidebar {
+    background: #161616 !important;
+    border-right: 1px solid rgba(201,162,39,0.15) !important;
+}
+.nav-sidebar > li > a {
+    color: #9a8a6a !important;
+    font-weight: 500 !important;
+    border-left: 3px solid transparent !important;
+    transition: all 0.2s !important;
+}
+.nav-sidebar > li > a:hover {
+    background: rgba(201,162,39,0.08) !important;
+    color: var(--gold-light) !important;
+    border-left-color: var(--gold) !important;
+}
+.nav-sidebar > li.active > a {
+    background: rgba(201,162,39,0.12) !important;
+    color: var(--gold-light) !important;
+    border-left-color: var(--gold) !important;
+}
+
+/* ── CONTENT WRAPPER ── */
+.content-wrapper, .main-content, .container-fluid {
+    background: #111111 !important;
+}
+
+/* ── PAGE HEADER ── */
+.page-header {
+    border-bottom: 1px solid rgba(201,162,39,0.2) !important;
+    margin-bottom: 24px !important;
+}
+.page-header h1, h1, h2, h3, h4 {
+    color: var(--gold-light) !important;
+    font-family: 'Playfair Display', serif !important;
+}
+
+/* ── PANEL / CARDS ── */
+.panel {
+    background: #1e1e1e !important;
+    border: 1px solid rgba(201,162,39,0.15) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4) !important;
+}
+.panel-heading {
+    background: linear-gradient(135deg, #1a1500, #252010) !important;
+    border-bottom: 1px solid rgba(201,162,39,0.25) !important;
+    border-radius: 12px 12px 0 0 !important;
+    padding: 14px 20px !important;
+}
+.panel-title {
+    color: var(--gold-light) !important;
+    font-family: 'Playfair Display', serif !important;
+    font-size: 17px !important;
+}
+
+/* ── TABLE ── */
+.table {
+    background: transparent !important;
+    color: #d4c4a0 !important;
+}
+.table thead th {
+    background: #161200 !important;
+    color: var(--gold) !important;
+    font-weight: 700 !important;
+    font-size: 12px !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+    border-bottom: 2px solid rgba(201,162,39,0.3) !important;
+    padding: 12px 16px !important;
+}
+.table tbody tr {
+    background: #1e1e1e !important;
+    border-bottom: 1px solid rgba(201,162,39,0.07) !important;
+    transition: background 0.2s !important;
+}
+.table tbody tr:hover {
+    background: rgba(201,162,39,0.06) !important;
+}
+.table tbody td {
+    color: #cbbf9a !important;
+    vertical-align: middle !important;
+    padding: 11px 16px !important;
+    border-top: none !important;
+}
+
+/* ── BUTTONS ── */
+.btn-primary {
+    background: linear-gradient(135deg, var(--gold), var(--gold-dark)) !important;
+    border-color: transparent !important;
+    color: #111 !important;
+    font-weight: 700 !important;
+    border-radius: 8px !important;
+}
+.btn-primary:hover {
+    background: linear-gradient(135deg, var(--gold-light), var(--gold)) !important;
+    box-shadow: 0 4px 15px rgba(201,162,39,0.4) !important;
+}
+.btn-default {
+    background: #2a2a2a !important;
+    border-color: rgba(201,162,39,0.3) !important;
+    color: #b8a882 !important;
+    border-radius: 8px !important;
+}
+.btn-default:hover {
+    background: rgba(201,162,39,0.1) !important;
+    color: var(--gold-light) !important;
+}
+.btn-danger {
+    border-radius: 8px !important;
+}
+.btn-success {
+    background: linear-gradient(135deg, #2ed573, #1ea855) !important;
+    border-color: transparent !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+}
+
+/* ── FORM ── */
+.form-control {
+    background: #252525 !important;
+    border: 1px solid rgba(201,162,39,0.25) !important;
+    color: #d4c4a0 !important;
+    border-radius: 8px !important;
+}
+.form-control:focus {
+    border-color: var(--gold) !important;
+    box-shadow: 0 0 0 3px rgba(201,162,39,0.15) !important;
+    background: #2a2a1a !important;
+}
+.control-label, label {
+    color: #9a8a6a !important;
+    font-weight: 600 !important;
+    font-size: 13px !important;
+}
+.form-group {
+    margin-bottom: 18px !important;
+}
+select.form-control option {
+    background: #252525 !important;
+}
+
+/* ── PAGINATION ── */
+.pagination > li > a {
+    background: #252525 !important;
+    border-color: rgba(201,162,39,0.2) !important;
+    color: #b8a882 !important;
+}
+.pagination > .active > a {
+    background: var(--gold) !important;
+    border-color: var(--gold) !important;
+    color: #111 !important;
+    font-weight: 700 !important;
+}
+
+/* ── ALERTS ── */
+.alert-info {
+    background: rgba(201,162,39,0.1) !important;
+    border: 1px solid rgba(201,162,39,0.3) !important;
+    color: var(--gold-light) !important;
+}
+
+/* ── BREADCRUMB ── */
+.breadcrumb {
+    background: transparent !important;
+}
+.breadcrumb > li + li::before {
+    color: var(--gold) !important;
+}
+.breadcrumb > .active {
+    color: var(--gold-light) !important;
+}
+.breadcrumb a {
+    color: var(--gold) !important;
+}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #1a1a1a; }
+::-webkit-scrollbar-thumb { background: rgba(201,162,39,0.35); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--gold); }
+</style>
+{% endblock %}
