@@ -1,0 +1,163 @@
+/* Cafe Express Admin Panel - Dark Gold Theme */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@400;500;600;700&display=swap');
+
+:root {
+    --gold: #c9a227;
+    --gold-light: #e0b84a;
+    --gold-dark: #a07c10;
+}
+
+body {
+    background-color: #111111 !important;
+    font-family: 'Poppins', sans-serif !important;
+    color: #d4c4a0 !important;
+}
+
+.navbar {
+    background: linear-gradient(135deg, #0d0d0d, #1a1400) !important;
+    border-bottom: 2px solid rgba(201,162,39,0.4) !important;
+    box-shadow: 0 2px 20px rgba(201,162,39,0.15) !important;
+}
+.navbar-brand {
+    font-family: 'Playfair Display', serif !important;
+    font-size: 20px !important;
+    font-weight: 700 !important;
+    color: #c9a227 !important;
+}
+.navbar-nav > li > a {
+    color: #b8a882 !important;
+    font-weight: 500 !important;
+    font-size: 13px !important;
+}
+.navbar-nav > li > a:hover,
+.navbar-nav > li.active > a {
+    color: #e0b84a !important;
+    background: rgba(201,162,39,0.1) !important;
+}
+
+body > div.container-fluid > div > ul,
+.nav-sidebar {
+    background: #161616 !important;
+}
+
+.content-wrapper, .main-content {
+    background: #111111 !important;
+}
+
+.page-header {
+    border-bottom: 1px solid rgba(201,162,39,0.2) !important;
+}
+.page-header h1, h1, h2, h3, h4 {
+    color: #e0b84a !important;
+    font-family: 'Playfair Display', serif !important;
+}
+
+.panel {
+    background: #1e1e1e !important;
+    border: 1px solid rgba(201,162,39,0.15) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4) !important;
+}
+.panel-heading {
+    background: linear-gradient(135deg, #1a1500, #252010) !important;
+    border-bottom: 1px solid rgba(201,162,39,0.25) !important;
+    border-radius: 12px 12px 0 0 !important;
+}
+.panel-title {
+    color: #e0b84a !important;
+    font-family: 'Playfair Display', serif !important;
+}
+
+.table {
+    background: transparent !important;
+    color: #d4c4a0 !important;
+}
+.table > thead > tr > th {
+    background: #161200 !important;
+    color: #c9a227 !important;
+    font-weight: 700 !important;
+    font-size: 12px !important;
+    text-transform: uppercase !important;
+    border-bottom: 2px solid rgba(201,162,39,0.3) !important;
+    padding: 12px 16px !important;
+}
+.table > tbody > tr {
+    background: #1e1e1e !important;
+    border-bottom: 1px solid rgba(201,162,39,0.07) !important;
+}
+.table > tbody > tr:hover > td {
+    background: rgba(201,162,39,0.06) !important;
+}
+.table > tbody > tr > td {
+    color: #cbbf9a !important;
+    vertical-align: middle !important;
+    padding: 11px 16px !important;
+    border-top: 1px solid rgba(201,162,39,0.07) !important;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #c9a227, #a07c10) !important;
+    border-color: transparent !important;
+    color: #111 !important;
+    font-weight: 700 !important;
+    border-radius: 8px !important;
+}
+.btn-primary:hover {
+    background: linear-gradient(135deg, #e0b84a, #c9a227) !important;
+    box-shadow: 0 4px 15px rgba(201,162,39,0.4) !important;
+}
+.btn-default {
+    background: #2a2a2a !important;
+    border-color: rgba(201,162,39,0.3) !important;
+    color: #b8a882 !important;
+    border-radius: 8px !important;
+}
+.btn-default:hover {
+    background: rgba(201,162,39,0.1) !important;
+    color: #e0b84a !important;
+}
+.btn-danger { border-radius: 8px !important; }
+.btn-success {
+    background: linear-gradient(135deg, #2ed573, #1ea855) !important;
+    border-color: transparent !important;
+    border-radius: 8px !important;
+}
+
+.form-control {
+    background: #252525 !important;
+    border: 1px solid rgba(201,162,39,0.25) !important;
+    color: #d4c4a0 !important;
+    border-radius: 8px !important;
+}
+.form-control:focus {
+    border-color: #c9a227 !important;
+    box-shadow: 0 0 0 3px rgba(201,162,39,0.15) !important;
+    background: #2a2a1a !important;
+}
+.control-label, label {
+    color: #9a8a6a !important;
+    font-weight: 600 !important;
+    font-size: 13px !important;
+}
+select.form-control option { background: #252525 !important; }
+
+.pagination > li > a {
+    background: #252525 !important;
+    border-color: rgba(201,162,39,0.2) !important;
+    color: #b8a882 !important;
+}
+.pagination > .active > a {
+    background: #c9a227 !important;
+    border-color: #c9a227 !important;
+    color: #111 !important;
+    font-weight: 700 !important;
+}
+
+.breadcrumb { background: transparent !important; }
+.breadcrumb > .active { color: #e0b84a !important; }
+.breadcrumb a { color: #c9a227 !important; }
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #1a1a1a; }
+::-webkit-scrollbar-thumb { background: rgba(201,162,39,0.35); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #c9a227; }

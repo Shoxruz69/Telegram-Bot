@@ -415,6 +415,7 @@ def upload_receipt(order_id):
 uploads_path = os.path.join(os.path.dirname(__file__), 'static', 'uploads')
 
 class MenuAdminView(ModelView):
+    extra_css = ['/static/admin_theme.css']
     column_list = ('id', 'category', 'name', 'description', 'price', 'image_url')
     column_labels = {
         'id': '№',
@@ -456,6 +457,7 @@ def _format_datetime(view, context, model, name):
 class OrderAdminView(ModelView):
     # Admin panelda ko'rinadigan ustunlar
     list_template = 'admin/order_list.html'
+    extra_css = ['/static/admin_theme.css']
     column_list = ('id', 'user_phone', 'order_items_text', 'total_amount', 'payment_method', 'address', 'status', 'receipt_image', 'created_at')
     column_labels = {
         'id': '№',
@@ -538,12 +540,15 @@ class OrderItemAdminView(ModelView):
 
 
 # --- Admin Panel Ko'rinishlari (Views) ---
-admin = Admin(app, name='☕ Cafe Express Admin', base_template='admin/custom_base.html', template_mode='bootstrap3')
+class ThemedModelView(ModelView):
+    extra_css = ['/static/admin_theme.css']
+
+admin = Admin(app, name='☕ Cafe Express Admin', template_mode='bootstrap3')
 admin.add_view(OrderAdminView(Order, db.session, name="📦 Buyurtmalar"))
 admin.add_view(MenuAdminView(Menu, db.session, name="🍔 Menyu (Taomlar)"))
-admin.add_view(ModelView(Category, db.session, name="📁 Kategoriyalar"))
-admin.add_view(ModelView(Setting, db.session, name="⚙️ Sozlamalar"))
-admin.add_view(ModelView(User, db.session, name="👤 Mijozlar"))
+admin.add_view(ThemedModelView(Category, db.session, name="📁 Kategoriyalar"))
+admin.add_view(ThemedModelView(Setting, db.session, name="⚙️ Sozlamalar"))
+admin.add_view(ThemedModelView(User, db.session, name="👤 Mijozlar"))
 
 if __name__ == '__main__':
     print("Admin panel ishga tushdi: http://127.0.0.1:5000/admin")
