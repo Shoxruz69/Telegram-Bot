@@ -121,15 +121,16 @@
         .menu-list {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 14px;
+            gap: 16px;
             padding: 10px 16px 0;
         }
 
         .menu-item {
-            background: var(--card-dark);
+            background: #1e1e1e;
             border-radius: var(--radius);
             overflow: hidden;
-            border: 1px solid rgba(201,162,39,0.1);
+            border: 1px solid rgba(201,162,39,0.3);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
             display: flex;
             flex-direction: column;
             transition: transform 0.2s, box-shadow 0.2s;
@@ -137,8 +138,9 @@
         }
         .menu-item:active { transform: scale(0.97); }
         .menu-item.in-cart {
-            border-color: rgba(201,162,39,0.4);
-            box-shadow: 0 0 16px rgba(201,162,39,0.15);
+            border-color: var(--gold);
+            box-shadow: 0 0 16px rgba(201,162,39,0.25);
+            background: #24221a;
         }
 
         .img-container {
@@ -918,7 +920,10 @@
             updateCart();
             closeModal();
 
-            tg.close();
+            tg.showAlert("✅ Buyurtmangiz qabul qilindi! Tez orada aloqaga chiqamiz.", function() {
+                tg.close();
+            });
+
 
         }
 
