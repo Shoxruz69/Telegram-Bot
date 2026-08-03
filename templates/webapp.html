@@ -869,7 +869,7 @@
             }
 
             const btn = document.getElementById('submit-btn');
-            btn.innerText = "⏳ Saqlanmoqda...";
+            btn.innerText = "⏳ Tasdiqlanmoqda...";
             btn.disabled = true;
 
             const orderItems = Object.values(cart).map(c => ({ id: c.item.id, qty: c.qty }));
@@ -918,10 +918,8 @@
             updateCart();
             closeModal();
 
-            const overlay = document.getElementById('success-overlay');
-            overlay.style.display = 'flex';
-
             tg.close();
+
         }
 
         init();
