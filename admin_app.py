@@ -441,6 +441,14 @@ def _user_phone(view, context, model, name):
         return model.user.phone or '—'
     return '—'
 
+def _format_datetime(view, context, model, name):
+    if not model.created_at:
+        return ''
+    from datetime import timedelta
+    # Add 5 hours for Tashkent time (UTC+5)
+    tashkent_time = model.created_at + timedelta(hours=5)
+    return tashkent_time.strftime("%Y-%m-%d %H:%M:%S")
+
 class OrderAdminView(ModelView):
     # Admin panelda ko'rinadigan ustunlar
     list_template = 'admin/order_list.html'
@@ -460,6 +468,7 @@ class OrderAdminView(ModelView):
         'receipt_image': _receipt_link,
         'order_items_text': _order_items_display,
         'user_phone': _user_phone,
+        'created_at': _format_datetime,
     }
     column_extra_row_actions = []
     form_choices = {
