@@ -3,6 +3,7 @@ import requests
 import json
 import threading
 import uuid
+from datetime import datetime, timezone, timedelta
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 from flask import Flask, render_template, jsonify, request
@@ -72,6 +73,8 @@ class Setting(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     card_number = db.Column(db.String(100))
     card_name = db.Column(db.String(100))
+    work_time_start = db.Column(db.String(10), default="09:00")
+    work_time_end = db.Column(db.String(10), default="22:00")
 
     def __repr__(self):
         return f"Karta: {self.card_number} ({self.card_name})"
@@ -109,6 +112,17 @@ class Order(db.Model):
 # --- Jadvallarni yaratish ---
 with app.app_context():
     db.create_all()
+    try:
+        from sqlalchemy import inspect, text
+        inspector = inspect(db.engine)
+        columns = [col['name'] for col in inspector.get_columns('settings')]
+        if 'work_time_start' not in columns:
+            db.session.execute(text("ALTER TABLE settings ADD COLUMN work_time_start VARCHAR(10) DEFAULT '09:00'"))
+        if 'work_time_end' not in columns:
+            db.session.execute(text("ALTER TABLE settings ADD COLUMN work_time_end VARCHAR(10) DEFAULT '22:00'"))
+        db.session.commit()
+    except Exception as e:
+        print("Auto-migration xatosi:", e)
 
 # --- WebApp API ---
 @app.route('/webapp')
@@ -144,6 +158,21 @@ def api_data():
 @app.route('/api/checkout', methods=['POST'])
 def api_checkout():
     """1-qadam: Buyurtmani tezda saqlash va javob qaytarish (UI qotib qolmaydi)"""
+    # Ish vaqtini tekshirish
+    setting = Setting.query.first()
+    if setting and getattr(setting, 'work_time_start', None) and getattr(setting, 'work_time_end', None):
+        tz = timezone(timedelta(hours=5))
+        now = datetime.now(tz)
+        current_time_str = now.strftime("%H:%M")
+        start = setting.work_time_start
+        end = setting.work_time_end
+        if start <= end:
+            if not (start <= current_time_str <= end):
+                return jsonify({'success': False, 'error': f"Ish vaqti tugadi! Bizning ish vaqtimiz {start} dan {end} gacha."})
+        else:
+            if not (current_time_str >= start or current_time_str <= end):
+                return jsonify({'success': False, 'error': f"Ish vaqti tugadi! Bizning ish vaqtimiz {start} dan {end} gacha."})
+
     try:
         data = request.get_json(force=True, silent=True)
         if not data:
@@ -414,6 +443,7 @@ def _user_phone(view, context, model, name):
 
 class OrderAdminView(ModelView):
     # Admin panelda ko'rinadigan ustunlar
+    list_template = 'admin/order_list.html'
     column_list = ('id', 'user_phone', 'order_items_text', 'total_amount', 'payment_method', 'address', 'status', 'receipt_image', 'created_at')
     column_labels = {
         'id': '№',
