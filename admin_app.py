@@ -10,7 +10,6 @@ from flask import Flask, render_template, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
-from flask_admin.form import ImageUploadField
 from markupsafe import Markup
 
 load_dotenv()
@@ -416,14 +415,19 @@ def upload_receipt(order_id):
 uploads_path = os.path.join(os.path.dirname(__file__), 'static', 'uploads')
 
 class MenuAdminView(ModelView):
-    form_extra_fields = {
-        'image_url': ImageUploadField(
-            'Rasm',
-            base_path=uploads_path,
-            url_relative_path='uploads/',
-            namegen=lambda obj, file: file.filename
-        )
+    column_list = ('id', 'category', 'name', 'description', 'price', 'image_url')
+    column_labels = {
+        'id': '№',
+        'category': 'Kategoriya',
+        'name': 'Nomi',
+        'description': 'Tavsif',
+        'price': 'Narx (so\'m)',
+        'image_url': 'Rasm URL'
     }
+    form_columns = ['category', 'name', 'description', 'price', 'image_url']
+    can_create = True
+    can_edit = True
+    can_delete = True
 
 def _receipt_link(view, context, model, name):
     if not model.receipt_image:
