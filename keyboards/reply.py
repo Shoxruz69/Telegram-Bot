@@ -1,9 +1,12 @@
+import os
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 from aiogram.types.web_app_info import WebAppInfo
 
-# WEB_APP_URL ni o'zingizning ngrok ssilkangizga o'zgartiring!
-# Masalan: https://1234-abcd.ngrok.app/webapp
-WEB_APP_URL = "https://quickly-sessions-creamer.ngrok-free.dev/webapp" 
+render_url = os.getenv("RENDER_EXTERNAL_URL")
+if render_url:
+    WEB_APP_URL = f"{render_url.rstrip('/')}/webapp"
+else:
+    WEB_APP_URL = "https://quickly-sessions-creamer.ngrok-free.dev/webapp"
 
 def get_webapp_keyboard():
     return ReplyKeyboardMarkup(
