@@ -920,8 +920,10 @@
             updateCart();
             closeModal();
 
-            tg.close();
-
+            btn.innerText = "✅ Yuborildi!";
+            setTimeout(() => {
+                tg.close();
+            }, 500);
 
         }
 
