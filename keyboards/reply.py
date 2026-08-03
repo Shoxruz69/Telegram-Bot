@@ -2,8 +2,14 @@ import os
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 from aiogram.types.web_app_info import WebAppInfo
 
+# 1. Avval foydalanuvchi kiritgan WEB_APP_URL ni qidiramiz
+env_web_app = os.getenv("WEB_APP_URL")
+# 2. Agar yo'q bo'lsa, Render bergan URL ni qidiramiz
 render_url = os.getenv("RENDER_EXTERNAL_URL")
-if render_url:
+
+if env_web_app:
+    WEB_APP_URL = env_web_app
+elif render_url:
     WEB_APP_URL = f"{render_url.rstrip('/')}/webapp"
 else:
     WEB_APP_URL = "https://quickly-sessions-creamer.ngrok-free.dev/webapp"
