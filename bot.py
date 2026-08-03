@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+import urllib.request
 from aiogram import Bot, Dispatcher
 from aiogram.types import BotCommand, MenuButtonWebApp, WebAppInfo
 from aiogram.fsm.storage.memory import MemoryStorage
@@ -12,9 +13,27 @@ from handlers import start, menu, order
 # Logger sozlamalari
 logging.basicConfig(level=logging.INFO)
 
+async def keep_alive():
+    """Render'da botni uxlatmaslik uchun har 10 daqiqada ping yuborish"""
+    url = os.getenv("RENDER_EXTERNAL_URL")
+    if not url:
+        logging.info("RENDER_EXTERNAL_URL topilmadi. Keep-alive ishlamaydi.")
+        return
+        
+    while True:
+        try:
+            await asyncio.to_thread(urllib.request.urlopen, f"{url}/ping")
+            logging.info(f"Uyquni oldini olish uchun {url} ga ping yuborildi.")
+        except Exception as e:
+            logging.error(f"Ping yuborishda xatolik: {e}")
+        await asyncio.sleep(600)  # 10 daqiqa
+
 async def main():
     load_dotenv()
     bot_token = os.getenv("BOT_TOKEN")
+    
+    # Render'da uxlab qolmaslik funksiyasini orqa fonda ishga tushiramiz
+    asyncio.create_task(keep_alive())
     
     if not bot_token or bot_token == "YOUR_BOT_TOKEN_HERE":
         logging.error("Iltimos .env faylida BOT_TOKEN ni kiriting!")

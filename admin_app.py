@@ -115,6 +115,10 @@ with app.app_context():
 def webapp():
     return render_template('webapp.html')
 
+@app.route('/ping')
+def ping():
+    return "OK", 200
+
 @app.route('/api/data')
 def api_data():
     categories = Category.query.all()
