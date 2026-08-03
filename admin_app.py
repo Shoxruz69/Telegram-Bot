@@ -543,7 +543,7 @@ class OrderItemAdminView(ModelView):
 class ThemedModelView(ModelView):
     extra_css = ['/static/admin_theme.css']
 
-admin = Admin(app, name='☕ Cafe Express Admin', template_mode='bootstrap3')
+admin = Admin(app, name='☕ Cafe Express Admin')
 admin.add_view(OrderAdminView(Order, db.session, name="📦 Buyurtmalar"))
 admin.add_view(MenuAdminView(Menu, db.session, name="🍔 Menyu (Taomlar)"))
 admin.add_view(ThemedModelView(Category, db.session, name="📁 Kategoriyalar"))
