@@ -488,6 +488,8 @@
         </div>
     </div>
 
+    <div id="promo-banner-container"></div>
+
     <div class="category-tabs" id="categories">
         <div class="tab skeleton" style="width: 80px; height: 35px;"></div>
         <div class="tab skeleton" style="width: 100px; height: 35px;"></div>
@@ -605,19 +607,64 @@
         let userLat = null;
         let userLon = null;
 
+        function applyPromotions(menu, promotions) {
+            if (!promotions || promotions.length === 0) return menu;
+
+            promotions.forEach(p => {
+                const discount = p.discount_percent || 0;
+                if (discount <= 0) return;
+
+                menu.forEach(item => {
+                    const matchesItem = p.menu_item_id && Number(p.menu_item_id) === Number(item.id);
+                    const matchesCategory = p.category_id && Number(p.category_id) === Number(item.category_id);
+
+                    if (matchesItem || matchesCategory) {
+                        if (!item.old_price || item.old_price <= item.price) {
+                            item.old_price = item.price;
+                        }
+                        item.price = Math.round(item.old_price * (1 - discount / 100));
+                        item.promo_title = p.title;
+                        item.discount_percent = discount;
+                    }
+                });
+            });
+            return menu;
+        }
+
+        function renderPromoBanner(promotions) {
+            const container = document.getElementById('promo-banner-container');
+            if (!container) return;
+            if (!promotions || promotions.length === 0) {
+                container.innerHTML = '';
+                return;
+            }
+
+            const p = promotions[0];
+            container.innerHTML = `
+                <div style="margin: 0 16px 12px 16px; padding: 10px 14px; background: linear-gradient(135deg, rgba(201, 162, 39, 0.15), rgba(239, 68, 68, 0.15)); border: 1px solid rgba(201, 162, 39, 0.4); border-radius: 12px; display: flex; align-items: center; justify-content: space-between;">
+                    <div>
+                        <div style="color: var(--gold-primary); font-weight: bold; font-size: 13px;">🎁 ${p.title} (${p.discount_percent}% Chegirma)</div>
+                        <div style="color: #a1a1aa; font-size: 11px; margin-top: 2px;">${p.description || ''} ${p.end_date ? '• Tugash: ' + p.end_date : ''}</div>
+                    </div>
+                    <span style="font-size: 22px;">🔥</span>
+                </div>
+            `;
+        }
+
         async function init() {
             try {
                 const res = await fetch('/api/data');
                 const data = await res.json();
 
-                allItems = data.menu;
+                allItems = applyPromotions(data.menu, data.promotions);
                 globalSettings = data.settings;
+
+                renderPromoBanner(data.promotions);
 
                 document.getElementById('card-num-text').innerText = globalSettings.card_number;
                 document.getElementById('card-name-text').innerText = globalSettings.card_name;
 
                 renderCategories(data.categories);
-                if(data.categories.length > 0) renderMenu(data.categories[0].id);
 
                 const savedPhone = localStorage.getItem('user_phone');
                 if (savedPhone) {
