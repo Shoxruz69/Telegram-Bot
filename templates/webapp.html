@@ -5,367 +5,115 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Cafe Express</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-dark: #080512;
-            --bg-dark-secondary: #0f0a21;
-            --bg-card: rgba(22, 14, 45, 0.78);
-            --bg-card-hover: rgba(34, 21, 68, 0.88);
-            --purple-primary: #7C3AED;
-            --purple-light: #A855F7;
-            --purple-glow: rgba(168, 85, 247, 0.45);
-            --lime-neon: #CCFF00;
-            --lime-glow: rgba(204, 255, 0, 0.45);
-            --text-white: #FFFFFF;
-            --text-muted: #9CA3AF;
-            --text-purple-light: #C084FC;
-            --border-glow: rgba(168, 85, 247, 0.25);
-            --border-lime: rgba(204, 255, 0, 0.4);
-            --radius-xl: 24px;
-            --radius-lg: 16px;
-            --radius-md: 12px;
+            --gold:       #7C3AED;
+            --gold-light: #CCFF00;
+            --gold-dark:  #5B21B6;
+            --black:      #0F0B1E;
+            --black-soft: #18122B;
+            --card-dark:  #21193D;
+            --cream:      #FFFFFF;
+            --cream-muted:#E9D5FF;
+            --text-light: #F3F4F6;
+            --text-muted: #A78BFA;
+            --radius:     16px;
         }
 
-        * {
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-        }
+        * { box-sizing: border-box; }
 
         body {
-            font-family: 'Outfit', 'Plus Jakarta Sans', sans-serif;
-            background-color: var(--bg-dark);
-            background-image: 
-                radial-gradient(circle at 50% 0%, rgba(124, 58, 237, 0.18) 0%, transparent 65%),
-                radial-gradient(circle at 100% 100%, rgba(204, 255, 0, 0.05) 0%, transparent 50%);
-            background-attachment: fixed;
-            color: var(--text-white);
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--black);
+            color: var(--text-light);
             margin: 0;
             padding: 0;
-            padding-bottom: 110px;
+            padding-bottom: 100px;
             overflow-x: hidden;
             min-height: 100vh;
         }
 
-        /* ── CAFE EXPRESS SPLASH SCREEN ── */
-        #splash-screen {
-            position: fixed;
-            inset: 0;
-            z-index: 99999;
-            background: #080512;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            align-items: center;
-            padding: 24px 20px 40px;
-            transition: opacity 0.5s ease, visibility 0.5s ease;
-        }
-        #splash-screen.fade-out {
-            opacity: 0;
-            visibility: hidden;
-            pointer-events: none;
-        }
-
-        .splash-header-bar {
-            width: 100%;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 14px;
-            color: var(--purple-light);
-            font-weight: 500;
-        }
-
-        .splash-hero-container {
-            flex: 1;
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-        }
-
-        .splash-img-wrap {
-            width: 100%;
-            max-width: 340px;
-            height: 380px;
-            border-radius: 24px;
-            overflow: hidden;
-            position: relative;
-            box-shadow: 0 10px 40px rgba(124, 58, 237, 0.4);
-            border: 1px solid rgba(168, 85, 247, 0.35);
-        }
-
-        .splash-img-wrap img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .splash-overlay-title {
-            position: absolute;
-            bottom: 24px;
-            left: 0;
-            right: 0;
-            text-align: center;
-            z-index: 2;
-        }
-
-        .splash-overlay-title h1 {
-            margin: 0;
-            font-size: 34px;
-            font-weight: 900;
-            letter-spacing: -0.5px;
-            background: linear-gradient(180deg, #FFFFFF 0%, #D8B4FE 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            text-shadow: 0 4px 20px rgba(168, 85, 247, 0.6);
-        }
-
-        .splash-overlay-title p {
-            margin: 4px 0 0;
-            font-size: 13px;
-            color: var(--lime-neon);
-            letter-spacing: 0.5px;
-            font-weight: 600;
-        }
-
-        .splash-progress-container {
-            width: 100%;
-            max-width: 340px;
-            margin-top: 20px;
-        }
-
-        .splash-progress-track {
-            width: 100%;
-            height: 48px;
-            background: rgba(22, 14, 45, 0.9);
-            border-radius: 24px;
-            padding: 5px;
-            border: 1px solid rgba(168, 85, 247, 0.3);
-            display: flex;
-            align-items: center;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .splash-progress-fill {
-            height: 100%;
-            width: 14%;
-            border-radius: 18px;
-            background: linear-gradient(90deg, #A3E635, #CCFF00);
-            background-size: 30px 30px;
-            background-image: repeating-linear-gradient(
-                45deg,
-                rgba(0,0,0,0.15),
-                rgba(0,0,0,0.15) 10px,
-                transparent 10px,
-                transparent 20px
-            );
-            box-shadow: 0 0 20px rgba(204, 255, 0, 0.6);
-            transition: width 0.3s ease;
-        }
-
-        .splash-progress-text {
-            position: absolute;
-            right: 18px;
-            font-size: 18px;
-            font-weight: 800;
-            color: var(--text-white);
-            font-family: 'Outfit', sans-serif;
-        }
-
-        /* ── TELEGRAM APP HEADER ── */
-        .tg-header {
+        /* ── HEADER ── */
+        .header {
             position: sticky;
             top: 0;
             z-index: 100;
-            padding: 12px 18px;
-            background: rgba(8, 5, 18, 0.88);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
+            padding: 14px 20px;
+            background: rgba(17,17,17,0.92);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid rgba(168, 85, 247, 0.18);
+            border-bottom: 1px solid rgba(201,162,39,0.25);
         }
 
-        .header-brand-block {
+        .header-brand {
             display: flex;
             align-items: center;
             gap: 10px;
         }
 
-        .header-logo-img {
+        .header-logo {
             width: 38px;
             height: 38px;
             border-radius: 50%;
-            object-fit: cover;
-            border: 1.5px solid var(--lime-neon);
-            box-shadow: 0 0 12px rgba(204, 255, 0, 0.4);
+            background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            box-shadow: 0 0 12px rgba(201,162,39,0.4);
         }
 
-        .tg-cancel-btn {
-            color: var(--purple-light);
-            font-weight: 500;
-            font-size: 14px;
-            cursor: pointer;
-            background: none;
-            border: none;
-            padding: 0;
-        }
-
-        .tg-title-block {
-            text-align: center;
-        }
-        .tg-title-block h2 {
+        .header h3 {
             margin: 0;
-            font-size: 16px;
-            font-weight: 800;
-            color: var(--text-white);
-            letter-spacing: -0.3px;
-        }
-        .tg-title-block span {
-            font-size: 11px;
-            color: var(--lime-neon);
-            display: block;
-            margin-top: -1px;
-            font-weight: 600;
-        }
-
-        .tg-options-btn {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            background: rgba(168, 85, 247, 0.15);
-            border: 1px solid rgba(168, 85, 247, 0.3);
-            color: var(--purple-light);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        /* ── HERO TOP BADGES & BANNER ── */
-        .hero-section {
-            padding: 16px 16px 0;
-        }
-
-        .top-features-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            margin-bottom: 14px;
-        }
-
-        .feature-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-glow);
-            border-radius: 18px;
-            padding: 12px 14px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            cursor: pointer;
-        }
-        .feature-card:active {
-            transform: scale(0.97);
-        }
-
-        .feature-icon-box {
-            width: 38px;
-            height: 38px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            font-family: 'Playfair Display', serif;
             font-size: 20px;
-        }
-        .feature-icon-box.delivery {
-            background: rgba(204, 255, 0, 0.12);
-            border: 1px solid var(--border-lime);
-            color: var(--lime-neon);
-            box-shadow: 0 0 12px rgba(204, 255, 0, 0.25);
-        }
-        .feature-icon-box.bonus {
-            background: rgba(168, 85, 247, 0.15);
-            border: 1px solid var(--border-glow);
-            color: var(--purple-light);
-            box-shadow: 0 0 12px rgba(168, 85, 247, 0.3);
-        }
-
-        .feature-text label {
-            display: block;
-            font-size: 11px;
-            color: var(--text-muted);
-            font-weight: 500;
-        }
-        .feature-text span {
-            font-size: 13px;
             font-weight: 700;
-            color: var(--text-white);
+            background: linear-gradient(90deg, var(--gold-light), var(--gold));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 0.5px;
         }
 
-        .main-action-cta {
-            width: 100%;
-            padding: 16px;
-            border-radius: 20px;
-            background: linear-gradient(135deg, #7C3AED 0%, #A855F7 50%, #6366F1 100%);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            color: var(--text-white);
-            font-family: 'Outfit', sans-serif;
-            font-weight: 800;
-            font-size: 16px;
-            letter-spacing: 0.8px;
-            text-transform: uppercase;
-            box-shadow: 0 8px 30px rgba(124, 58, 237, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.3);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-        .main-action-cta:active {
-            transform: scale(0.97);
-            box-shadow: 0 4px 15px rgba(124, 58, 237, 0.4);
+        .header-sub {
+            font-size: 10px;
+            color: var(--text-muted);
+            font-weight: 400;
+            display: block;
+            margin-top: -2px;
+            -webkit-text-fill-color: var(--text-muted);
         }
 
-        /* ── CATEGORY TABS ── */
+        /* ── CATEGORIES ── */
         .category-tabs {
             display: flex;
             overflow-x: auto;
-            padding: 16px 16px 8px;
+            padding: 16px 20px 8px;
             gap: 10px;
             scroll-behavior: smooth;
         }
         .category-tabs::-webkit-scrollbar { display: none; }
 
         .tab {
-            padding: 10px 20px;
-            background: var(--bg-card);
-            border: 1px solid var(--border-glow);
+            padding: 8px 20px;
+            background: var(--card-dark);
+            border: 1px solid rgba(201,162,39,0.15);
             border-radius: 20px;
             white-space: nowrap;
             font-weight: 600;
             font-size: 13px;
             color: var(--text-muted);
             cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            backdrop-filter: blur(10px);
+            transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
         }
         .tab.active {
-            background: linear-gradient(135deg, rgba(204, 255, 0, 0.15), rgba(168, 85, 247, 0.2));
-            color: var(--lime-neon);
-            border-color: var(--lime-neon);
-            box-shadow: 0 0 16px rgba(204, 255, 0, 0.3);
+            background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+            color: var(--black);
+            border-color: transparent;
+            box-shadow: 0 4px 14px rgba(201,162,39,0.45);
             transform: translateY(-2px);
         }
 
@@ -373,54 +121,54 @@
         .menu-list {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 14px;
-            padding: 8px 16px 0;
+            gap: 16px;
+            padding: 10px 16px 0;
         }
 
         .menu-item {
-            background: var(--bg-card);
-            border-radius: var(--radius-xl);
+            background: #1e1e1e;
+            border-radius: var(--radius);
             overflow: hidden;
-            border: 1px solid var(--border-glow);
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(201,162,39,0.3);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
             display: flex;
             flex-direction: column;
-            transition: transform 0.25s, border-color 0.25s, box-shadow 0.25s;
+            transition: transform 0.2s, box-shadow 0.2s;
             position: relative;
-            backdrop-filter: blur(12px);
         }
         .menu-item:active { transform: scale(0.97); }
         .menu-item.in-cart {
-            border-color: var(--lime-neon);
-            box-shadow: 0 0 20px rgba(204, 255, 0, 0.25);
-            background: rgba(30, 20, 58, 0.85);
+            border-color: var(--gold);
+            box-shadow: 0 0 16px rgba(201,162,39,0.25);
+            background: #24221a;
         }
 
         .img-container {
             width: 100%;
-            height: 135px;
+            height: 130px;
             overflow: hidden;
             position: relative;
-            background: #120b24;
+            background: #1a1a1a;
         }
         .menu-item img {
             width: 100%;
             height: 100%;
             object-fit: cover;
-            transition: transform 0.4s ease;
+            transition: transform 0.4s;
         }
-        .menu-item:hover img { transform: scale(1.08); }
+        .menu-item:hover img { transform: scale(1.07); }
 
+        /* Gold shimmer overlay on image */
         .img-container::after {
             content: '';
             position: absolute;
             inset: 0;
-            background: linear-gradient(to top, rgba(15, 10, 33, 0.85) 0%, transparent 60%);
+            background: linear-gradient(to top, rgba(17,17,17,0.55) 0%, transparent 60%);
             pointer-events: none;
         }
 
         .item-info {
-            padding: 12px 14px;
+            padding: 10px 12px 12px;
             flex-grow: 1;
             display: flex;
             flex-direction: column;
@@ -429,15 +177,15 @@
         .item-name {
             font-size: 14px;
             font-weight: 700;
-            margin: 0 0 4px 0;
-            line-height: 1.25;
-            color: var(--text-white);
+            margin: 0 0 3px 0;
+            line-height: 1.2;
+            color: var(--cream);
         }
         .item-desc {
-            font-size: 11px;
+            font-size: 10.5px;
             color: var(--text-muted);
-            margin: 0 0 10px 0;
-            line-height: 1.35;
+            margin: 0 0 8px 0;
+            line-height: 1.4;
             display: -webkit-box;
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
@@ -450,27 +198,26 @@
             margin-top: auto;
         }
         .item-price {
-            font-size: 13.5px;
-            font-weight: 800;
-            color: var(--lime-neon);
-            text-shadow: 0 0 10px rgba(204, 255, 0, 0.3);
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--gold-light);
         }
 
         /* ── ADD / QTY BUTTONS ── */
         .add-btn {
-            background: linear-gradient(135deg, var(--purple-primary), var(--purple-light));
-            color: var(--text-white);
+            background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+            color: var(--black);
             border: none;
-            width: 32px;
-            height: 32px;
-            border-radius: 10px;
+            width: 30px;
+            height: 30px;
+            border-radius: 9px;
             font-size: 18px;
             font-weight: bold;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 4px 14px var(--purple-glow);
+            box-shadow: 0 3px 10px rgba(201,162,39,0.4);
             transition: 0.2s;
         }
         .add-btn:active { transform: scale(0.88); }
@@ -479,120 +226,74 @@
             display: none;
             align-items: center;
             gap: 6px;
-            background: rgba(204, 255, 0, 0.1);
-            border-radius: 10px;
-            padding: 2px 5px;
-            border: 1px solid var(--border-lime);
+            background: rgba(201,162,39,0.1);
+            border-radius: 9px;
+            padding: 2px 4px;
+            border: 1px solid rgba(201,162,39,0.3);
         }
         .qty-btn {
             background: transparent;
-            color: var(--lime-neon);
+            color: var(--gold-light);
             border: none;
             width: 26px;
             height: 26px;
-            font-size: 18px;
-            font-weight: 800;
+            font-size: 17px;
+            font-weight: 700;
             cursor: pointer;
             line-height: 1;
         }
         .qty-val {
-            font-weight: 800;
+            font-weight: 700;
             font-size: 13px;
             min-width: 14px;
             text-align: center;
-            color: var(--lime-neon);
+            color: var(--gold-light);
         }
         .menu-item.in-cart .add-btn { display: none; }
         .menu-item.in-cart .qty-controls { display: flex; }
 
-        /* ── BOTTOM NAV BAR ── */
-        .neuron-bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            z-index: 90;
-            background: rgba(12, 8, 25, 0.94);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-top: 1px solid rgba(168, 85, 247, 0.2);
-            padding: 10px 16px 20px;
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-        }
-
-        .nav-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 4px;
-            color: var(--text-muted);
-            font-size: 10px;
-            font-weight: 700;
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
-            cursor: pointer;
-            transition: all 0.25s;
-        }
-        .nav-item-icon {
-            font-size: 20px;
-            transition: transform 0.25s;
-        }
-        .nav-item.active {
-            color: var(--lime-neon);
-        }
-        .nav-item.active .nav-item-icon {
-            transform: translateY(-2px) scale(1.1);
-            filter: drop-shadow(0 0 8px rgba(204, 255, 0, 0.6));
-        }
-
-        /* ── FLOATING CART BAR ── */
+        /* ── BOTTOM CART BAR ── */
         .bottom-bar {
             position: fixed;
-            bottom: 74px;
+            bottom: 14px;
             left: 16px;
             right: 16px;
-            background: linear-gradient(135deg, rgba(124, 58, 237, 0.95), rgba(168, 85, 247, 0.95));
-            backdrop-filter: blur(16px);
-            color: var(--text-white);
+            background: linear-gradient(135deg, var(--gold-dark), var(--gold));
+            color: var(--black);
             padding: 12px 18px;
             border-radius: 20px;
-            box-shadow: 0 8px 32px rgba(124, 58, 237, 0.6);
+            box-shadow: 0 8px 30px rgba(201,162,39,0.5);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            z-index: 95;
-            transform: translateY(200%);
-            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 100;
+            transform: translateY(150%);
+            transition: transform 0.4s cubic-bezier(0.175,0.885,0.32,1.275);
         }
         .bottom-bar.visible { transform: translateY(0); }
 
         .cart-info { display: flex; flex-direction: column; }
-        .cart-count { font-size: 11px; color: var(--lime-neon); font-weight: 700; }
+        .cart-count { font-size: 11px; opacity: 0.75; font-weight: 600; }
         .cart-total { font-size: 17px; font-weight: 800; }
 
         .checkout-btn {
-            background: var(--lime-neon);
-            color: #080512;
+            background: var(--black);
+            color: var(--gold-light);
             border: none;
-            padding: 10px 22px;
-            border-radius: 14px;
-            font-weight: 800;
-            font-size: 13.5px;
+            padding: 9px 22px;
+            border-radius: 13px;
+            font-weight: 700;
+            font-size: 13px;
             cursor: pointer;
             font-family: inherit;
-            box-shadow: 0 4px 15px rgba(204, 255, 0, 0.4);
-            transition: 0.2s;
+            letter-spacing: 0.3px;
         }
-        .checkout-btn:active { transform: scale(0.95); }
 
         /* ── SKELETON ── */
         .skeleton {
-            background: linear-gradient(90deg, #181033 25%, #25184c 50%, #181033 75%);
+            background: linear-gradient(90deg, #242424 25%, #2e2e2e 50%, #242424 75%);
             background-size: 200% 100%;
             animation: loading 1.5s infinite;
-            border-radius: 16px;
         }
         @keyframes loading {
             0%   { background-position: 200% 0; }
@@ -603,8 +304,7 @@
         .modal-overlay {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(4, 2, 10, 0.85);
-            backdrop-filter: blur(12px);
+            background: rgba(0,0,0,0.75);
             z-index: 1000;
             display: none;
             opacity: 0;
@@ -615,22 +315,21 @@
         .modal-content {
             position: absolute;
             bottom: 0; left: 0; right: 0;
-            background: rgba(18, 12, 38, 0.98);
-            border-radius: 28px 28px 0 0;
-            border-top: 1px solid var(--border-glow);
-            padding: 20px 20px 34px;
+            background: var(--black-soft);
+            border-radius: 24px 24px 0 0;
+            border-top: 2px solid rgba(201,162,39,0.35);
+            padding: 20px 20px 30px;
             transform: translateY(100%);
             transition: transform 0.4s cubic-bezier(0.175,0.885,0.32,1.275);
             max-height: 85vh;
             overflow-y: auto;
-            box-shadow: 0 -10px 40px rgba(124, 58, 237, 0.3);
         }
         .modal-overlay.active .modal-content { transform: translateY(0); }
 
         .modal-handle {
-            width: 44px;
+            width: 40px;
             height: 4px;
-            background: rgba(168, 85, 247, 0.4);
+            background: rgba(201,162,39,0.35);
             border-radius: 4px;
             margin: 0 auto 16px;
         }
@@ -643,17 +342,18 @@
         }
         .modal-header h3 {
             margin: 0;
-            font-size: 20px;
-            font-weight: 800;
-            color: var(--text-white);
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--gold-light);
+            font-family: 'Playfair Display', serif;
         }
         .close-btn {
-            background: rgba(168, 85, 247, 0.15);
-            border: 1px solid var(--border-glow);
-            width: 34px; height: 34px;
+            background: rgba(201,162,39,0.1);
+            border: 1px solid rgba(201,162,39,0.25);
+            width: 32px; height: 32px;
             border-radius: 50%;
             font-weight: bold;
-            color: var(--purple-light);
+            color: var(--gold-light);
             cursor: pointer;
             font-size: 14px;
         }
@@ -663,93 +363,92 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 12px 0;
-            border-bottom: 1px solid rgba(168, 85, 247, 0.12);
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(201,162,39,0.1);
         }
-        .cart-list-item-name { font-weight: 600; font-size: 14px; flex: 1; color: var(--text-white); }
-        .cart-list-item-qty  { font-weight: 800; color: var(--lime-neon); margin: 0 12px; font-size: 13.5px; }
-        .cart-list-item-price{ font-weight: 800; font-size: 14px; color: var(--text-white); }
+        .cart-list-item-name { font-weight: 600; font-size: 13px; flex: 1; color: var(--cream); }
+        .cart-list-item-qty  { font-weight: 700; color: var(--gold); margin: 0 12px; font-size: 13px; }
+        .cart-list-item-price{ font-weight: 700; font-size: 13px; color: var(--gold-light); }
 
         /* ── PAYMENT OPTIONS ── */
         .payment-method { margin-bottom: 16px; }
-        .payment-method p { font-weight: 600; margin-bottom: 10px; font-size: 13.5px; color: var(--text-muted); }
+        .payment-method p { font-weight: 600; margin-bottom: 10px; font-size: 14px; color: var(--text-muted); }
         .payment-options { display: flex; gap: 10px; }
         .pay-opt {
             flex: 1;
-            padding: 12px;
+            padding: 11px;
             text-align: center;
-            border: 1px solid var(--border-glow);
-            border-radius: 14px;
-            font-weight: 700;
+            border: 2px solid rgba(201,162,39,0.2);
+            border-radius: 12px;
+            font-weight: 600;
             font-size: 13px;
             cursor: pointer;
             transition: 0.2s;
             color: var(--text-muted);
-            background: var(--bg-card);
+            background: var(--card-dark);
         }
         .pay-opt.active {
-            border-color: var(--lime-neon);
-            background: rgba(204, 255, 0, 0.12);
-            color: var(--lime-neon);
-            box-shadow: 0 0 14px rgba(204, 255, 0, 0.2);
+            border-color: var(--gold);
+            background: rgba(201,162,39,0.12);
+            color: var(--gold-light);
         }
 
         /* ── FORM INPUTS ── */
         .form-input {
             width: 100%;
-            padding: 13px 16px;
+            padding: 12px 14px;
             margin-top: 10px;
-            border: 1px solid var(--border-glow);
-            border-radius: 14px;
-            font-size: 13.5px;
-            background: var(--bg-card);
-            color: var(--text-white);
+            border: 1px solid rgba(201,162,39,0.2);
+            border-radius: 10px;
+            font-size: 13px;
+            background: var(--card-dark);
+            color: var(--cream);
             box-sizing: border-box;
             font-family: inherit;
             outline: none;
             transition: border-color 0.2s;
         }
-        .form-input:focus { border-color: var(--purple-light); box-shadow: 0 0 12px var(--purple-glow); }
+        .form-input:focus { border-color: var(--gold); }
         .form-input::placeholder { color: var(--text-muted); }
 
         /* ── CARD DETAILS ── */
         .card-details {
             margin-top: 14px;
-            padding: 16px;
-            background: rgba(124, 58, 237, 0.1);
-            border-radius: 16px;
-            border: 1px dashed var(--border-glow);
+            padding: 14px;
+            background: rgba(201,162,39,0.07);
+            border-radius: 12px;
+            border: 1px dashed rgba(201,162,39,0.4);
         }
         .card-details p { margin: 0 0 8px; font-size: 13px; color: var(--text-muted); }
         .card-box {
-            background: linear-gradient(135deg, #180d38, #0e0724);
-            padding: 14px 16px;
-            border-radius: 14px;
-            border: 1px solid var(--border-lime);
-            color: var(--lime-neon);
+            background: linear-gradient(135deg, #2a2010, #1e1a0e);
+            padding: 12px 14px;
+            border-radius: 10px;
+            border: 1px solid rgba(201,162,39,0.3);
+            color: var(--gold-light);
         }
-        .card-box strong { font-size: 17px; letter-spacing: 1.5px; }
+        .card-box strong { font-size: 16px; letter-spacing: 1px; }
         .card-box small  { color: var(--text-muted); font-size: 12px; }
 
         /* ── LOCATION BUTTON ── */
         .loc-btn {
             width: 100%;
-            padding: 13px;
+            padding: 12px;
             margin-top: 10px;
-            border: 1px dashed var(--border-lime);
-            border-radius: 14px;
-            font-size: 13.5px;
-            font-weight: 700;
-            background: rgba(204, 255, 0, 0.08);
-            color: var(--lime-neon);
+            border: 2px dashed rgba(201,162,39,0.4);
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            background: rgba(201,162,39,0.06);
+            color: var(--gold);
             cursor: pointer;
             transition: all 0.3s;
             font-family: inherit;
         }
-        .loc-btn:hover { background: rgba(204, 255, 0, 0.15); }
+        .loc-btn:hover { background: rgba(201,162,39,0.12); }
         .loc-btn.done {
             border-style: solid;
-            background: rgba(46,213,115,0.15);
+            background: rgba(46,213,115,0.08);
             border-color: #2ed573;
             color: #2ed573;
         }
@@ -757,18 +456,18 @@
         /* ── FINAL CHECKOUT ── */
         .final-checkout-btn {
             width: 100%;
-            margin-top: 18px;
-            padding: 16px;
-            background: linear-gradient(135deg, var(--purple-primary), var(--purple-light));
-            color: var(--text-white);
+            margin-top: 16px;
+            padding: 15px;
+            background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+            color: var(--black);
             border: none;
-            border-radius: 16px;
-            font-size: 16px;
+            border-radius: 14px;
+            font-size: 15px;
             font-weight: 800;
             cursor: pointer;
             font-family: inherit;
-            box-shadow: 0 6px 25px var(--purple-glow);
-            letter-spacing: 0.3px;
+            box-shadow: 0 6px 20px rgba(201,162,39,0.45);
+            letter-spacing: 0.2px;
             transition: 0.2s;
         }
         .final-checkout-btn:active { transform: scale(0.98); }
@@ -777,115 +476,42 @@
 </head>
 <body>
 
-    <!-- ── CAFE EXPRESS SPLASH SCREEN ── -->
-    <div id="splash-screen" onclick="hideSplash()">
-        <div class="splash-header-bar">
-            <span>Cancel</span>
-            <span>Cafe Express</span>
-            <span>•••</span>
-        </div>
-
-        <div class="splash-hero-container">
-            <div class="splash-img-wrap">
-                <img src="/static/cafe_splash.png" alt="Cafe Express Splash" id="splash-robot-img">
-                <div class="splash-overlay-title">
-                    <h1>Cafe Express</h1>
-                    <p>Tez va mazali yetkazish.</p>
-                </div>
+    <div class="header">
+        <div class="header-brand">
+            <div class="header-logo" style="padding:0;overflow:hidden;background:none;">
+                <img src="/static/cafe_logo.png" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" alt="Logo">
             </div>
-        </div>
-
-        <div class="splash-progress-container">
-            <div class="splash-progress-track">
-                <div class="splash-progress-fill" id="splash-fill"></div>
-                <span class="splash-progress-text" id="splash-text">14%</span>
+            <div>
+                <h3>Cafe Express</h3>
+                <span class="header-sub">Tez yetkazib berish</span>
             </div>
         </div>
     </div>
 
-    <!-- ── TELEGRAM APP HEADER ── -->
-    <div class="tg-header">
-        <div class="header-brand-block">
-            <img src="/static/cafe_logo.png" alt="Cafe Express Logo" class="header-logo-img">
-            <div class="tg-title-block">
-                <h2>Cafe Express</h2>
-                <span>Tez yetkazib berish</span>
-            </div>
-        </div>
-        <button class="tg-cancel-btn" onclick="tg.close()">Cancel</button>
-    </div>
-
-    <!-- ── HERO SECTION ── -->
-    <div class="hero-section">
-        <div class="top-features-grid">
-            <div class="feature-card" onclick="switchNav('aksiyalar')">
-                <div class="feature-icon-box delivery">🚀</div>
-                <div class="feature-text">
-                    <label>Yetkazib berish</label>
-                    <span>Tezkor Xizmat</span>
-                </div>
-            </div>
-            <div class="feature-card" onclick="switchNav('profil')">
-                <div class="feature-icon-box bonus">🎁</div>
-                <div class="feature-text">
-                    <label>Bonuslar</label>
-                    <span>Keshbek 10%</span>
-                </div>
-            </div>
-        </div>
-
-        <button class="main-action-cta" onclick="switchNav('menyu')">
-            ⚡ MENYU VA BUYURTMA BERISH
-        </button>
-    </div>
-
-    <!-- ── CATEGORIES ── -->
     <div class="category-tabs" id="categories">
-        <div class="tab skeleton" style="width: 80px; height: 38px;"></div>
-        <div class="tab skeleton" style="width: 100px; height: 38px;"></div>
+        <div class="tab skeleton" style="width: 80px; height: 35px;"></div>
+        <div class="tab skeleton" style="width: 100px; height: 35px;"></div>
     </div>
 
-    <!-- ── MENU GRID ── -->
     <div class="menu-list" id="menu-items">
-        <div class="menu-item skeleton" style="height: 240px;"></div>
-        <div class="menu-item skeleton" style="height: 240px;"></div>
+        <div class="menu-item skeleton" style="height: 230px;"></div>
+        <div class="menu-item skeleton" style="height: 230px;"></div>
     </div>
 
-    <!-- ── BOTTOM NAVIGATION (CAFE EXPRESS TAB BAR) ── -->
-    <div class="neuron-bottom-nav">
-        <div class="nav-item active" id="nav-menyu" onclick="switchNav('menyu')">
-            <div class="nav-item-icon">🍔</div>
-            <span>MENYU</span>
-        </div>
-        <div class="nav-item" id="nav-aksiyalar" onclick="switchNav('aksiyalar')">
-            <div class="nav-item-icon">⚡</div>
-            <span>AKSIYALAR</span>
-        </div>
-        <div class="nav-item" id="nav-savat" onclick="switchNav('savat')">
-            <div class="nav-item-icon">🛒</div>
-            <span>SAVATCHA</span>
-        </div>
-        <div class="nav-item" id="nav-profil" onclick="switchNav('profil')">
-            <div class="nav-item-icon">👤</div>
-            <span>PROFIL</span>
-        </div>
-    </div>
-
-    <!-- ── BOTTOM CART BAR ── -->
     <div class="bottom-bar" id="bottom-bar">
         <div class="cart-info">
-            <span class="cart-count">🛒 <span id="cart-count">0</span> TA MAHSULOT</span>
+            <span class="cart-count">🛒 <span id="cart-count">0</span> ta mahsulot</span>
             <span class="cart-total"><span id="cart-total">0</span> so'm</span>
         </div>
         <button class="checkout-btn" onclick="openModal()">Savat →</button>
     </div>
 
-    <!-- ── SUCCESS OVERLAY ── -->
+    <!-- Muvaffaqiyat Ekrani -->
     <div id="success-overlay" style="
         display:none;
         position:fixed;
         top:0;left:0;right:0;bottom:0;
-        background:linear-gradient(135deg,#080512,#150a2e);
+        background:linear-gradient(135deg,#0d0d0d,#1a1500);
         z-index:9999;
         flex-direction:column;
         align-items:center;
@@ -895,23 +521,22 @@
     ">
         <div style="
             width:110px;height:110px;
-            background:linear-gradient(135deg,#CCFF00,#A3E635);
+            background:linear-gradient(135deg,#c9a227,#a07c10);
             border-radius:50%;
             display:flex;align-items:center;justify-content:center;
             font-size:52px;
             margin-bottom:28px;
-            box-shadow: 0 0 40px rgba(204,255,0,0.6);
+            box-shadow: 0 0 40px rgba(201,162,39,0.5);
             animation:popIn 0.4s ease;
         ">✅</div>
         <h2 id="success-title" style="
-            font-family:'Outfit',serif;
-            color:#CCFF00;
-            font-size:28px;
+            font-family:'Playfair Display',serif;
+            color:#c9a227;
+            font-size:26px;
             margin:0 0 12px;
-            font-weight:800;
         ">Buyurtma qabul qilindi!</h2>
-        <p id="success-sub" style="color:#9CA3AF;font-size:14px;margin:0 0 12px;">Admin tasdiqlashini kutmoqda...</p>
-        <p style="color:#C084FC;font-size:13px;">Tasdiqlangach Telegramda xabar olasiz</p>
+        <p id="success-sub" style="color:#9a8a6a;font-size:14px;margin:0 0 12px;">Admin tasdiqlashini kutmoqda...</p>
+        <p style="color:#555;font-size:12px;">Tasdiqlangach Telegramda xabar olasiz</p>
         <style>
             @keyframes popIn {
                 0% { transform: scale(0); }
@@ -921,7 +546,7 @@
         </style>
     </div>
 
-    <!-- ── CHECKOUT MODAL ── -->
+    <!-- Modal -->
     <div class="modal-overlay" id="cart-modal">
         <div class="modal-content">
             <div class="modal-handle"></div>
@@ -945,7 +570,7 @@
                 <button type="button" class="loc-btn" id="loc-btn" onclick="getLocation()">
                     📍 Lokatsiyani aniqlash
                 </button>
-                <small id="loc-status" style="display:block;margin-top:6px;color:#9CA3AF;"></small>
+                <small id="loc-status" style="display:block;margin-top:6px;color:#9a8a6a;"></small>
 
                 <div id="card-details" class="card-details">
                     <p>Karta raqamiga pul o'tkazing:</p>
@@ -967,35 +592,18 @@
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
+
+        if (tg.colorScheme === 'dark' || true) {
+            // Always dark mode for our theme
+        }
+
         tg.MainButton.hide();
 
         let allItems = [];
-        let categoriesList = [];
         let cart = {};
         let globalSettings = {};
         let userLat = null;
         let userLon = null;
-
-        // Splash Loader Animation Logic
-        let progress = 14;
-        const splashFill = document.getElementById('splash-fill');
-        const splashText = document.getElementById('splash-text');
-        const splashInterval = setInterval(() => {
-            if (progress < 100) {
-                progress += Math.floor(Math.random() * 18) + 5;
-                if (progress > 100) progress = 100;
-                splashFill.style.width = progress + '%';
-                splashText.innerText = progress + '%';
-            } else {
-                clearInterval(splashInterval);
-                setTimeout(hideSplash, 400);
-            }
-        }, 180);
-
-        function hideSplash() {
-            const el = document.getElementById('splash-screen');
-            if (el) el.classList.add('fade-out');
-        }
 
         async function init() {
             try {
@@ -1003,14 +611,13 @@
                 const data = await res.json();
 
                 allItems = data.menu;
-                categoriesList = data.categories;
                 globalSettings = data.settings;
 
-                document.getElementById('card-num-text').innerText = globalSettings.card_number || '8600 0000 0000 0000';
-                document.getElementById('card-name-text').innerText = globalSettings.card_name || 'Cafe Admin';
+                document.getElementById('card-num-text').innerText = globalSettings.card_number;
+                document.getElementById('card-name-text').innerText = globalSettings.card_name;
 
-                renderCategories(categoriesList);
-                if(categoriesList.length > 0) renderMenu(categoriesList[0].id);
+                renderCategories(data.categories);
+                if(data.categories.length > 0) renderMenu(data.categories[0].id);
 
                 const savedPhone = localStorage.getItem('user_phone');
                 if (savedPhone) {
@@ -1043,10 +650,7 @@
             const container = document.getElementById('menu-items');
             container.innerHTML = '';
 
-            let filtered = allItems;
-            if (categoryId) {
-                filtered = allItems.filter(i => i.category_id === categoryId);
-            }
+            const filtered = allItems.filter(i => i.category_id === categoryId);
 
             filtered.forEach(item => {
                 const inCart = cart[item.id] ? cart[item.id].qty : 0;
@@ -1057,11 +661,11 @@
 
                 const imgUrl = item.image_url && item.image_url.startsWith('http') ?
                                item.image_url :
-                               (item.image_url ? '/static/uploads/' + item.image_url : '/static/cafe_logo.png');
+                               (item.image_url ? '/static/uploads/' + item.image_url : 'https://placehold.co/300x200/1e1e1e/c9a227?text=Cafe+Express');
 
                 div.innerHTML = `
                     <div class="img-container">
-                        <img src="${imgUrl}" alt="${item.name}" loading="lazy" onerror="this.src='/static/cafe_logo.png'">
+                        <img src="${imgUrl}" alt="${item.name}" loading="lazy" onerror="this.src='https://placehold.co/300x200/1e1e1e/c9a227?text=Cafe+Express'">
                     </div>
                     <div class="item-info">
                         <div>
@@ -1087,15 +691,13 @@
             const item = allItems.find(i => i.id === id);
             if (!cart[id]) {
                 cart[id] = { item: item, qty: 1 };
-                const el = document.getElementById(`item-${id}`);
-                if (el) el.classList.add('in-cart');
+                document.getElementById(`item-${id}`).classList.add('in-cart');
             } else {
                 cart[id].qty++;
             }
-            const qtyEl = document.getElementById(`qty-${id}`);
-            if (qtyEl) qtyEl.innerText = cart[id].qty;
+            document.getElementById(`qty-${id}`).innerText = cart[id].qty;
             updateCart();
-            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+            tg.HapticFeedback.impactOccurred('light');
         }
 
         function minus(id) {
@@ -1103,14 +705,12 @@
                 cart[id].qty--;
                 if (cart[id].qty <= 0) {
                     delete cart[id];
-                    const el = document.getElementById(`item-${id}`);
-                    if (el) el.classList.remove('in-cart');
+                    document.getElementById(`item-${id}`).classList.remove('in-cart');
                 } else {
-                    const qtyEl = document.getElementById(`qty-${id}`);
-                    if (qtyEl) qtyEl.innerText = cart[id].qty;
+                    document.getElementById(`qty-${id}`).innerText = cart[id].qty;
                 }
                 updateCart();
-                if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+                tg.HapticFeedback.impactOccurred('light');
             }
         }
 
@@ -1132,27 +732,6 @@
             } else {
                 bottomBar.classList.remove('visible');
                 closeModal();
-            }
-        }
-
-        function switchNav(nav) {
-            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-            const activeEl = document.getElementById(`nav-${nav}`);
-            if (activeEl) activeEl.classList.add('active');
-
-            if (nav === 'menyu') {
-                if(categoriesList.length > 0) renderMenu(categoriesList[0].id);
-                else renderMenu(null);
-            } else if (nav === 'aksiyalar') {
-                renderMenu(null);
-            } else if (nav === 'savat') {
-                if (Object.keys(cart).length > 0) {
-                    openModal();
-                } else {
-                    tg.showAlert("🛒 Savatchangiz bo'sh. Taomlarni menyudan tanlang!");
-                }
-            } else if (nav === 'profil') {
-                tg.showAlert("👤 Cafe Express mijoz profili. Har bir buyurtmangiz uchun 10% keshbek beriladi!");
             }
         }
 
@@ -1338,7 +917,7 @@
                 return;
             }
 
-            if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+            tg.HapticFeedback.notificationOccurred('success');
             cart = {};
             updateCart();
             closeModal();
@@ -1347,6 +926,7 @@
             setTimeout(() => {
                 tg.close();
             }, 500);
+
         }
 
         init();
