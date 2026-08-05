@@ -688,22 +688,9 @@
             const container = document.getElementById('categories');
             container.innerHTML = '';
 
-            const hasPromoItems = allItems.some(i => i.old_price && i.old_price > i.price);
-            if (hasPromoItems) {
-                const promoDiv = document.createElement('div');
-                promoDiv.className = 'tab active';
-                promoDiv.innerText = '🎁 Aksiyalar';
-                promoDiv.onclick = () => {
-                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-                    promoDiv.classList.add('active');
-                    renderMenu('promo');
-                };
-                container.appendChild(promoDiv);
-            }
-
             categories.forEach((c, index) => {
                 const div = document.createElement('div');
-                div.className = `tab ${(!hasPromoItems && index === 0) ? 'active' : ''}`;
+                div.className = `tab ${index === 0 ? 'active' : ''}`;
                 div.innerText = c.name;
                 div.onclick = () => {
                     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -713,9 +700,7 @@
                 container.appendChild(div);
             });
 
-            if (hasPromoItems) {
-                renderMenu('promo');
-            } else if (categories.length > 0) {
+            if (categories.length > 0) {
                 renderMenu(categories[0].id);
             }
         }
