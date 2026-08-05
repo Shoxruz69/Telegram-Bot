@@ -25,7 +25,7 @@ async def cmd_start(message: Message):
         f"🔹 /start — Botni qayta ishga tushirish va menyuni ochish\n"
         f"🔹 /menu — Barcha taomlar va ichimliklar menyusi\n"
         f"🔹 /help — Yordam va bog'lanish ma'lumotlari\n\n"
-        f"👨‍🍳 *Jamoamiz va Xizmatimiz:* Biz mijozlarimizga har doim sarxil, issiq va yuqori sifatli taomlarni taqdim etamiz!\n\n"
+        f"👨‍🍳 *Jamoamiz va Xizmatimiz:* Biz mijozlarimizga har doim har xil, issiq va yuqori sifatli taomlarni taqdim etamiz!\n\n"
         f"👇 Quyidagi tugma orqali menyuni ochib buyurtma berishingiz mumkin:"
     )
 
