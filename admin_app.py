@@ -8,6 +8,7 @@ from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 from flask import Flask, render_template, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.orm import joinedload, subqueryload
 from flask_admin.contrib.sqla import ModelView
 from flask_admin import Admin, AdminIndexView, expose
 from flask import redirect, url_for
@@ -431,6 +432,9 @@ class MenuAdminView(ModelView):
     can_edit = True
     can_delete = True
 
+    def get_query(self):
+        return super(MenuAdminView, self).get_query().options(joinedload(Menu.category))
+
 def _receipt_link(view, context, model, name):
     if not model.receipt_image:
         return Markup('<span style="color:gray">Chek yo\'q</span>')
@@ -489,6 +493,12 @@ class OrderAdminView(ModelView):
     form_columns = ['status']
     can_create = False
     can_delete = False
+
+    def get_query(self):
+        return super(OrderAdminView, self).get_query().options(
+            joinedload(Order.user),
+            subqueryload(Order.items)
+        )
 
     def after_model_change(self, form, model, is_created):
         """Admin statusni o'zgartirganda mijozga xabar yuborish"""
