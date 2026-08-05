@@ -1,7 +1,7 @@
 import json
 from aiogram import Router, F
 from aiogram.filters import CommandStart, Command
-from aiogram.types import Message, FSInputFile
+from aiogram.types import Message
 from aiogram.fsm.context import FSMContext
 from database.db import add_user, get_user, clear_cart, add_to_cart, get_setting_card_number
 from keyboards.reply import get_webapp_keyboard, get_contact_keyboard, get_location_keyboard
@@ -18,36 +18,26 @@ async def cmd_start(message: Message):
     if not user:
         await add_user(message.from_user.id, "", 0.0, 0.0)
     
-    welcome_text = (
-        f"🚀 *Xush kelibsiz, {message.from_user.full_name}!* \n\n"
-        f"🤖 Men *Cafe Express* botiman!\n"
-        f"Eng mazali taomlarni eng tez fursatda yetkazib beramiz! ✨\n\n"
-        f"👇 Quyidagi tugmalardan foydalanib menyuni ko'rishingiz mumkin."
+    await message.answer(
+        f"Xush kelibsiz, {message.from_user.full_name}! Quyidagi tugma orqali menyuni ochishingiz mumkin.",
+        reply_markup=get_webapp_keyboard()
     )
-
-    try:
-        photo = FSInputFile("static/cafe_splash.png")
-        await message.answer_photo(photo=photo, caption=welcome_text, parse_mode="Markdown", reply_markup=get_webapp_keyboard())
-    except Exception:
-        await message.answer(welcome_text, parse_mode="Markdown", reply_markup=get_webapp_keyboard())
-
 
 @router.message(Command("menu"))
 async def cmd_menu(message: Message):
     await message.answer(
-        "✨ Menyu bilan tanishish va buyurtma berish uchun quyidagi tugmani bosing:",
+        "Menyu bilan tanishish va buyurtma berish uchun quyidagi tugmani bosing:",
         reply_markup=get_webapp_keyboard()
     )
 
 @router.message(Command("help"))
 async def cmd_help(message: Message):
     await message.answer(
-        "🟣 *Cafe Express botiga xush kelibsiz!*\n\n"
-        "Barcha taomlarni ko'rish va xarid qilish uchun pastdagi 🟣 *Menyu* tugmasidan foydalaning.\n\n"
-        "🟢 Buyurtmani tasdiqlaganingizdan so'ng sizdan telefon raqamingiz va lokatsiyangizni yuborish so'raladi.\n"
+        "Bu restoran botidir.\n\n"
+        "Barcha taomlarni ko'rish va xarid qilish uchun chap burchakdagi 🍔 Menyu tugmasidan foydalaning.\n\n"
+        "Buyurtmani tasdiqlaganingizdan so'ng sizdan telefon raqamingiz va lokatsiyangizni yuborish so'raladi.\n"
         "Agar xatolik kuzatilsa /start ni bosing.\n\n"
-        "📞 Bog'lanish va yordam uchun raqam: +998 88 732 55 15",
-        parse_mode="Markdown"
+        "📞 Bog'lanish va yordam uchun raqam: +998 88 732 55 15"
     )
 
 @router.message(Command("myid"))
