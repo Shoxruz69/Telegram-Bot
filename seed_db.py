@@ -10,7 +10,8 @@ cursor.execute('DELETE FROM promotions')
 categories = [
     (1, 'Fast Food'),
     (2, 'Ichimliklar'),
-    (3, 'Shirinliklar')
+    (3, 'Shirinliklar'),
+    (4, 'Combo Set')
 ]
 cursor.executemany('INSERT INTO categories (id, name) VALUES (?, ?)', categories)
 
@@ -49,7 +50,14 @@ menu_items = [
     (27, 3, 'Belgiya Vaflisi', 'Banan, nutella va vanil muzqaymoq sharigi bilan belgiya vaflisi.', 30000, 'https://images.unsplash.com/photo-1562376552-0d160a2f238d?w=500&auto=format&fit=crop&q=80'),
     (28, 3, 'Asalli Medovik', 'Tabiiy asal va qaymoqli kremdan ko\'p qavatli yumshoq tort.', 26000, 'https://images.unsplash.com/photo-1588195538326-c5b1e9f80a1b?w=500&auto=format&fit=crop&q=80'),
     (29, 3, 'Turk Pahlavasi', 'Yong\'oqli va asal qiyomli sharqona ko\'p qavatli pahlava.', 25000, 'https://images.unsplash.com/photo-1519676867240-f03562e64548?w=500&auto=format&fit=crop&q=80'),
-    (30, 3, 'Mevali Tart', 'Yangi rezavor mevalar va vanilli krem bilan tayyorlangan pishiriq.', 27000, 'https://images.unsplash.com/photo-1519869325930-281384150729?w=500&auto=format&fit=crop&q=80')
+    (30, 3, 'Mevali Tart', 'Yangi rezavor mevalar va vanilli krem bilan tayyorlangan pishiriq.', 27000, 'https://images.unsplash.com/photo-1519869325930-281384150729?w=500&auto=format&fit=crop&q=80'),
+
+    # ── Combo Set (Category 4) ──
+    (31, 4, 'Combo Fast & Cold', 'Gamburger + Kartoshka fri + Coca-Cola 0.5L + ketchup va pishloqli sous.', 55000, 'https://images.unsplash.com/photo-1594212699903-ec8a3eca50f6?w=500&auto=format&fit=crop&q=80'),
+    (32, 4, 'Combo Pizza Family', 'Pepperoni Pitsa (katta) + 2 ta Coca-Cola 0.5L + Tovuqli Naggets (8 ta).', 110000, 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=500&auto=format&fit=crop&q=80'),
+    (33, 4, 'Combo Cheesy Burger', 'Cheeseburger + Kartoshka fri (katta) + Klassik Moxito salqin ichimligi.', 65000, 'https://images.unsplash.com/photo-1561758033-d89a9ad46330?w=500&auto=format&fit=crop&q=80'),
+    (34, 4, 'Combo Lavash Set', 'Tovuqli Lavash + Kartoshka fri + Fanta Apelsin 0.5L.', 52000, 'https://images.unsplash.com/photo-1626700051175-6818013e1d4f?w=500&auto=format&fit=crop&q=80'),
+    (35, 4, 'Combo Sweet & Coffee', 'Kapuchino Kofe + Nyu-York Chizkeyk + 2 ta shokoladli donut.', 45000, 'https://images.unsplash.com/photo-1517433670267-08bbd4be890f?w=500&auto=format&fit=crop&q=80')
 ]
 
 cursor.executemany('INSERT INTO menu (id, category_id, name, description, price, image_url) VALUES (?, ?, ?, ?, ?, ?)', menu_items)
@@ -65,4 +73,4 @@ cursor.executemany('''
 
 conn.commit()
 conn.close()
-print("30 ta taom va faol aksiyalar bazaga qayta yuklandi!")
+print("Combo Set kategoriyasi va 5 ta Combo set taomlari muvaffaqiyatli bazaga qo'shildi!")
