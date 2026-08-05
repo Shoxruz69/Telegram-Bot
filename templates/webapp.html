@@ -879,50 +879,29 @@
             const orderItems = Object.values(cart).map(c => ({ id: c.item.id, qty: c.qty }));
             const userId = tg.initDataUnsafe?.user?.id || '0';
 
-            let orderId = null;
-            try {
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 60000);
-
-                const resp = await fetch('/api/checkout', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        user_id: userId,
-                        phone: phone,
-                        address: address,
-                        payment_method: selectedPayment,
-                        items: orderItems,
-                        latitude: userLat || 0,
-                        longitude: userLon || 0,
-                        receipt_base64: receiptBase64
-                    }),
-                    signal: controller.signal
-                });
-                clearTimeout(timeoutId);
-
-                const data = await resp.json();
-                if (!data.success) {
-                    tg.showAlert("❌ " + (data.error || "Xatolik yuz berdi!"));
-                    btn.innerText = `Buyurtma berish — ${document.getElementById('modal-total').innerText} so'm`;
-                    btn.disabled = false;
-                    return;
-                }
-                orderId = data.order_id;
-                localStorage.setItem('user_phone', phone);
-            } catch (e) {
-                tg.showAlert("🌐 Tarmoq xatosi: " + (e.name === 'AbortError' ? 'Vaqt tugadi' : e.message));
-                btn.innerText = `Buyurtma berish — ${document.getElementById('modal-total').innerText} so'm`;
-                btn.disabled = false;
-                return;
-            }
+            // Fonda so'rovni yuborish (keepalive webview yopilsa ham so'rovni yakunlaydi)
+            fetch('/api/checkout', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_id: userId,
+                    phone: phone,
+                    address: address,
+                    payment_method: selectedPayment,
+                    items: orderItems,
+                    latitude: userLat || 0,
+                    longitude: userLon || 0,
+                    receipt_base64: receiptBase64
+                }),
+                keepalive: true
+            }).catch(e => console.error("Checkout fetch error:", e));
 
             tg.HapticFeedback.notificationOccurred('success');
+            localStorage.setItem('user_phone', phone);
             cart = {};
-            updateCart();
-            closeModal();
-            tg.close();
 
+            // ZUDLIK BILAN (Instant) Mini App ni yopish va Telegram chatga o'tkazish
+            tg.close();
         }
 
         init();
