@@ -94,6 +94,19 @@ class Setting(db.Model):
     def __repr__(self):
         return f"Karta: {self.card_number} ({self.card_name})"
 
+class Promotion(db.Model):
+    __tablename__ = 'promotions'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text)
+    discount_percent = db.Column(db.Integer, default=0)
+    image_url = db.Column(db.String(500))
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+
+    def __repr__(self):
+        return f"Aksiya: {self.title}"
+
 class OrderItem(db.Model):
     """Buyurtma tarkibidagi har bir mahsulot"""
     __tablename__ = 'order_items'
@@ -577,8 +590,21 @@ class OrderItemAdminView(ModelView):
 
 
 # --- Admin Panel Ko'rinishlari (Views) ---
-class ThemedModelView(ModelView):
-    extra_css = ['/static/admin_theme.css']
+class PromotionAdminView(ThemedModelView):
+    column_list = ('id', 'title', 'description', 'discount_percent', 'image_url', 'is_active', 'created_at')
+    column_labels = {
+        'id': '№',
+        'title': 'Aksiya Nomi',
+        'description': 'Tavsif',
+        'discount_percent': 'Chegirma (%)',
+        'image_url': 'Rasm URL',
+        'is_active': 'Faollik',
+        'created_at': 'Vaqt'
+    }
+    form_columns = ['title', 'description', 'discount_percent', 'image_url', 'is_active']
+    can_create = True
+    can_edit = True
+    can_delete = True
 
 class MyHomeView(AdminIndexView):
     @expose('/')
@@ -591,6 +617,7 @@ class MyHomeView(AdminIndexView):
 admin = Admin(app, name='☕ Cafe Express Admin', index_view=MyHomeView(url='/admin'))
 admin.add_view(OrderAdminView(Order, db.session, name="📦 Buyurtmalar"))
 admin.add_view(MenuAdminView(Menu, db.session, name="🍔 Menyu (Taomlar)"))
+admin.add_view(PromotionAdminView(Promotion, db.session, name="🎁 Aksiyalar"))
 admin.add_view(ThemedModelView(Category, db.session, name="📁 Kategoriyalar"))
 admin.add_view(ThemedModelView(Setting, db.session, name="⚙️ Sozlamalar"))
 admin.add_view(ThemedModelView(User, db.session, name="👤 Mijozlar"))
