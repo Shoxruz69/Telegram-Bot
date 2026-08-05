@@ -590,6 +590,9 @@ class OrderItemAdminView(ModelView):
 
 
 # --- Admin Panel Ko'rinishlari (Views) ---
+class ThemedModelView(ModelView):
+    extra_css = ['/static/admin_theme.css']
+
 class PromotionAdminView(ThemedModelView):
     column_list = ('id', 'title', 'description', 'discount_percent', 'image_url', 'is_active', 'created_at')
     column_labels = {
