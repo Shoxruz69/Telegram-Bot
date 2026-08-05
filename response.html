@@ -1,0 +1,1621 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>📦 Buyurtmalar - Restoran Admin Panel</title>
+    
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="description" content="">
+        <meta name="author" content="">
+    
+    
+        <link href="/admin/static/bootstrap/bootstrap4/swatch/default/bootstrap.min.css?v=4.6.2"
+              rel="stylesheet" >
+        
+        <link href="/admin/static/bootstrap/bootstrap4/css/bootstrap.min.css?v=4.6.2" rel="stylesheet" >
+        
+        <link href="/admin/static/admin/css/bootstrap4/admin.css?v=1.1.1" rel="stylesheet" >
+        <link href="/admin/static/bootstrap/bootstrap4/css/font-awesome.min.css?v=4.7.0" rel="stylesheet" >
+        
+    
+    
+    
+    
+    
+    
+  <link href="/admin/static/vendor/select2/select2.css?v=4.2.1" rel="stylesheet">
+  <link href="/admin/static/vendor/select2/select2-bootstrap4.css?v=1.4.6" rel="stylesheet">
+  <link href="/admin/static/vendor/bootstrap-daterangepicker/daterangepicker-bs4.css?v=1.3.22" rel="stylesheet">
+  
+  
+
+
+    <!-- Har 10 soniyada sahifani avtomatik yangilash -->
+    <meta http-equiv="refresh" content="10">
+
+    
+    
+  </head>
+<body>
+
+    <div class="container">
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-2" role="navigation">
+            <!-- Brand and toggle get grouped for better mobile display -->
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#admin-navbar-collapse"
+                    aria-controls="admin-navbar-collapse" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <!-- navbar content -->
+            <div class="collapse navbar-collapse" id="admin-navbar-collapse">
+            
+                <a class="navbar-brand" href="/admin">Restoran Admin Panel</a>
+            
+            
+                <ul class="nav navbar-nav mr-auto">
+                    
+  
+  
+          <li>
+      <a class="nav-link " href="/admin/">
+        
+    
+  Home</a>
+      </li>
+          <li class="active">
+      <a class="nav-link " href="/admin/order/">
+        
+    
+  📦 Buyurtmalar</a>
+      </li>
+          <li>
+      <a class="nav-link " href="/admin/menu/">
+        
+    
+  🍔 Menyu (Taomlar)</a>
+      </li>
+          <li>
+      <a class="nav-link " href="/admin/category/">
+        
+    
+  📁 Kategoriyalar</a>
+      </li>
+          <li>
+      <a class="nav-link " href="/admin/setting/">
+        
+    
+  ⚙️ Sozlamalar</a>
+      </li>
+          <li>
+      <a class="nav-link " href="/admin/user/">
+        
+    
+  👤 Mijozlar</a>
+      </li>
+
+                </ul>
+            
+
+                
+                <ul class="nav navbar-nav navbar-right">
+                    
+  
+  
+
+                </ul>
+                
+            
+            
+            </div>
+        </nav>
+
+        
+            
+  
+    
+  
+
+        
+
+        
+        
+
+        
+          <h4 class="mb-4">
+            
+    
+  
+            📦 Buyurtmalar
+          </h4>
+        
+
+        
+    
+    <ul class="nav nav-tabs">
+        <li class="nav-item">
+            <a href="javascript:void(0)" class="nav-link active">List (17)</a>
+        </li>
+
+        
+
+        
+
+        
+
+        
+
+        
+
+        
+
+        
+        
+    </ul>
+    
+
+    
+
+    
+    <div class="table-responsive">
+    <table class="table table-striped table-bordered table-hover model-list">
+        <thead>
+            <tr>
+                
+                    
+                    
+                        
+                        <th class="">&nbsp;</th>
+                        
+                    
+                    
+                    
+                    <th class="column-header col-id">
+                        
+                            №
+                        
+                        
+                    </th>
+                    
+                    
+                    <th class="column-header col-user_phone">
+                        
+                            Telefon
+                        
+                        
+                    </th>
+                    
+                    
+                    <th class="column-header col-order_items_text">
+                        
+                            Buyurtma tarkibi
+                        
+                        
+                    </th>
+                    
+                    
+                    <th class="column-header col-total_amount">
+                        
+                            
+                                <a href="/admin/order/?sort=3&amp;page_size=20" title="Sort by Jami (so&#39;m)">Jami (so&#39;m)</a>
+                            
+                        
+                        
+                    </th>
+                    
+                    
+                    <th class="column-header col-payment_method">
+                        
+                            
+                                <a href="/admin/order/?sort=4&amp;page_size=20" title="Sort by To&#39;lov">To&#39;lov</a>
+                            
+                        
+                        
+                    </th>
+                    
+                    
+                    <th class="column-header col-address">
+                        
+                            
+                                <a href="/admin/order/?sort=5&amp;page_size=20" title="Sort by Manzil">Manzil</a>
+                            
+                        
+                        
+                    </th>
+                    
+                    
+                    <th class="column-header col-status">
+                        
+                            
+                                <a href="/admin/order/?sort=6&amp;page_size=20" title="Sort by Holat">Holat</a>
+                            
+                        
+                        
+                    </th>
+                    
+                    
+                    <th class="column-header col-receipt_image">
+                        
+                            
+                                <a href="/admin/order/?sort=7&amp;page_size=20" title="Sort by Chek">Chek</a>
+                            
+                        
+                        
+                    </th>
+                    
+                    
+                    <th class="column-header col-created_at">
+                        
+                            
+                                <a href="/admin/order/?sort=8&amp;page_size=20" title="Sort by Vaqt">Vaqt</a>
+                            
+                        
+                        
+                    </th>
+                    
+                
+            </tr>
+        </thead>
+        
+        <tr>
+            
+                
+                
+                    
+                    <td class="list-buttons-column">
+                        
+                          
+                          
+  
+<a class="icon" href="/admin/order/edit/?id=1&amp;url=/admin/order/?page_size%3D20" title="Edit Record">
+  <span class="fa fa-pencil glyphicon glyphicon-pencil"></span>
+</a>
+
+
+                          
+                        
+                    </td>
+
+                
+                    <td class="col-id">
+                    
+                    1
+                    
+                    </td>
+                
+                    <td class="col-user_phone">
+                    
+                    +998901234567
+                    
+                    </td>
+                
+                    <td class="col-order_items_text">
+                    
+                    Gamburger x1 = 35,000 so'm
+                    
+                    </td>
+                
+                    <td class="col-total_amount">
+                    
+                    35000
+                    
+                    </td>
+                
+                    <td class="col-payment_method">
+                    
+                    Naqd
+                    
+                    </td>
+                
+                    <td class="col-address">
+                    
+                    Test manzil
+                    
+                    </td>
+                
+                    <td class="col-status">
+                    
+                    Tasdiqlandi
+                    
+                    </td>
+                
+                    <td class="col-receipt_image">
+                    
+                    <span style="color:gray">Chek yo'q</span>
+                    
+                    </td>
+                
+                    <td class="col-created_at">
+                    
+                    2026-08-01 11:58:02
+                    
+                    </td>
+                
+            
+        </tr>
+        
+        <tr>
+            
+                
+                
+                    
+                    <td class="list-buttons-column">
+                        
+                          
+                          
+  
+<a class="icon" href="/admin/order/edit/?id=2&amp;url=/admin/order/?page_size%3D20" title="Edit Record">
+  <span class="fa fa-pencil glyphicon glyphicon-pencil"></span>
+</a>
+
+
+                          
+                        
+                    </td>
+
+                
+                    <td class="col-id">
+                    
+                    2
+                    
+                    </td>
+                
+                    <td class="col-user_phone">
+                    
+                    +998901234567
+                    
+                    </td>
+                
+                    <td class="col-order_items_text">
+                    
+                    Gamburger x2 = 70,000 so'm
+                    
+                    </td>
+                
+                    <td class="col-total_amount">
+                    
+                    70000
+                    
+                    </td>
+                
+                    <td class="col-payment_method">
+                    
+                    Naqd
+                    
+                    </td>
+                
+                    <td class="col-address">
+                    
+                    Test manzil, uy 1
+                    
+                    </td>
+                
+                    <td class="col-status">
+                    
+                    Tasdiqlandi
+                    
+                    </td>
+                
+                    <td class="col-receipt_image">
+                    
+                    <span style="color:gray">Chek yo'q</span>
+                    
+                    </td>
+                
+                    <td class="col-created_at">
+                    
+                    2026-08-01 12:01:55
+                    
+                    </td>
+                
+            
+        </tr>
+        
+        <tr>
+            
+                
+                
+                    
+                    <td class="list-buttons-column">
+                        
+                          
+                          
+  
+<a class="icon" href="/admin/order/edit/?id=3&amp;url=/admin/order/?page_size%3D20" title="Edit Record">
+  <span class="fa fa-pencil glyphicon glyphicon-pencil"></span>
+</a>
+
+
+                          
+                        
+                    </td>
+
+                
+                    <td class="col-id">
+                    
+                    3
+                    
+                    </td>
+                
+                    <td class="col-user_phone">
+                    
+                    +998901234567
+                    
+                    </td>
+                
+                    <td class="col-order_items_text">
+                    
+                    Gamburger x1 = 35,000 so'm
+                    
+                    </td>
+                
+                    <td class="col-total_amount">
+                    
+                    35000
+                    
+                    </td>
+                
+                    <td class="col-payment_method">
+                    
+                    Karta
+                    
+                    </td>
+                
+                    <td class="col-address">
+                    
+                    Test manzil
+                    
+                    </td>
+                
+                    <td class="col-status">
+                    
+                    Tasdiqlandi
+                    
+                    </td>
+                
+                    <td class="col-receipt_image">
+                    
+                    <a href="/static/uploads/receipts/f35d6e53_test_receipt.jpg" target="_blank" style="color:blue">📎 Chekni ko'rish</a>
+                    
+                    </td>
+                
+                    <td class="col-created_at">
+                    
+                    2026-08-01 12:10:01
+                    
+                    </td>
+                
+            
+        </tr>
+        
+        <tr>
+            
+                
+                
+                    
+                    <td class="list-buttons-column">
+                        
+                          
+                          
+  
+<a class="icon" href="/admin/order/edit/?id=4&amp;url=/admin/order/?page_size%3D20" title="Edit Record">
+  <span class="fa fa-pencil glyphicon glyphicon-pencil"></span>
+</a>
+
+
+                          
+                        
+                    </td>
+
+                
+                    <td class="col-id">
+                    
+                    4
+                    
+                    </td>
+                
+                    <td class="col-user_phone">
+                    
+                    +998991234567
+                    
+                    </td>
+                
+                    <td class="col-order_items_text">
+                    
+                    Gamburger x1 = 35,000 so'm
+                    
+                    </td>
+                
+                    <td class="col-total_amount">
+                    
+                    35000
+                    
+                    </td>
+                
+                    <td class="col-payment_method">
+                    
+                    Karta
+                    
+                    </td>
+                
+                    <td class="col-address">
+                    
+                    Toshkent, Chilonzor, 12-uy
+                    
+                    </td>
+                
+                    <td class="col-status">
+                    
+                    Kutilmoqda
+                    
+                    </td>
+                
+                    <td class="col-receipt_image">
+                    
+                    <span style="color:gray">Chek yo'q</span>
+                    
+                    </td>
+                
+                    <td class="col-created_at">
+                    
+                    2026-08-01 12:19:19
+                    
+                    </td>
+                
+            
+        </tr>
+        
+        <tr>
+            
+                
+                
+                    
+                    <td class="list-buttons-column">
+                        
+                          
+                          
+  
+<a class="icon" href="/admin/order/edit/?id=5&amp;url=/admin/order/?page_size%3D20" title="Edit Record">
+  <span class="fa fa-pencil glyphicon glyphicon-pencil"></span>
+</a>
+
+
+                          
+                        
+                    </td>
+
+                
+                    <td class="col-id">
+                    
+                    5
+                    
+                    </td>
+                
+                    <td class="col-user_phone">
+                    
+                    887325515
+                    
+                    </td>
+                
+                    <td class="col-order_items_text">
+                    
+                    Gamburger x1 = 35,000 so'm
+                    
+                    </td>
+                
+                    <td class="col-total_amount">
+                    
+                    35000
+                    
+                    </td>
+                
+                    <td class="col-payment_method">
+                    
+                    Karta
+                    
+                    </td>
+                
+                    <td class="col-address">
+                    
+                    Lokatsiya: 40.29250, 71.98727
+                    
+                    </td>
+                
+                    <td class="col-status">
+                    
+                    Tasdiqlandi
+                    
+                    </td>
+                
+                    <td class="col-receipt_image">
+                    
+                    <span style="color:gray">Chek yo'q</span>
+                    
+                    </td>
+                
+                    <td class="col-created_at">
+                    
+                    2026-08-01 12:36:32
+                    
+                    </td>
+                
+            
+        </tr>
+        
+        <tr>
+            
+                
+                
+                    
+                    <td class="list-buttons-column">
+                        
+                          
+                          
+  
+<a class="icon" href="/admin/order/edit/?id=6&amp;url=/admin/order/?page_size%3D20" title="Edit Record">
+  <span class="fa fa-pencil glyphicon glyphicon-pencil"></span>
+</a>
+
+
+                          
+                        
+                    </td>
+
+                
+                    <td class="col-id">
+                    
+                    6
+                    
+                    </td>
+                
+                    <td class="col-user_phone">
+                    
+                    887325515
+                    
+                    </td>
+                
+                    <td class="col-order_items_text">
+                    
+                    Gamburger x1 = 35,000 so'm
+                    
+                    </td>
+                
+                    <td class="col-total_amount">
+                    
+                    35000
+                    
+                    </td>
+                
+                    <td class="col-payment_method">
+                    
+                    Karta
+                    
+                    </td>
+                
+                    <td class="col-address">
+                    
+                    Fermer
+                    
+                    </td>
+                
+                    <td class="col-status">
+                    
+                    Tasdiqlandi
+                    
+                    </td>
+                
+                    <td class="col-receipt_image">
+                    
+                    <a href="/static/uploads/receipts/2700c20f_pizza.png" target="_blank" style="color:blue">📎 Chekni ko'rish</a>
+                    
+                    </td>
+                
+                    <td class="col-created_at">
+                    
+                    2026-08-01 12:37:55
+                    
+                    </td>
+                
+            
+        </tr>
+        
+        <tr>
+            
+                
+                
+                    
+                    <td class="list-buttons-column">
+                        
+                          
+                          
+  
+<a class="icon" href="/admin/order/edit/?id=7&amp;url=/admin/order/?page_size%3D20" title="Edit Record">
+  <span class="fa fa-pencil glyphicon glyphicon-pencil"></span>
+</a>
+
+
+                          
+                        
+                    </td>
+
+                
+                    <td class="col-id">
+                    
+                    7
+                    
+                    </td>
+                
+                    <td class="col-user_phone">
+                    
+                    +998991234567
+                    
+                    </td>
+                
+                    <td class="col-order_items_text">
+                    
+                    Gamburger x1 = 35,000 so'm
+                    
+                    </td>
+                
+                    <td class="col-total_amount">
+                    
+                    35000
+                    
+                    </td>
+                
+                    <td class="col-payment_method">
+                    
+                    Karta
+                    
+                    </td>
+                
+                    <td class="col-address">
+                    
+                    Test manzil
+                    
+                    </td>
+                
+                    <td class="col-status">
+                    
+                    Kutilmoqda
+                    
+                    </td>
+                
+                    <td class="col-receipt_image">
+                    
+                    <a href="/static/uploads/receipts/a04b316b_pizza.png" target="_blank" style="color:blue">📎 Chekni ko'rish</a>
+                    
+                    </td>
+                
+                    <td class="col-created_at">
+                    
+                    2026-08-01 12:43:43
+                    
+                    </td>
+                
+            
+        </tr>
+        
+        <tr>
+            
+                
+                
+                    
+                    <td class="list-buttons-column">
+                        
+                          
+                          
+  
+<a class="icon" href="/admin/order/edit/?id=8&amp;url=/admin/order/?page_size%3D20" title="Edit Record">
+  <span class="fa fa-pencil glyphicon glyphicon-pencil"></span>
+</a>
+
+
+                          
+                        
+                    </td>
+
+                
+                    <td class="col-id">
+                    
+                    8
+                    
+                    </td>
+                
+                    <td class="col-user_phone">
+                    
+                    887325515
+                    
+                    </td>
+                
+                    <td class="col-order_items_text">
+                    
+                    Gamburger x1 = 35,000 so'm<br>Pitsa x1 = 80,000 so'm
+                    
+                    </td>
+                
+                    <td class="col-total_amount">
+                    
+                    115000
+                    
+                    </td>
+                
+                    <td class="col-payment_method">
+                    
+                    Karta
+                    
+                    </td>
+                
+                    <td class="col-address">
+                    
+                    Lokatsiya: 40.29250, 71.98727
+                    
+                    </td>
+                
+                    <td class="col-status">
+                    
+                    Kutilmoqda
+                    
+                    </td>
+                
+                    <td class="col-receipt_image">
+                    
+                    <span style="color:gray">Chek yo'q</span>
+                    
+                    </td>
+                
+                    <td class="col-created_at">
+                    
+                    2026-08-01 12:44:38
+                    
+                    </td>
+                
+            
+        </tr>
+        
+        <tr>
+            
+                
+                
+                    
+                    <td class="list-buttons-column">
+                        
+                          
+                          
+  
+<a class="icon" href="/admin/order/edit/?id=9&amp;url=/admin/order/?page_size%3D20" title="Edit Record">
+  <span class="fa fa-pencil glyphicon glyphicon-pencil"></span>
+</a>
+
+
+                          
+                        
+                    </td>
+
+                
+                    <td class="col-id">
+                    
+                    9
+                    
+                    </td>
+                
+                    <td class="col-user_phone">
+                    
+                    887325515
+                    
+                    </td>
+                
+                    <td class="col-order_items_text">
+                    
+                    Gamburger x1 = 35,000 so'm
+                    
+                    </td>
+                
+                    <td class="col-total_amount">
+                    
+                    35000
+                    
+                    </td>
+                
+                    <td class="col-payment_method">
+                    
+                    Karta
+                    
+                    </td>
+                
+                    <td class="col-address">
+                    
+                    Lokatsiya: 40.29250, 71.98727
+                    
+                    </td>
+                
+                    <td class="col-status">
+                    
+                    Tasdiqlandi
+                    
+                    </td>
+                
+                    <td class="col-receipt_image">
+                    
+                    <a href="/static/uploads/receipts/aecdb9d2_karta.jpg" target="_blank" style="color:blue">📎 Chekni ko'rish</a>
+                    
+                    </td>
+                
+                    <td class="col-created_at">
+                    
+                    2026-08-01 12:59:04
+                    
+                    </td>
+                
+            
+        </tr>
+        
+        <tr>
+            
+                
+                
+                    
+                    <td class="list-buttons-column">
+                        
+                          
+                          
+  
+<a class="icon" href="/admin/order/edit/?id=10&amp;url=/admin/order/?page_size%3D20" title="Edit Record">
+  <span class="fa fa-pencil glyphicon glyphicon-pencil"></span>
+</a>
+
+
+                          
+                        
+                    </td>
+
+                
+                    <td class="col-id">
+                    
+                    10
+                    
+                    </td>
+                
+                    <td class="col-user_phone">
+                    
+                    887325515
+                    
+                    </td>
+                
+                    <td class="col-order_items_text">
+                    
+                    Gamburger x1 = 35,000 so'm
+                    
+                    </td>
+                
+                    <td class="col-total_amount">
+                    
+                    35000
+                    
+                    </td>
+                
+                    <td class="col-payment_method">
+                    
+                    Naqd
+                    
+                    </td>
+                
+                    <td class="col-address">
+                    
+                    Test
+                    
+                    </td>
+                
+                    <td class="col-status">
+                    
+                    Kutilmoqda
+                    
+                    </td>
+                
+                    <td class="col-receipt_image">
+                    
+                    <span style="color:gray">Chek yo'q</span>
+                    
+                    </td>
+                
+                    <td class="col-created_at">
+                    
+                    2026-08-01 13:07:53
+                    
+                    </td>
+                
+            
+        </tr>
+        
+        <tr>
+            
+                
+                
+                    
+                    <td class="list-buttons-column">
+                        
+                          
+                          
+  
+<a class="icon" href="/admin/order/edit/?id=11&amp;url=/admin/order/?page_size%3D20" title="Edit Record">
+  <span class="fa fa-pencil glyphicon glyphicon-pencil"></span>
+</a>
+
+
+                          
+                        
+                    </td>
+
+                
+                    <td class="col-id">
+                    
+                    11
+                    
+                    </td>
+                
+                    <td class="col-user_phone">
+                    
+                    887325515
+                    
+                    </td>
+                
+                    <td class="col-order_items_text">
+                    
+                    Muzqaymoq x1 = 12,000 so'm
+                    
+                    </td>
+                
+                    <td class="col-total_amount">
+                    
+                    12000
+                    
+                    </td>
+                
+                    <td class="col-payment_method">
+                    
+                    Karta
+                    
+                    </td>
+                
+                    <td class="col-address">
+                    
+                    Lokatsiya: 40.29250, 71.98725
+                    
+                    </td>
+                
+                    <td class="col-status">
+                    
+                    Kutilmoqda
+                    
+                    </td>
+                
+                    <td class="col-receipt_image">
+                    
+                    <a href="/static/uploads/receipts/44112460_karta.jpg" target="_blank" style="color:blue">📎 Chekni ko'rish</a>
+                    
+                    </td>
+                
+                    <td class="col-created_at">
+                    
+                    2026-08-01 14:40:02
+                    
+                    </td>
+                
+            
+        </tr>
+        
+        <tr>
+            
+                
+                
+                    
+                    <td class="list-buttons-column">
+                        
+                          
+                          
+  
+<a class="icon" href="/admin/order/edit/?id=12&amp;url=/admin/order/?page_size%3D20" title="Edit Record">
+  <span class="fa fa-pencil glyphicon glyphicon-pencil"></span>
+</a>
+
+
+                          
+                        
+                    </td>
+
+                
+                    <td class="col-id">
+                    
+                    12
+                    
+                    </td>
+                
+                    <td class="col-user_phone">
+                    
+                    887325515
+                    
+                    </td>
+                
+                    <td class="col-order_items_text">
+                    
+                    Gamburger x1 = 35,000 so'm
+                    
+                    </td>
+                
+                    <td class="col-total_amount">
+                    
+                    35000
+                    
+                    </td>
+                
+                    <td class="col-payment_method">
+                    
+                    Karta
+                    
+                    </td>
+                
+                    <td class="col-address">
+                    
+                    Lokatsiya: 40.29250, 71.98725
+                    
+                    </td>
+                
+                    <td class="col-status">
+                    
+                    Tasdiqlandi
+                    
+                    </td>
+                
+                    <td class="col-receipt_image">
+                    
+                    <a href="/static/uploads/receipts/e3b28aaa_karta.jpg" target="_blank" style="color:blue">📎 Chekni ko'rish</a>
+                    
+                    </td>
+                
+                    <td class="col-created_at">
+                    
+                    2026-08-01 14:52:27
+                    
+                    </td>
+                
+            
+        </tr>
+        
+        <tr>
+            
+                
+                
+                    
+                    <td class="list-buttons-column">
+                        
+                          
+                          
+  
+<a class="icon" href="/admin/order/edit/?id=13&amp;url=/admin/order/?page_size%3D20" title="Edit Record">
+  <span class="fa fa-pencil glyphicon glyphicon-pencil"></span>
+</a>
+
+
+                          
+                        
+                    </td>
+
+                
+                    <td class="col-id">
+                    
+                    13
+                    
+                    </td>
+                
+                    <td class="col-user_phone">
+                    
+                    887325515
+                    
+                    </td>
+                
+                    <td class="col-order_items_text">
+                    
+                    Gamburger x1 = 35,000 so'm
+                    
+                    </td>
+                
+                    <td class="col-total_amount">
+                    
+                    35000
+                    
+                    </td>
+                
+                    <td class="col-payment_method">
+                    
+                    Karta
+                    
+                    </td>
+                
+                    <td class="col-address">
+                    
+                    Lokatsiya: 40.29249, 71.98723
+                    
+                    </td>
+                
+                    <td class="col-status">
+                    
+                    Tasdiqlandi
+                    
+                    </td>
+                
+                    <td class="col-receipt_image">
+                    
+                    <a href="/static/uploads/receipts/119b30ff_karta.jpg" target="_blank" style="color:blue">📎 Chekni ko'rish</a>
+                    
+                    </td>
+                
+                    <td class="col-created_at">
+                    
+                    2026-08-01 14:53:45
+                    
+                    </td>
+                
+            
+        </tr>
+        
+        <tr>
+            
+                
+                
+                    
+                    <td class="list-buttons-column">
+                        
+                          
+                          
+  
+<a class="icon" href="/admin/order/edit/?id=14&amp;url=/admin/order/?page_size%3D20" title="Edit Record">
+  <span class="fa fa-pencil glyphicon glyphicon-pencil"></span>
+</a>
+
+
+                          
+                        
+                    </td>
+
+                
+                    <td class="col-id">
+                    
+                    14
+                    
+                    </td>
+                
+                    <td class="col-user_phone">
+                    
+                    887325515
+                    
+                    </td>
+                
+                    <td class="col-order_items_text">
+                    
+                    Gamburger x1 = 35,000 so'm<br>Pitsa x1 = 80,000 so'm
+                    
+                    </td>
+                
+                    <td class="col-total_amount">
+                    
+                    115000
+                    
+                    </td>
+                
+                    <td class="col-payment_method">
+                    
+                    Karta
+                    
+                    </td>
+                
+                    <td class="col-address">
+                    
+                    Lokatsiya: 40.29247, 71.98721
+                    
+                    </td>
+                
+                    <td class="col-status">
+                    
+                    Tasdiqlandi
+                    
+                    </td>
+                
+                    <td class="col-receipt_image">
+                    
+                    <a href="/static/uploads/receipts/3dfb75bb_karta.jpg" target="_blank" style="color:blue">📎 Chekni ko'rish</a>
+                    
+                    </td>
+                
+                    <td class="col-created_at">
+                    
+                    2026-08-01 15:07:36
+                    
+                    </td>
+                
+            
+        </tr>
+        
+        <tr>
+            
+                
+                
+                    
+                    <td class="list-buttons-column">
+                        
+                          
+                          
+  
+<a class="icon" href="/admin/order/edit/?id=15&amp;url=/admin/order/?page_size%3D20" title="Edit Record">
+  <span class="fa fa-pencil glyphicon glyphicon-pencil"></span>
+</a>
+
+
+                          
+                        
+                    </td>
+
+                
+                    <td class="col-id">
+                    
+                    15
+                    
+                    </td>
+                
+                    <td class="col-user_phone">
+                    
+                    887325515
+                    
+                    </td>
+                
+                    <td class="col-order_items_text">
+                    
+                    Gamburger x1 = 35,000 so'm
+                    
+                    </td>
+                
+                    <td class="col-total_amount">
+                    
+                    35000
+                    
+                    </td>
+                
+                    <td class="col-payment_method">
+                    
+                    Karta
+                    
+                    </td>
+                
+                    <td class="col-address">
+                    
+                    Lokatsiya: 40.29247, 71.98721
+                    
+                    </td>
+                
+                    <td class="col-status">
+                    
+                    Bekor qilindi
+                    
+                    </td>
+                
+                    <td class="col-receipt_image">
+                    
+                    <a href="/static/uploads/receipts/e1ab7513_karta.jpg" target="_blank" style="color:blue">📎 Chekni ko'rish</a>
+                    
+                    </td>
+                
+                    <td class="col-created_at">
+                    
+                    2026-08-01 15:08:30
+                    
+                    </td>
+                
+            
+        </tr>
+        
+        <tr>
+            
+                
+                
+                    
+                    <td class="list-buttons-column">
+                        
+                          
+                          
+  
+<a class="icon" href="/admin/order/edit/?id=16&amp;url=/admin/order/?page_size%3D20" title="Edit Record">
+  <span class="fa fa-pencil glyphicon glyphicon-pencil"></span>
+</a>
+
+
+                          
+                        
+                    </td>
+
+                
+                    <td class="col-id">
+                    
+                    16
+                    
+                    </td>
+                
+                    <td class="col-user_phone">
+                    
+                    887325515
+                    
+                    </td>
+                
+                    <td class="col-order_items_text">
+                    
+                    Gamburger x1 = 35,000 so'm
+                    
+                    </td>
+                
+                    <td class="col-total_amount">
+                    
+                    35000
+                    
+                    </td>
+                
+                    <td class="col-payment_method">
+                    
+                    Karta
+                    
+                    </td>
+                
+                    <td class="col-address">
+                    
+                    Lokatsiya: 40.29250, 71.98722
+                    
+                    </td>
+                
+                    <td class="col-status">
+                    
+                    Tasdiqlandi
+                    
+                    </td>
+                
+                    <td class="col-receipt_image">
+                    
+                    <a href="/static/uploads/receipts/e9deba1d_karta.jpg" target="_blank" style="color:blue">📎 Chekni ko'rish</a>
+                    
+                    </td>
+                
+                    <td class="col-created_at">
+                    
+                    2026-08-03 12:43:27
+                    
+                    </td>
+                
+            
+        </tr>
+        
+        <tr>
+            
+                
+                
+                    
+                    <td class="list-buttons-column">
+                        
+                          
+                          
+  
+<a class="icon" href="/admin/order/edit/?id=17&amp;url=/admin/order/?page_size%3D20" title="Edit Record">
+  <span class="fa fa-pencil glyphicon glyphicon-pencil"></span>
+</a>
+
+
+                          
+                        
+                    </td>
+
+                
+                    <td class="col-id">
+                    
+                    17
+                    
+                    </td>
+                
+                    <td class="col-user_phone">
+                    
+                    887325515
+                    
+                    </td>
+                
+                    <td class="col-order_items_text">
+                    
+                    Gamburger x1 = 35,000 so'm<br>Pitsa x1 = 80,000 so'm<br>Kola (Muzdek) x1 = 10,000 so'm<br>Issiq Kofe x1 = 15,000 so'm
+                    
+                    </td>
+                
+                    <td class="col-total_amount">
+                    
+                    140000
+                    
+                    </td>
+                
+                    <td class="col-payment_method">
+                    
+                    Karta
+                    
+                    </td>
+                
+                    <td class="col-address">
+                    
+                    Lokatsiya: 40.29250, 71.98722
+                    
+                    </td>
+                
+                    <td class="col-status">
+                    
+                    Tasdiqlandi
+                    
+                    </td>
+                
+                    <td class="col-receipt_image">
+                    
+                    <a href="/static/uploads/receipts/b98fb459_karta.jpg" target="_blank" style="color:blue">📎 Chekni ko'rish</a>
+                    
+                    </td>
+                
+                    <td class="col-created_at">
+                    
+                    2026-08-03 12:55:36
+                    
+                    </td>
+                
+            
+        </tr>
+        
+    </table>
+    </div>
+    
+    
+    
+    
+    
+    
+
+    
+    
+    
+
+    
+    </div>
+
+
+
+    <script  src="/admin/static/vendor/jquery.min.js?v=3.5.1" type="text/javascript"></script>
+    <script  src="/admin/static/bootstrap/bootstrap4/js/popper.min.js" type="text/javascript"></script>
+    <script  src="/admin/static/bootstrap/bootstrap4/js/bootstrap.min.js?v=4.6.2"
+            type="text/javascript"></script>
+    <script  src="/admin/static/vendor/moment.min.js?v=2.9.4" type="text/javascript"></script>
+    <script  src="/admin/static/vendor/bootstrap4/util.js?v=4.3.1" type="text/javascript"></script>
+    <script  src="/admin/static/vendor/bootstrap4/dropdown.js?v=4.3.1" type="text/javascript"></script>
+    <script  src="/admin/static/vendor/select2/select2.min.js?v=4.2.1"
+            type="text/javascript"></script>
+    <script  src="/admin/static/vendor/multi-level-dropdowns-bootstrap/bootstrap4-dropdown-ml-hack.js" type="text/javascript"></script>
+    <script  src="/admin/static/admin/js/helpers.js?v=1.0.0" type="text/javascript"></script>
+    
+
+
+    
+    
+    
+
+    
+    
+  
+  <script  src="/admin/static/vendor/bootstrap-daterangepicker/daterangepicker.js?v=1.3.22"></script>
+  
+  <script  src="/admin/static/admin/js/form.js?v=1.0.1"></script>
+
+    <script  src="/admin/static/admin/js/bs4_modal.js?v=1.0.0"></script>
+    <script  src="/admin/static/admin/js/bs4_filters.js?v=1.0.0"></script>
+
+
+    
+    
+
+
+  </body>
+</html>

@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: telegram-bot-restaurant
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: bash start.sh
+    envVars:
+      - key: BOT_TOKEN
+        sync: false
+      - key: ADMIN_ID
+        sync: false
+      - key: RENDER_EXTERNAL_URL
+        fromService:
+          type: web
+          name: telegram-bot-restaurant
+          property: host
