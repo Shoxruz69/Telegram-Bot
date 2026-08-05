@@ -125,9 +125,6 @@ with app.app_context():
         print("Auto-migration xatosi:", e)
 
 # --- WebApp API ---
-@app.route('/webapp')
-def webapp():
-    return render_template('webapp.html')
 
 @app.route('/ping')
 def ping():
