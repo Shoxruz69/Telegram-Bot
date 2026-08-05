@@ -160,3 +160,59 @@ body > div.container-fluid > div > ul,
 .modal-footer {
     border-top: 1px solid rgba(212, 175, 55, 0.2) !important;
 }
+
+/* --- Table Action Buttons (Edit Pencil & Delete Trash Icons) --- */
+.table td.list-buttons-column a,
+.table td.list-buttons-column button,
+.table td a.icon,
+.table td form.icon button {
+    background: transparent !important;
+    border: none !important;
+    padding: 2px 6px !important;
+    font-size: 16px !important;
+    box-shadow: none !important;
+}
+
+/* Delete Icon (Trash) -> Bright Red */
+.table td span.fa-trash,
+.table td span.fa-trash-alt,
+.table td span.glyphicon-trash,
+.table td i.fa-trash,
+.table td i.glyphicon-trash,
+.table td a[href*="delete"] span,
+.table td a[href*="delete"] i,
+.table td form[action*="delete"] button span,
+.table td form[action*="delete"] button i,
+.fa-trash,
+.glyphicon-trash {
+    color: #EF4444 !important;
+    filter: drop-shadow(0 0 6px rgba(239, 68, 68, 0.5)) !important;
+}
+
+/* Edit Icon (Pencil) -> Bright Gold / White */
+.table td span.fa-pencil,
+.table td span.fa-edit,
+.table td span.glyphicon-pencil,
+.table td i.fa-pencil,
+.table td i.glyphicon-pencil,
+.table td a[href*="edit"] span,
+.table td a[href*="edit"] i,
+.fa-pencil,
+.glyphicon-pencil {
+    color: #F3E5AB !important;
+    filter: drop-shadow(0 0 6px rgba(212, 175, 55, 0.4)) !important;
+}
+
+/* Hover Scaling */
+.table td a:hover span.fa-trash,
+.table td a:hover span.glyphicon-trash,
+.table td form button:hover span.fa-trash {
+    color: #FF0000 !important;
+    transform: scale(1.25) !important;
+}
+
+.table td a:hover span.fa-pencil,
+.table td a:hover span.glyphicon-pencil {
+    color: #CCFF00 !important;
+    transform: scale(1.25) !important;
+}
