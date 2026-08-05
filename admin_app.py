@@ -666,7 +666,7 @@ class PromotionAdminView(ThemedModelView):
     column_list = ('id', 'title', 'description', 'discount_percent', 'end_date', 'category', 'menu_item', 'is_active', 'created_at')
     column_labels = {
         'id': '№',
-        'title': 'Aksiya Nomi',
+        'title': 'Chegirma Nomi',
         'description': 'Tavsif / Shartlar',
         'discount_percent': 'Chegirma (%)',
         'end_date': 'Tugash Vaqti (yyyy-mm-dd hh:mm)',
@@ -692,7 +692,7 @@ class MyHomeView(AdminIndexView):
 admin = Admin(app, name='☕ Cafe Express Admin', index_view=MyHomeView(url='/admin'))
 admin.add_view(OrderAdminView(Order, db.session, name="📦 Buyurtmalar"))
 admin.add_view(MenuAdminView(Menu, db.session, name="🍔 Menyu (Taomlar)"))
-admin.add_view(PromotionAdminView(Promotion, db.session, name="🎁 Aksiyalar"))
+admin.add_view(PromotionAdminView(Promotion, db.session, name="🏷️ Chegirmalar"))
 admin.add_view(ThemedModelView(Category, db.session, name="📁 Kategoriyalar"))
 admin.add_view(ThemedModelView(Setting, db.session, name="⚙️ Sozlamalar"))
 admin.add_view(ThemedModelView(User, db.session, name="👤 Mijozlar"))
