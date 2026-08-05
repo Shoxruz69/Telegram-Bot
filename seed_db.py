@@ -54,6 +54,15 @@ menu_items = [
 
 cursor.executemany('INSERT INTO menu (id, category_id, name, description, price, image_url) VALUES (?, ?, ?, ?, ?, ?)', menu_items)
 
+promotions = [
+    (1, 'Yozgi Super Aksiya', 'Fast Food taomlariga 15% chegirma!', 15, '2026-08-31 23:59', 1, None, 1),
+    (2, 'Salqin Ichimliklar Aksiyasi', 'Barcha salqin ichimliklarga 20% chegirma!', 20, '2026-08-31 23:59', 2, None, 1)
+]
+cursor.executemany('''
+    INSERT INTO promotions (id, title, description, discount_percent, end_date, category_id, menu_item_id, is_active)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+''', promotions)
+
 conn.commit()
 conn.close()
-print("30 ta taom (har bir kategoriyaga 10 tadan) rasm va tavsiflari bilan muvaffaqiyatli bazaga qo'shildi!")
+print("30 ta taom va faol aksiyalar bazaga qayta yuklandi!")
