@@ -69,6 +69,7 @@ class Menu(db.Model):
     name = db.Column(db.String(100))
     description = db.Column(db.Text)
     price = db.Column(db.Integer)
+    old_price = db.Column(db.Integer, default=0) # Eski narx (ustidan chizilgan)
     image_url = db.Column(db.String(500))
 
     def __repr__(self):
@@ -100,9 +101,15 @@ class Promotion(db.Model):
     title = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text)
     discount_percent = db.Column(db.Integer, default=0)
+    end_date = db.Column(db.String(100)) # Tugash vaqti
+    category_id = db.Column(db.Integer, db.ForeignKey('categories.id'), nullable=True)
+    menu_item_id = db.Column(db.Integer, db.ForeignKey('menu.id'), nullable=True)
     image_url = db.Column(db.String(500))
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
+
+    category = db.relationship('Category', backref='promotions')
+    menu_item = db.relationship('Menu', backref='promotions')
 
     def __repr__(self):
         return f"Aksiya: {self.title}"
@@ -137,17 +144,34 @@ class Order(db.Model):
     def __repr__(self):
         return f"Buyurtma #{self.id} - {self.status}"
 
-# --- Jadvallarni yaratish ---
+# --- Jadvallarni yaratish va Auto-migration ---
 with app.app_context():
     db.create_all()
     try:
         from sqlalchemy import inspect, text
         inspector = inspect(db.engine)
-        columns = [col['name'] for col in inspector.get_columns('settings')]
-        if 'work_time_start' not in columns:
+        
+        # Settings migration
+        settings_cols = [col['name'] for col in inspector.get_columns('settings')]
+        if 'work_time_start' not in settings_cols:
             db.session.execute(text("ALTER TABLE settings ADD COLUMN work_time_start VARCHAR(10) DEFAULT '09:00'"))
-        if 'work_time_end' not in columns:
+        if 'work_time_end' not in settings_cols:
             db.session.execute(text("ALTER TABLE settings ADD COLUMN work_time_end VARCHAR(10) DEFAULT '22:00'"))
+            
+        # Menu migration
+        menu_cols = [col['name'] for col in inspector.get_columns('menu')]
+        if 'old_price' not in menu_cols:
+            db.session.execute(text("ALTER TABLE menu ADD COLUMN old_price INTEGER DEFAULT 0"))
+
+        # Promotions migration
+        promo_cols = [col['name'] for col in inspector.get_columns('promotions')]
+        if 'end_date' not in promo_cols:
+            db.session.execute(text("ALTER TABLE promotions ADD COLUMN end_date VARCHAR(100)"))
+        if 'category_id' not in promo_cols:
+            db.session.execute(text("ALTER TABLE promotions ADD COLUMN category_id INTEGER"))
+        if 'menu_item_id' not in promo_cols:
+            db.session.execute(text("ALTER TABLE promotions ADD COLUMN menu_item_id INTEGER"))
+
         db.session.commit()
     except Exception as e:
         print("Auto-migration xatosi:", e)
@@ -166,6 +190,7 @@ def api_data():
     categories = Category.query.all()
     menus = Menu.query.all()
     setting = Setting.query.first()
+    promotions = Promotion.query.filter_by(is_active=True).all()
     
     return jsonify({
         'categories': [{'id': c.id, 'name': c.name} for c in categories],
@@ -175,8 +200,19 @@ def api_data():
             'name': m.name, 
             'description': m.description, 
             'price': m.price, 
+            'old_price': getattr(m, 'old_price', 0) or 0,
             'image_url': m.image_url
         } for m in menus],
+        'promotions': [{
+            'id': p.id,
+            'title': p.title,
+            'description': p.description,
+            'discount_percent': p.discount_percent,
+            'end_date': p.end_date,
+            'category_id': p.category_id,
+            'menu_item_id': p.menu_item_id,
+            'image_url': p.image_url
+        } for p in promotions],
         'settings': {
             'card_number': setting.card_number if setting else "8600 0000 0000 0000",
             'card_name': setting.card_name if setting else "Ism Familiya"
@@ -443,18 +479,18 @@ def upload_receipt(order_id):
 
 uploads_path = os.path.join(os.path.dirname(__file__), 'static', 'uploads')
 
-class MenuAdminView(ModelView):
-    extra_css = ['/static/admin_theme.css']
-    column_list = ('id', 'category', 'name', 'description', 'price', 'image_url')
+class MenuAdminView(ThemedModelView):
+    column_list = ('id', 'category', 'name', 'description', 'price', 'old_price', 'image_url')
     column_labels = {
         'id': '№',
         'category': 'Kategoriya',
         'name': 'Nomi',
         'description': 'Tavsif',
-        'price': 'Narx (so\'m)',
+        'price': 'Sotuv Narxi (so\'m)',
+        'old_price': 'Eski Narxi (Ustidan chiziladi)',
         'image_url': 'Rasm URL'
     }
-    form_columns = ['category', 'name', 'description', 'price', 'image_url']
+    form_columns = ['category', 'name', 'description', 'price', 'old_price', 'image_url']
     can_create = True
     can_edit = True
     can_delete = True
@@ -594,17 +630,20 @@ class ThemedModelView(ModelView):
     extra_css = ['/static/admin_theme.css']
 
 class PromotionAdminView(ThemedModelView):
-    column_list = ('id', 'title', 'description', 'discount_percent', 'image_url', 'is_active', 'created_at')
+    column_list = ('id', 'title', 'description', 'discount_percent', 'end_date', 'category', 'menu_item', 'is_active', 'created_at')
     column_labels = {
         'id': '№',
         'title': 'Aksiya Nomi',
-        'description': 'Tavsif',
+        'description': 'Tavsif / Shartlar',
         'discount_percent': 'Chegirma (%)',
+        'end_date': 'Tugash Vaqti (yyyy-mm-dd hh:mm)',
+        'category': 'Kategoriya (Ixtiyoriy)',
+        'menu_item': 'Taom (Ixtiyoriy)',
         'image_url': 'Rasm URL',
         'is_active': 'Faollik',
         'created_at': 'Vaqt'
     }
-    form_columns = ['title', 'description', 'discount_percent', 'image_url', 'is_active']
+    form_columns = ['title', 'description', 'discount_percent', 'end_date', 'category', 'menu_item', 'image_url', 'is_active']
     can_create = True
     can_edit = True
     can_delete = True
