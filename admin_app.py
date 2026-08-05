@@ -501,41 +501,50 @@ class OrderAdminView(ModelView):
         )
 
     def after_model_change(self, form, model, is_created):
-        """Admin statusni o'zgartirganda mijozga xabar yuborish"""
-        if model.status == 'Tasdiqlandi':
-            if model.payment_method == 'Karta':
+        """Admin statusni o'zgartirganda mijozga xabar yuborish (Fonda tezkor)"""
+        user_id = model.user_id
+        order_id = model.id
+        status = model.status
+        payment = model.payment_method
+        total = model.total_amount
+
+        if status == 'Tasdiqlandi':
+            if payment == 'Karta':
                 msg = (
-                    f"✅ #{model.id}-raqamli buyurtmangiz TASDIQLANDI!\n\n"
+                    f"✅ #{order_id}-raqamli buyurtmangiz TASDIQLANDI!\n\n"
                     f"💳 To'lovingiz qabul qilindi!\n"
-                    f"💰 Jami: {model.total_amount:,} so'm\n\n"
+                    f"💰 Jami: {total:,} so'm\n\n"
                     f"🚚 Buyurtmangiz tez orada yetkazib beriladi. Rahmat! 🙏"
                 )
             else:
                 msg = (
-                    f"✅ #{model.id}-raqamli buyurtmangiz TASDIQLANDI!\n\n"
+                    f"✅ #{order_id}-raqamli buyurtmangiz TASDIQLANDI!\n\n"
                     f"💵 To'lov turi: Naqd\n"
-                    f"💰 Jami: {model.total_amount:,} so'm\n\n"
+                    f"💰 Jami: {total:,} so'm\n\n"
                     f"🚚 Buyurtmangiz tez orada yetkazib beriladi. Rahmat! 🙏"
                 )
-        elif model.status == 'Bekor qilindi':
+        elif status == 'Bekor qilindi':
             msg = (
-                f"❌ #{model.id}-raqamli buyurtmangiz BEKOR QILINDI!\n\n"
+                f"❌ #{order_id}-raqamli buyurtmangiz BEKOR QILINDI!\n\n"
                 f"Qo'shimcha ma'lumot uchun biz bilan bog'laning."
             )
         else:
             return  # Kutilmoqda holatida xabar yuborma
-            
-        token = os.getenv("BOT_TOKEN")
-        if token and model.user_id:
-            try:
-                resp = requests.post(
-                    f"https://api.telegram.org/bot{token}/sendMessage",
-                    data={"chat_id": model.user_id, "text": msg},
-                    timeout=10
-                )
-                print(f"[Admin] Status '{model.status}' -> user {model.user_id}: {resp.status_code}")
-            except Exception as e:
-                print("Error sending telegram message:", e)
+
+        def send_status_msg():
+            token = os.getenv("BOT_TOKEN")
+            if token and user_id:
+                try:
+                    requests.post(
+                        f"https://api.telegram.org/bot{token}/sendMessage",
+                        json={"chat_id": user_id, "text": msg},
+                        timeout=8
+                    )
+                    print(f"[Admin Notify] Status '{status}' -> user {user_id} sent successfully")
+                except Exception as e:
+                    print("[Admin status notify error]:", e)
+
+        threading.Thread(target=send_status_msg, daemon=True).start()
 
 class OrderItemAdminView(ModelView):
     column_list = ('id', 'order_id', 'name', 'price', 'quantity')
