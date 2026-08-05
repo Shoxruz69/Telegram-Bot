@@ -20,10 +20,24 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'super-secret-restaurant-key'
 app.config['FLASK_ADMIN_SWATCH'] = 'flatly'
 
+from sqlalchemy import event
+from sqlalchemy.engine import Engine
+
 # Baza fayli joylashgan manzil
 db_path = os.path.join(os.path.dirname(__file__), 'database', 'restaurant.db')
-app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
+app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}?timeout=30'
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'connect_args': {'timeout': 30}}
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+@event.listens_for(Engine, "connect")
+def set_sqlite_pragma(dbapi_connection, connection_record):
+    try:
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA journal_mode=WAL")
+        cursor.execute("PRAGMA busy_timeout=30000")
+        cursor.close()
+    except Exception as e:
+        print("[SQLite Pragma error]:", e)
 
 db = SQLAlchemy(app)
 
@@ -501,50 +515,53 @@ class OrderAdminView(ModelView):
         )
 
     def after_model_change(self, form, model, is_created):
-        """Admin statusni o'zgartirganda mijozga xabar yuborish (Fonda tezkor)"""
-        user_id = model.user_id
-        order_id = model.id
-        status = model.status
-        payment = model.payment_method
-        total = model.total_amount
+        """Admin statusni o'zgartirganda mijozga xabar yuborish (Mutloq xavfsiz va tezkor)"""
+        try:
+            user_id = model.user_id
+            order_id = model.id
+            status = model.status
+            payment = model.payment_method or "Naqd"
+            total = model.total_amount or 0
 
-        if status == 'Tasdiqlandi':
-            if payment == 'Karta':
+            if status == 'Tasdiqlandi':
+                if payment == 'Karta':
+                    msg = (
+                        f"✅ #{order_id}-raqamli buyurtmangiz TASDIQLANDI!\n\n"
+                        f"💳 To'lovingiz qabul qilindi!\n"
+                        f"💰 Jami: {total:,} so'm\n\n"
+                        f"🚚 Buyurtmangiz tez orada yetkazib beriladi. Rahmat! 🙏"
+                    )
+                else:
+                    msg = (
+                        f"✅ #{order_id}-raqamli buyurtmangiz TASDIQLANDI!\n\n"
+                        f"💵 To'lov turi: Naqd\n"
+                        f"💰 Jami: {total:,} so'm\n\n"
+                        f"🚚 Buyurtmangiz tez orada yetkazib beriladi. Rahmat! 🙏"
+                    )
+            elif status == 'Bekor qilindi':
                 msg = (
-                    f"✅ #{order_id}-raqamli buyurtmangiz TASDIQLANDI!\n\n"
-                    f"💳 To'lovingiz qabul qilindi!\n"
-                    f"💰 Jami: {total:,} so'm\n\n"
-                    f"🚚 Buyurtmangiz tez orada yetkazib beriladi. Rahmat! 🙏"
+                    f"❌ #{order_id}-raqamli buyurtmangiz BEKOR QILINDI!\n\n"
+                    f"Qo'shimcha ma'lumot uchun biz bilan bog'laning."
                 )
             else:
-                msg = (
-                    f"✅ #{order_id}-raqamli buyurtmangiz TASDIQLANDI!\n\n"
-                    f"💵 To'lov turi: Naqd\n"
-                    f"💰 Jami: {total:,} so'm\n\n"
-                    f"🚚 Buyurtmangiz tez orada yetkazib beriladi. Rahmat! 🙏"
-                )
-        elif status == 'Bekor qilindi':
-            msg = (
-                f"❌ #{order_id}-raqamli buyurtmangiz BEKOR QILINDI!\n\n"
-                f"Qo'shimcha ma'lumot uchun biz bilan bog'laning."
-            )
-        else:
-            return  # Kutilmoqda holatida xabar yuborma
+                return  # Kutilmoqda holatida xabar yuborma
 
-        def send_status_msg():
-            token = os.getenv("BOT_TOKEN")
-            if token and user_id:
-                try:
-                    requests.post(
-                        f"https://api.telegram.org/bot{token}/sendMessage",
-                        json={"chat_id": user_id, "text": msg},
-                        timeout=8
-                    )
-                    print(f"[Admin Notify] Status '{status}' -> user {user_id} sent successfully")
-                except Exception as e:
-                    print("[Admin status notify error]:", e)
+            def send_status_msg():
+                token = os.getenv("BOT_TOKEN")
+                if token and user_id:
+                    try:
+                        resp = requests.post(
+                            f"https://api.telegram.org/bot{token}/sendMessage",
+                            json={"chat_id": int(user_id), "text": msg},
+                            timeout=5
+                        )
+                        print(f"[Admin Notify] Status '{status}' -> user {user_id}: {resp.status_code}")
+                    except Exception as e:
+                        print("[Admin status notify error]:", e)
 
-        threading.Thread(target=send_status_msg, daemon=True).start()
+            threading.Thread(target=send_status_msg, daemon=True).start()
+        except Exception as err:
+            print("[after_model_change error]:", err)
 
 class OrderItemAdminView(ModelView):
     column_list = ('id', 'order_id', 'name', 'price', 'quantity')
