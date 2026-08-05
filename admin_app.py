@@ -476,8 +476,8 @@ def upload_receipt(order_id):
 
 
 # --- Model Ko'rinishlari (Views) sozlamalari ---
-
-uploads_path = os.path.join(os.path.dirname(__file__), 'static', 'uploads')
+class ThemedModelView(ModelView):
+    extra_css = ['/static/admin_theme.css']
 
 class MenuAdminView(ThemedModelView):
     column_list = ('id', 'category', 'name', 'description', 'price', 'old_price', 'image_url')
