@@ -181,9 +181,42 @@ with app.app_context():
 def webapp():
     return render_template('webapp.html')
 
-@app.route('/ping')
+@app.route('/ping', methods=['GET', 'HEAD'])
+@app.route('/health', methods=['GET', 'HEAD'])
 def ping():
     return "OK", 200
+
+def start_self_ping():
+    def ping_worker():
+        import time, urllib.request, ssl
+        time.sleep(5)
+        ssl_ctx = ssl._create_unverified_context()
+        while True:
+            raw_url = os.getenv("RENDER_EXTERNAL_URL", "") or os.getenv("WEB_APP_URL", "")
+            if raw_url:
+                raw_url = raw_url.strip().rstrip("/")
+                if not raw_url.startswith("http://") and not raw_url.startswith("https://"):
+                    base_url = f"https://{raw_url}"
+                else:
+                    base_url = raw_url
+                
+                if base_url.endswith("/webapp"):
+                    base_url = base_url[:-7]
+                
+                ping_url = f"{base_url}/ping"
+                try:
+                    req = urllib.request.Request(ping_url, headers={"User-Agent": "KeepAlive-Admin/1.0"})
+                    urllib.request.urlopen(req, timeout=15, context=ssl_ctx)
+                    print(f"[KeepAlive Admin] Ping muvaffaqiyatli: {ping_url}", flush=True)
+                except Exception as e:
+                    print(f"[KeepAlive Admin] Ping xatosi: {e}", flush=True)
+            
+            time.sleep(150)
+
+    t = threading.Thread(target=ping_worker, daemon=True)
+    t.start()
+
+start_self_ping()
 
 @app.route('/api/data')
 def api_data():

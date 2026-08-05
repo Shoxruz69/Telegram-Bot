@@ -18,21 +18,54 @@ logging.basicConfig(
 
 load_dotenv()
 
-async def keep_alive():
-    """Render'da botni uxlatmaslik uchun har 10 daqiqada ping yuborish"""
-    url = os.getenv("RENDER_EXTERNAL_URL", "").rstrip("/")
-    if not url:
-        logging.info("RENDER_EXTERNAL_URL topilmadi. Keep-alive o'chirilgan.")
-        return
+import ssl
 
-    logging.info(f"Keep-alive ishga tushdi: {url}/ping")
+def format_url(url_str):
+    if not url_str:
+        return ""
+    url_str = url_str.strip().rstrip("/")
+    if not url_str.startswith("http://") and not url_str.startswith("https://"):
+        return f"https://{url_str}"
+    return url_str
+
+async def keep_alive():
+    """Render'da botni uxlatmaslik uchun har 2.5 daqiqada (150s) ping yuborish"""
+    raw_url = os.getenv("RENDER_EXTERNAL_URL", "") or os.getenv("WEB_APP_URL", "")
+    url = format_url(raw_url)
+    if url.endswith("/webapp"):
+        url = url[:-7]
+
+    port = os.getenv("PORT", "5000")
+    ssl_ctx = ssl._create_unverified_context()
+
+    logging.info(f"Keep-alive (Bot) ishga tushdi. Target URL: {url or 'Faqat localhost'}")
+
+    # Dastlab 3 soniya kutib, birinchi pingni yuboramiz
+    await asyncio.sleep(3)
+
     while True:
-        await asyncio.sleep(600)  # 10 daqiqa kutish
+        # Local ping
         try:
-            await asyncio.to_thread(urllib.request.urlopen, f"{url}/ping", timeout=10)
-            logging.info(f"Keep-alive ping yuborildi: {url}/ping")
+            req_local = urllib.request.Request(f"http://127.0.0.1:{port}/ping")
+            await asyncio.to_thread(urllib.request.urlopen, req_local, timeout=10)
         except Exception as e:
-            logging.warning(f"Keep-alive ping xatosi: {e}")
+            logging.warning(f"Local ping xatosi: {e}")
+
+        # External ping (Render external URL uxlamasligi uchun)
+        if url:
+            try:
+                ping_url = f"{url}/ping"
+                req_ext = urllib.request.Request(
+                    ping_url,
+                    headers={"User-Agent": "KeepAlive-Bot/1.0"}
+                )
+                await asyncio.to_thread(urllib.request.urlopen, req_ext, timeout=15, context=ssl_ctx)
+                logging.info(f"Keep-alive (Bot) ping muvaffaqiyatli: {ping_url}")
+            except Exception as e:
+                logging.warning(f"External keep-alive (Bot) ping xatosi: {e}")
+
+        # 150 soniya (2.5 daqiqa) kutish
+        await asyncio.sleep(150)
 
 async def main():
     bot_token = os.getenv("BOT_TOKEN")
