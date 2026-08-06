@@ -264,226 +264,245 @@ def api_data():
 @app.route('/api/checkout', methods=['POST'])
 def api_checkout():
     """1-qadam: Buyurtmani tezda saqlash va javob qaytarish (UI qotib qolmaydi)"""
-    # Ish vaqtini tekshirish
-    setting = Setting.query.first()
-    if setting and getattr(setting, 'work_time_start', None) and getattr(setting, 'work_time_end', None):
-        tz = timezone(timedelta(hours=5))
-        now = datetime.now(tz)
-        current_time_str = now.strftime("%H:%M")
-        start = setting.work_time_start
-        end = setting.work_time_end
-        if start <= end:
-            if not (start <= current_time_str <= end):
-                return jsonify({'success': False, 'error': f"Ish vaqti tugadi! Bizning ish vaqtimiz {start} dan {end} gacha."})
-        else:
-            if not (current_time_str >= start or current_time_str <= end):
-                return jsonify({'success': False, 'error': f"Ish vaqti tugadi! Bizning ish vaqtimiz {start} dan {end} gacha."})
-
     try:
-        data = request.get_json(force=True, silent=True)
+        # Ish vaqtini tekshirish
+        setting = Setting.query.first()
+        if setting and getattr(setting, 'work_time_start', None) and getattr(setting, 'work_time_end', None):
+            start = setting.work_time_start.strip() if setting.work_time_start else ""
+            end = setting.work_time_end.strip() if setting.work_time_end else ""
+            if start and end and (start != "00:00" or end != "00:00"):
+                tz = timezone(timedelta(hours=5))
+                now = datetime.now(tz)
+                current_time_str = now.strftime("%H:%M")
+                if start <= end:
+                    if not (start <= current_time_str <= end):
+                        return jsonify({'success': False, 'error': f"Ish vaqti tugadi! Bizning ish vaqtimiz {start} dan {end} gacha."})
+                else:
+                    if not (current_time_str >= start or current_time_str <= end):
+                        return jsonify({'success': False, 'error': f"Ish vaqti tugadi! Bizning ish vaqtimiz {start} dan {end} gacha."})
+
+        data = None
+        if request.is_json:
+            data = request.get_json(silent=True)
+        if not data:
+            try:
+                data = json.loads(request.data.decode('utf-8'))
+            except:
+                data = None
         if not data:
             data = request.form.to_dict()
-    except:
-        data = request.form.to_dict()
 
-    user_id = str(data.get('user_id', '')).strip()
-    phone = str(data.get('phone', '')).strip()
-    address = str(data.get('address', '')).strip()
-    payment_method = str(data.get('payment_method', 'Naqd'))
-    items_raw = data.get('items', '[]')
-    latitude = data.get('latitude', 0)
-    longitude = data.get('longitude', 0)
+        user_id = str(data.get('user_id', '')).strip()
+        phone = str(data.get('phone', '')).strip()
+        address = str(data.get('address', '')).strip()
+        payment_method = str(data.get('payment_method', 'Naqd'))
+        items_raw = data.get('items', '[]')
+        latitude = data.get('latitude', 0)
+        longitude = data.get('longitude', 0)
 
-    # Agar user_id kelmagan yoki '0' bo'lsa, DB dan ushbu telefon raqamli foydalanuvchini izlaymiz
-    if (not user_id or user_id == '0') and phone:
-        found_u = User.query.filter(User.phone == phone, User.user_id != 0).first()
-        if found_u:
-            user_id = str(found_u.user_id)
+        # Agar user_id kelmagan yoki '0' bo'lsa, DB dan ushbu telefon raqamli foydalanuvchini izlaymiz
+        if (not user_id or user_id == '0') and phone:
+            found_u = User.query.filter(User.phone == phone, User.user_id != 0).first()
+            if found_u:
+                user_id = str(found_u.user_id)
 
-    if not phone:
-        return jsonify({'success': False, 'error': "Telefon raqam kiritilmagan!"})
+        if not phone:
+            return jsonify({'success': False, 'error': "Telefon raqam kiritilmagan!"})
 
-    try:
-        items = json.loads(items_raw) if isinstance(items_raw, str) else items_raw
-    except:
-        items = []
-
-    if not items:
-        return jsonify({'success': False, 'error': "Savat bo'sh!"})
-
-    # Buyurtma tarkibini hisoblash
-    total_amount = 0
-    order_items_data = []
-    order_text_items = ""
-    active_promotions = Promotion.query.filter_by(is_active=True).all()
-
-    for item in items:
-        menu_item = Menu.query.get(int(item['id']))
-        if menu_item:
-            qty = int(item['qty'])
-            price = menu_item.price
-            old_price = getattr(menu_item, 'old_price', 0) or 0
-
-            # Aksiya chegirmasini hisoblash
-            best_discount = 0
-            for p in active_promotions:
-                discount = p.discount_percent or 0
-                if discount <= 0:
-                    continue
-                matches_item = p.menu_item_id and int(p.menu_item_id) == menu_item.id
-                matches_cat = p.category_id and int(p.category_id) == menu_item.category_id
-                is_gen = not p.category_id and not p.menu_item_id
-                if matches_item or matches_cat or is_gen:
-                    if discount > best_discount:
-                        best_discount = discount
-
-            if best_discount > 0:
-                base = old_price if (old_price and old_price > price) else price
-                price = round(base * (1 - best_discount / 100.0))
-
-            # Frontend payload price bilan solishtirish
-            if 'price' in item and item['price']:
-                try:
-                    payload_price = int(item['price'])
-                    if 0 < payload_price < price:
-                        price = payload_price
-                except:
-                    pass
-
-            subtotal = price * qty
-            total_amount += subtotal
-            order_items_data.append({
-                'menu_item_id': menu_item.id,
-                'name': menu_item.name,
-                'price': price,
-                'quantity': qty
-            })
-            order_text_items += f"• {menu_item.name} x{qty} = {subtotal:,} so'm\n"
-
-    lat_val = float(latitude) if latitude else 0.0
-    lon_val = float(longitude) if longitude else 0.0
-
-    # Foydalanuvchini saqlash/yangilash
-    try:
-        parsed_uid = int(user_id) if (user_id and user_id.isdigit()) else 0
-        if parsed_uid > 0:
-            user_obj = User.query.get(parsed_uid)
-            if not user_obj:
-                user_obj = User(user_id=parsed_uid, phone=phone, latitude=lat_val, longitude=lon_val)
-                db.session.add(user_obj)
-            else:
-                user_obj.phone = phone
-                user_obj.latitude = lat_val
-                user_obj.longitude = lon_val
-    except Exception as e:
-        print(f"[User save error]: {e}")
-
-    receipts_dir = os.path.join(app.root_path, 'static', 'uploads', 'receipts')
-
-    # Chek (Base64 formatda yuborilgan bo'lsa)
-    receipt_filename = None
-    receipt_base64 = data.get('receipt_base64')
-    if payment_method == 'Karta' and receipt_base64:
         try:
-            if "," in receipt_base64:
-                receipt_base64 = receipt_base64.split(",")[1]
-            import base64
-            file_data = base64.b64decode(receipt_base64)
-            receipt_filename = str(uuid.uuid4())[:8] + "_karta.jpg"
-            os.makedirs(receipts_dir, exist_ok=True)
-            with open(os.path.join(receipts_dir, receipt_filename), 'wb') as f:
-                f.write(file_data)
-        except Exception as e:
-            print(f"[Base64 decode error]: {e}")
+            items = json.loads(items_raw) if isinstance(items_raw, str) else items_raw
+        except:
+            items = []
 
-    # Setting-dan order_reset_hours ni olish (default 24 soat)
-    setting = Setting.query.first()
-    reset_hours = getattr(setting, 'order_reset_hours', 24)
-    if reset_hours is None:
-        reset_hours = 24
+        if not items:
+            return jsonify({'success': False, 'error': "Savat bo'sh!"})
 
-    tz = timezone(timedelta(hours=5)) # Tashkent time UTC+5
-    now_tz = datetime.now(tz)
+        # Buyurtma tarkibini hisoblash
+        total_amount = 0
+        order_items_data = []
+        order_text_items = ""
+        active_promotions = Promotion.query.filter_by(is_active=True).all()
 
-    last_order = Order.query.order_by(Order.id.desc()).first()
+        for item in items:
+            menu_item = Menu.query.get(int(item['id']))
+            if menu_item:
+                qty = int(item['qty'])
+                price = menu_item.price
+                old_price = getattr(menu_item, 'old_price', 0) or 0
 
-    if not last_order:
-        next_daily_id = 1
-    elif reset_hours == 0:
-        next_daily_id = (getattr(last_order, 'daily_id', None) or last_order.id) + 1
-    else:
-        if last_order.created_at:
-            last_tz = last_order.created_at + timedelta(hours=5)
-            if reset_hours == 24:
-                # Toshkent vaqti bilan sana o'zgargan bo'lsa (yangi kun) 1 dan boshlanadi
-                if now_tz.date() > last_tz.date():
-                    next_daily_id = 1
+                # Aksiya chegirmasini hisoblash
+                best_discount = 0
+                for p in active_promotions:
+                    discount = p.discount_percent or 0
+                    if discount <= 0:
+                        continue
+                    matches_item = p.menu_item_id and int(p.menu_item_id) == menu_item.id
+                    matches_cat = p.category_id and int(p.category_id) == menu_item.category_id
+                    is_gen = not p.category_id and not p.menu_item_id
+                    if matches_item or matches_cat or is_gen:
+                        if discount > best_discount:
+                            best_discount = discount
+
+                if best_discount > 0:
+                    base = old_price if (old_price and old_price > price) else price
+                    price = round(base * (1 - best_discount / 100.0))
+
+                # Frontend payload price bilan solishtirish
+                if 'price' in item and item['price']:
+                    try:
+                        payload_price = int(item['price'])
+                        if 0 < payload_price < price:
+                            price = payload_price
+                    except:
+                        pass
+
+                subtotal = price * qty
+                total_amount += subtotal
+                order_items_data.append({
+                    'menu_item_id': menu_item.id,
+                    'name': menu_item.name,
+                    'price': price,
+                    'quantity': qty
+                })
+                order_text_items += f"• {menu_item.name} x{qty} = {subtotal:,} so'm\n"
+
+        lat_val = float(latitude) if latitude else 0.0
+        lon_val = float(longitude) if longitude else 0.0
+
+        # Foydalanuvchini saqlash/yangilash
+        try:
+            parsed_uid = int(user_id) if (user_id and user_id.isdigit()) else 0
+            if parsed_uid > 0:
+                user_obj = User.query.get(parsed_uid)
+                if not user_obj:
+                    user_obj = User(user_id=parsed_uid, phone=phone, latitude=lat_val, longitude=lon_val)
+                    db.session.add(user_obj)
                 else:
+                    user_obj.phone = phone
+                    user_obj.latitude = lat_val
+                    user_obj.longitude = lon_val
+        except Exception as e:
+            print(f"[User save error]: {e}")
+
+        receipts_dir = os.path.join(app.root_path, 'static', 'uploads', 'receipts')
+
+        # Chek (Base64 formatda yuborilgan bo'lsa)
+        receipt_filename = None
+        receipt_base64 = data.get('receipt_base64')
+        if payment_method == 'Karta' and receipt_base64:
+            try:
+                if "," in receipt_base64:
+                    receipt_base64 = receipt_base64.split(",")[1]
+                import base64
+                file_data = base64.b64decode(receipt_base64)
+                receipt_filename = str(uuid.uuid4())[:8] + "_karta.jpg"
+                os.makedirs(receipts_dir, exist_ok=True)
+                with open(os.path.join(receipts_dir, receipt_filename), 'wb') as f:
+                    f.write(file_data)
+            except Exception as e:
+                print(f"[Base64 decode error]: {e}")
+
+        # Setting-dan order_reset_hours ni olish (default 24 soat)
+        setting = Setting.query.first()
+        reset_hours = getattr(setting, 'order_reset_hours', 24)
+        if reset_hours is None:
+            reset_hours = 24
+
+        tz = timezone(timedelta(hours=5)) # Tashkent time UTC+5
+        now_tz = datetime.now(tz)
+
+        last_order = Order.query.order_by(Order.id.desc()).first()
+
+        if not last_order:
+            next_daily_id = 1
+        elif reset_hours == 0:
+            next_daily_id = (getattr(last_order, 'daily_id', None) or last_order.id) + 1
+        else:
+            if last_order.created_at:
+                try:
+                    if isinstance(last_order.created_at, str):
+                        from datetime import datetime as dt_cls
+                        last_dt = dt_cls.strptime(last_order.created_at.split('.')[0], "%Y-%m-%d %H:%M:%S")
+                    else:
+                        last_dt = last_order.created_at
+                    last_tz = last_dt + timedelta(hours=5)
+                    if reset_hours == 24:
+                        if now_tz.date() > last_tz.date():
+                            next_daily_id = 1
+                        else:
+                            next_daily_id = (getattr(last_order, 'daily_id', None) or last_order.id) + 1
+                    else:
+                        diff_hours = (now_tz - last_tz).total_seconds() / 3600.0
+                        if diff_hours >= reset_hours:
+                            next_daily_id = 1
+                        else:
+                            next_daily_id = (getattr(last_order, 'daily_id', None) or last_order.id) + 1
+                except Exception as e:
+                    print(f"[Reset hours calc error]: {e}")
                     next_daily_id = (getattr(last_order, 'daily_id', None) or last_order.id) + 1
             else:
-                diff_hours = (now_tz - last_tz).total_seconds() / 3600.0
-                if diff_hours >= reset_hours:
-                    next_daily_id = 1
-                else:
-                    next_daily_id = (getattr(last_order, 'daily_id', None) or last_order.id) + 1
-        else:
-            next_daily_id = 1
+                next_daily_id = 1
 
-    # Buyurtmani DB ga saqlash
-    new_order = Order(
-        daily_id=next_daily_id,
-        user_id=int(user_id) if str(user_id).isdigit() else 0,
-        status="Kutilmoqda",
-        payment_method=payment_method,
-        receipt_image=receipt_filename,
-        total_amount=total_amount,
-        address=address
-    )
-    db.session.add(new_order)
-    db.session.flush()
+        # Buyurtmani DB ga saqlash
+        new_order = Order(
+            daily_id=next_daily_id,
+            user_id=int(user_id) if str(user_id).isdigit() else 0,
+            status="Kutilmoqda",
+            payment_method=payment_method,
+            receipt_image=receipt_filename,
+            total_amount=total_amount,
+            address=address
+        )
+        db.session.add(new_order)
+        db.session.flush()
 
-    for oi in order_items_data:
-        db.session.add(OrderItem(
-            order_id=new_order.id,
-            menu_item_id=oi['menu_item_id'],
-            name=oi['name'],
-            price=oi['price'],
-            quantity=oi['quantity']
-        ))
+        for oi in order_items_data:
+            db.session.add(OrderItem(
+                order_id=new_order.id,
+                menu_item_id=oi['menu_item_id'],
+                name=oi['name'],
+                price=oi['price'],
+                quantity=oi['quantity']
+            ))
 
-    db.session.commit()
-    order_id = new_order.id
-    order_no = new_order.daily_id or order_id
+        db.session.commit()
+        order_id = new_order.id
+        order_no = new_order.daily_id or order_id
 
-    # Admin va mijozga FONDA xabar yuborish (UI ni kuttiradigan narsa yo'q)
-    order_text = (
-        f"🆕 YANGI BUYURTMA #{order_no}!\n\n"
-        f"👤 Mijoz: {phone}\n"
-        f"📍 Manzil: {address}\n"
-        f"💳 To'lov: {payment_method}\n\n"
-        f"🛒 Tarkib:\n{order_text_items}"
-        f"💰 Jami: {total_amount:,} so'm\n"
-    )
+        # Admin va mijozga FONDA xabar yuborish (UI ni kuttiradigan narsa yo'q)
+        order_text = (
+            f"🆕 YANGI BUYURTMA #{order_no}!\n\n"
+            f"👤 Mijoz: {phone}\n"
+            f"📍 Manzil: {address}\n"
+            f"💳 To'lov: {payment_method}\n\n"
+            f"🛒 Tarkib:\n{order_text_items}"
+            f"💰 Jami: {total_amount:,} so'm\n"
+        )
 
-    def notify_all():
-        bot_token = os.getenv("BOT_TOKEN")
-        admin_id = os.getenv("ADMIN_ID")
-        if not bot_token:
-            print("[Notify warning]: BOT_TOKEN sozlanmagan!")
-            return
+        def notify_all():
+            bot_token = os.getenv("BOT_TOKEN")
+            admin_id = os.getenv("ADMIN_ID")
+            if not bot_token:
+                print("[Notify warning]: BOT_TOKEN sozlanmagan!")
+                return
 
-        # Admin xabari
-        if admin_id and admin_id not in ("YOUR_ADMIN_ID_HERE", "", None):
-            try:
-                # Agar chek bo'lsa, rasmli xabar yuboramiz
-                if receipt_filename:
-                    photo_path = os.path.join(receipts_dir, receipt_filename)
-                    if os.path.exists(photo_path):
-                        with open(photo_path, 'rb') as photo:
+            # Admin xabari
+            if admin_id and admin_id not in ("YOUR_ADMIN_ID_HERE", "", None):
+                try:
+                    if receipt_filename:
+                        photo_path = os.path.join(receipts_dir, receipt_filename)
+                        if os.path.exists(photo_path):
+                            with open(photo_path, 'rb') as photo:
+                                requests.post(
+                                    f"https://api.telegram.org/bot{bot_token}/sendPhoto",
+                                    data={'chat_id': admin_id, 'caption': order_text, 'parse_mode': 'HTML'},
+                                    files={'photo': photo},
+                                    timeout=12
+                                )
+                        else:
                             requests.post(
-                                f"https://api.telegram.org/bot{bot_token}/sendPhoto",
-                                data={'chat_id': admin_id, 'caption': order_text, 'parse_mode': 'HTML'},
-                                files={'photo': photo},
+                                f"https://api.telegram.org/bot{bot_token}/sendMessage",
+                                json={'chat_id': admin_id, 'text': order_text, 'parse_mode': 'HTML'},
                                 timeout=12
                             )
                     else:
@@ -492,41 +511,40 @@ def api_checkout():
                             json={'chat_id': admin_id, 'text': order_text, 'parse_mode': 'HTML'},
                             timeout=12
                         )
-                else:
+                    if lat_val and lon_val and lat_val != 0.0:
+                        requests.post(
+                            f"https://api.telegram.org/bot{bot_token}/sendLocation",
+                            json={'chat_id': admin_id, 'latitude': lat_val, 'longitude': lon_val},
+                            timeout=12
+                        )
+                except Exception as e:
+                    print(f"[Admin notify error]: {e}")
+
+            # Mijoz xabari
+            if user_id and str(user_id) not in ('0', '', 'None'):
+                try:
+                    user_msg = (
+                        f"✅ Buyurtmangiz #{order_no} qabul qilindi!\n"
+                        f"💰 Jami: {total_amount:,} so'm ({payment_method})\n"
+                        f"⏳ Admin tasdiqlashi kutilmoqda..."
+                    )
                     requests.post(
                         f"https://api.telegram.org/bot{bot_token}/sendMessage",
-                        json={'chat_id': admin_id, 'text': order_text, 'parse_mode': 'HTML'},
-                        timeout=12
+                        json={'chat_id': user_id, 'text': user_msg},
+                        timeout=8
                     )
-                if lat_val and lon_val and lat_val != 0.0:
-                    requests.post(
-                        f"https://api.telegram.org/bot{bot_token}/sendLocation",
-                        json={'chat_id': admin_id, 'latitude': lat_val, 'longitude': lon_val},
-                        timeout=12
-                    )
-            except Exception as e:
-                print(f"[Admin notify error]: {e}")
+                except Exception as e:
+                    print(f"[User notify error]: {e}")
 
-        # Mijoz xabari
-        if user_id and str(user_id) not in ('0', '', 'None'):
-            try:
-                user_msg = (
-                    f"✅ Buyurtmangiz #{order_no} qabul qilindi!\n"
-                    f"💰 Jami: {total_amount:,} so'm ({payment_method})\n"
-                    f"⏳ Admin tasdiqlashi kutilmoqda..."
-                )
-                requests.post(
-                    f"https://api.telegram.org/bot{bot_token}/sendMessage",
-                    json={'chat_id': user_id, 'text': user_msg},
-                    timeout=8
-                )
-            except Exception as e:
-                print(f"[User notify error]: {e}")
+        threading.Thread(target=notify_all, daemon=True).start()
 
-    threading.Thread(target=notify_all, daemon=True).start()
-
-    # DB ga yozilgandan so'ng DARHOL javob qaytariladi
-    return jsonify({'success': True, 'order_id': order_no})
+        # DB ga yozilgandan so'ng DARHOL javob qaytariladi
+        return jsonify({'success': True, 'order_id': order_no})
+    except Exception as err:
+        import traceback
+        traceback.print_exc()
+        db.session.rollback()
+        return jsonify({'success': False, 'error': f"Xatolik: {str(err)}"})
 
 
 @app.route('/api/upload_receipt/<int:order_id>', methods=['POST'])
