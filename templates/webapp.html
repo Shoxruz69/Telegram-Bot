@@ -21,7 +21,10 @@
             --radius:     16px;
         }
 
-        * { box-sizing: border-box; }
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
 
         body {
             font-family: 'Poppins', sans-serif;
@@ -40,13 +43,13 @@
             top: 0;
             z-index: 100;
             padding: 14px 20px;
-            background: rgba(17,17,17,0.92);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
+            background: rgba(17, 17, 17, 0.95);
             display: flex;
             justify-content: space-between;
             align-items: center;
             border-bottom: 1px solid rgba(201,162,39,0.25);
+            -webkit-transform: translateZ(0);
+            transform: translateZ(0);
         }
 
         .header-brand {
@@ -594,6 +597,7 @@
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
+        try { tg.ready(); } catch(e) {}
 
         if (tg.colorScheme === 'dark' || true) {
             // Always dark mode for our theme
@@ -854,10 +858,10 @@
 
         function openModal() {
             const list = document.getElementById('modal-cart-list');
-            list.innerHTML = '';
+            let html = '';
             for (let id in cart) {
                 const c = cart[id];
-                list.innerHTML += `
+                html += `
                     <div class="cart-list-item">
                         <div class="cart-list-item-name">${c.item.name}</div>
                         <div class="cart-list-item-qty">${c.qty} x</div>
@@ -865,6 +869,7 @@
                     </div>
                 `;
             }
+            list.innerHTML = html;
             document.getElementById('cart-modal').classList.add('active');
 
             if (!userLat || !userLon) {
@@ -916,29 +921,48 @@
             );
         }
 
+        function getTelegramUserId() {
+            if (tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id) {
+                return String(tg.initDataUnsafe.user.id);
+            }
+            const urlParams = new URLSearchParams(window.location.search);
+            const qUser = urlParams.get('user_id') || urlParams.get('tgWebAppStartParam');
+            if (qUser) return String(qUser);
+            return '0';
+        }
+
         function compressAndGetBase64(file) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
-                reader.readAsDataURL(file);
                 reader.onload = (e) => {
                     const img = new Image();
                     img.onload = () => {
-                        const canvas = document.createElement('canvas');
-                        const MAX_SIZE = 800;
-                        let w = img.width, h = img.height;
-                        if (w > MAX_SIZE || h > MAX_SIZE) {
-                            if (w > h) { h = Math.round(h * MAX_SIZE / w); w = MAX_SIZE; }
-                            else { w = Math.round(w * MAX_SIZE / h); h = MAX_SIZE; }
-                        }
-                        canvas.width = w;
-                        canvas.height = h;
-                        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-                        resolve(canvas.toDataURL('image/jpeg', 0.6));
+                        setTimeout(() => {
+                            try {
+                                const canvas = document.createElement('canvas');
+                                const MAX_SIZE = 600;
+                                let w = img.width, h = img.height;
+                                if (w > MAX_SIZE || h > MAX_SIZE) {
+                                    if (w > h) { h = Math.round(h * MAX_SIZE / w); w = MAX_SIZE; }
+                                    else { w = Math.round(w * MAX_SIZE / h); h = MAX_SIZE; }
+                                }
+                                canvas.width = w;
+                                canvas.height = h;
+                                const ctx = canvas.getContext('2d');
+                                ctx.fillStyle = "#FFFFFF";
+                                ctx.fillRect(0, 0, w, h);
+                                ctx.drawImage(img, 0, 0, w, h);
+                                resolve(canvas.toDataURL('image/jpeg', 0.5));
+                            } catch(err) {
+                                reject(err);
+                            }
+                        }, 20);
                     };
-                    img.onerror = reject;
+                    img.onerror = () => reject(new Error("Rasm o'qib bo'lmadi"));
                     img.src = e.target.result;
                 };
-                reader.onerror = reject;
+                reader.onerror = () => reject(new Error("Fayl o'qishda xatolik"));
+                reader.readAsDataURL(file);
             });
         }
 
@@ -955,54 +979,83 @@
                 return;
             }
 
+            const btn = document.getElementById('submit-btn');
+            const originalBtnText = btn.innerHTML;
+            btn.disabled = true;
+
             const receiptInput = document.getElementById('form-receipt');
             let receiptBase64 = null;
 
             if (selectedPayment === 'Karta') {
                 if (receiptInput.files.length === 0) {
                     tg.showAlert("Iltimos, to'lov chekini (screenshot) yuklang!");
+                    btn.disabled = false;
                     return;
                 }
-                const btn = document.getElementById('submit-btn');
                 btn.innerText = "📎 Chek tayyorlanmoqda...";
                 try {
                     receiptBase64 = await compressAndGetBase64(receiptInput.files[0]);
                 } catch(e) {
                     tg.showAlert("Rasm xatosi: " + e.message);
+                    btn.disabled = false;
+                    btn.innerHTML = originalBtnText;
                     return;
                 }
             }
 
-            const btn = document.getElementById('submit-btn');
-            btn.innerText = "⏳ Tasdiqlanmoqda...";
-            btn.disabled = true;
+            btn.innerText = "⏳ Yuborilmoqda...";
 
             const orderItems = Object.values(cart).map(c => ({ id: c.item.id, qty: c.qty }));
-            const userId = tg.initDataUnsafe?.user?.id || '0';
+            const userId = getTelegramUserId();
 
-            // Fonda so'rovni yuborish (keepalive webview yopilsa ham so'rovni yakunlaydi)
-            fetch('/api/checkout', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    user_id: userId,
-                    phone: phone,
-                    address: address,
-                    payment_method: selectedPayment,
-                    items: orderItems,
-                    latitude: userLat || 0,
-                    longitude: userLon || 0,
-                    receipt_base64: receiptBase64
-                }),
-                keepalive: true
-            }).catch(e => console.error("Checkout fetch error:", e));
+            try {
+                const response = await fetch('/api/checkout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_id: userId,
+                        phone: phone,
+                        address: address,
+                        payment_method: selectedPayment,
+                        items: orderItems,
+                        latitude: userLat || 0,
+                        longitude: userLon || 0,
+                        receipt_base64: receiptBase64
+                    })
+                });
 
-            tg.HapticFeedback.notificationOccurred('success');
-            localStorage.setItem('user_phone', phone);
-            cart = {};
+                const data = await response.json();
 
-            // ZUDLIK BILAN (Instant) Mini App ni yopish va Telegram chatga o'tkazish
-            tg.close();
+                if (data.success) {
+                    tg.HapticFeedback.notificationOccurred('success');
+                    localStorage.setItem('user_phone', phone);
+                    cart = {};
+                    updateCart();
+                    closeModal();
+
+                    const overlay = document.getElementById('success-overlay');
+                    if (overlay) {
+                        const titleEl = document.getElementById('success-title');
+                        if (titleEl && data.order_id) {
+                            titleEl.innerText = `Buyurtma #${data.order_id} qabul qilindi!`;
+                        }
+                        overlay.style.display = 'flex';
+                    }
+
+                    setTimeout(() => {
+                        try { tg.close(); } catch(e) {}
+                    }, 1800);
+                } else {
+                    btn.disabled = false;
+                    btn.innerHTML = originalBtnText;
+                    tg.showAlert(data.error || "Buyurtma saqlashda xatolik yuz berdi!");
+                }
+            } catch(e) {
+                console.error("Checkout fetch error:", e);
+                btn.disabled = false;
+                btn.innerHTML = originalBtnText;
+                tg.showAlert("Tarmoq xatosi! Internet aloqasini tekshiring.");
+            }
         }
 
         init();

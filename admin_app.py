@@ -332,6 +332,8 @@ def api_checkout():
     except:
         pass
 
+    receipts_dir = os.path.join(app.root_path, 'static', 'uploads', 'receipts')
+
     # Chek (Base64 formatda yuborilgan bo'lsa)
     receipt_filename = None
     receipt_base64 = data.get('receipt_base64')
@@ -342,7 +344,6 @@ def api_checkout():
             import base64
             file_data = base64.b64decode(receipt_base64)
             receipt_filename = str(uuid.uuid4())[:8] + "_karta.jpg"
-            receipts_dir = os.path.join(app.root_path, 'static', 'uploads', 'receipts')
             os.makedirs(receipts_dir, exist_ok=True)
             with open(os.path.join(receipts_dir, receipt_filename), 'wb') as f:
                 f.write(file_data)
@@ -351,7 +352,7 @@ def api_checkout():
 
     # Buyurtmani DB ga saqlash
     new_order = Order(
-        user_id=int(user_id),
+        user_id=int(user_id) if str(user_id).isdigit() else 0,
         status="Kutilmoqda",
         payment_method=payment_method,
         receipt_image=receipt_filename,
@@ -387,17 +388,27 @@ def api_checkout():
         bot_token = os.getenv("BOT_TOKEN")
         admin_id = os.getenv("ADMIN_ID")
         if not bot_token:
+            print("[Notify warning]: BOT_TOKEN sozlanmagan!")
             return
+
         # Admin xabari
         if admin_id and admin_id not in ("YOUR_ADMIN_ID_HERE", "", None):
             try:
                 # Agar chek bo'lsa, rasmli xabar yuboramiz
                 if receipt_filename:
-                    with open(os.path.join(receipts_dir, receipt_filename), 'rb') as photo:
+                    photo_path = os.path.join(receipts_dir, receipt_filename)
+                    if os.path.exists(photo_path):
+                        with open(photo_path, 'rb') as photo:
+                            requests.post(
+                                f"https://api.telegram.org/bot{bot_token}/sendPhoto",
+                                data={'chat_id': admin_id, 'caption': order_text, 'parse_mode': 'HTML'},
+                                files={'photo': photo},
+                                timeout=12
+                            )
+                    else:
                         requests.post(
-                            f"https://api.telegram.org/bot{bot_token}/sendPhoto",
-                            data={'chat_id': admin_id, 'caption': order_text, 'parse_mode': 'HTML'},
-                            files={'photo': photo},
+                            f"https://api.telegram.org/bot{bot_token}/sendMessage",
+                            json={'chat_id': admin_id, 'text': order_text, 'parse_mode': 'HTML'},
                             timeout=12
                         )
                 else:
@@ -414,20 +425,22 @@ def api_checkout():
                     )
             except Exception as e:
                 print(f"[Admin notify error]: {e}")
+
         # Mijoz xabari
-        try:
-            user_msg = (
-                f"✅ Buyurtmangiz #{order_id} qabul qilindi!\n"
-                f"💰 Jami: {total_amount:,} so'm ({payment_method})\n"
-                f"⏳ Admin tasdiqlashi kutilmoqda..."
-            )
-            requests.post(
-                f"https://api.telegram.org/bot{bot_token}/sendMessage",
-                json={'chat_id': user_id, 'text': user_msg},
-                timeout=8
-            )
-        except Exception as e:
-            print(f"[User notify error]: {e}")
+        if user_id and str(user_id) not in ('0', '', 'None'):
+            try:
+                user_msg = (
+                    f"✅ Buyurtmangiz #{order_id} qabul qilindi!\n"
+                    f"💰 Jami: {total_amount:,} so'm ({payment_method})\n"
+                    f"⏳ Admin tasdiqlashi kutilmoqda..."
+                )
+                requests.post(
+                    f"https://api.telegram.org/bot{bot_token}/sendMessage",
+                    json={'chat_id': user_id, 'text': user_msg},
+                    timeout=8
+                )
+            except Exception as e:
+                print(f"[User notify error]: {e}")
 
     threading.Thread(target=notify_all, daemon=True).start()
 
