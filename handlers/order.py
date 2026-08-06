@@ -15,12 +15,12 @@ async def finalize_order(message: Message, payment_method: str = "Aniqlanmadi", 
     cart_items = await get_cart(user_id)
     
     if not cart_items:
-        await message.answer("Savatingiz bo'sh!", reply_markup=get_webapp_keyboard())
+        await message.answer("Savatingiz bo'sh!", reply_markup=get_webapp_keyboard(user_id))
         return
         
     user = await get_user(user_id)
     if not user or not user[1]:
-        await message.answer("Foydalanuvchi ma'lumotlari to'liq emas. /start ni bosing", reply_markup=get_webapp_keyboard())
+        await message.answer("Foydalanuvchi ma'lumotlari to'liq emas. /start ni bosing", reply_markup=get_webapp_keyboard(user_id))
         return
         
     phone = user[1]
@@ -53,4 +53,4 @@ async def finalize_order(message: Message, payment_method: str = "Aniqlanmadi", 
             print(f"Error sending to admin: {e}")
             
     await clear_cart(user_id)
-    await message.answer(f"✅ Buyurtmangiz #{order_id} qabul qilindi va admin tasdiqlashi kutilmoqda. Tasdiqlanganda sizga xabar beramiz!", reply_markup=get_webapp_keyboard())
+    await message.answer(f"✅ Buyurtmangiz #{order_id} qabul qilindi va admin tasdiqlashi kutilmoqda. Tasdiqlanganda sizga xabar beramiz!", reply_markup=get_webapp_keyboard(user_id))

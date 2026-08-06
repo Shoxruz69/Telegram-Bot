@@ -35,13 +35,13 @@ async def cmd_start(message: Message):
             photo=photo, 
             caption=welcome_text, 
             parse_mode="Markdown", 
-            reply_markup=get_webapp_keyboard()
+            reply_markup=get_webapp_keyboard(message.from_user.id)
         )
     except Exception:
         await message.answer(
             welcome_text, 
             parse_mode="Markdown", 
-            reply_markup=get_webapp_keyboard()
+            reply_markup=get_webapp_keyboard(message.from_user.id)
         )
 
 @router.message(Command("menu"))
@@ -49,7 +49,7 @@ async def cmd_menu(message: Message):
     await message.answer(
         "✨ *Cafe Express Menyu*\n\nBuyurtma berish uchun quyidagi tugmani bosing:",
         parse_mode="Markdown",
-        reply_markup=get_webapp_keyboard()
+        reply_markup=get_webapp_keyboard(message.from_user.id)
     )
 
 @router.message(Command("help"))

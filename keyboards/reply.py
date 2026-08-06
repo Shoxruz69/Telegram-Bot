@@ -25,10 +25,11 @@ else:
     import logging
     logging.warning("DIQQAT: WEB_APP_URL yoki RENDER_EXTERNAL_URL topilmadi! Render Environment Variables ni tekshiring.")
 
-def get_webapp_keyboard():
+def get_webapp_keyboard(user_id: int = None):
+    url = f"{WEB_APP_URL}?user_id={user_id}" if user_id else WEB_APP_URL
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text="🍔 Menyu (Mini App)", web_app=WebAppInfo(url=WEB_APP_URL))]
+            [KeyboardButton(text="🍔 Menyu (Mini App)", web_app=WebAppInfo(url=url))]
         ],
         resize_keyboard=True
     )
