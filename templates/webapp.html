@@ -1079,8 +1079,8 @@
             const isSuccess = (data && data.success) || (response.ok && data && data.order_id);
 
             if (isSuccess) {
-                btn.innerText = "✅ Buyurtma tasdiqlandi!";
-                btn.style.backgroundColor = "#27ae60";
+                btn.innerText = "⏳ Yuborildi! Tasdiqlanmoqda...";
+                btn.style.backgroundColor = "#e67e22";
                 btn.style.color = "#ffffff";
 
                 try { tg.HapticFeedback.notificationOccurred('success'); } catch(e) {}
@@ -1089,7 +1089,7 @@
                 updateCart();
                 closeModal();
 
-                // Zudlik bilan (0.3s ichida) Telegram chatga o'tkazish uchun Mini App ni yopish
+                // 0.2-0.3 sekundda Mini App ni zudlik bilan yopish va Telegram chatga o'tkazish
                 try { if (window.Telegram && window.Telegram.WebApp) window.Telegram.WebApp.close(); } catch(e) {}
                 try { tg.close(); } catch(e) {}
                 try { window.close(); } catch(e) {}
@@ -1098,7 +1098,7 @@
                     try { if (window.Telegram && window.Telegram.WebApp) window.Telegram.WebApp.close(); } catch(e) {}
                     try { tg.close(); } catch(e) {}
                     try { window.close(); } catch(e) {}
-                }, 300);
+                }, 200);
             } else {
                 btn.disabled = false;
                 btn.innerHTML = originalBtnText;
