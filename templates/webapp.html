@@ -1079,14 +1079,17 @@
             const isSuccess = (data && data.success) || (response.ok && data && data.order_id);
 
             if (isSuccess) {
-                tg.HapticFeedback.notificationOccurred('success');
+                try { tg.HapticFeedback.notificationOccurred('success'); } catch(e) {}
                 localStorage.setItem('user_phone', phone);
                 cart = {};
                 updateCart();
                 closeModal();
 
                 // Zudlik bilan Telegram chatga o'tkazish uchun Mini App ni yopish
-                try { tg.close(); } catch(e) {}
+                setTimeout(() => {
+                    try { if (window.Telegram && window.Telegram.WebApp) window.Telegram.WebApp.close(); } catch(e) {}
+                    try { tg.close(); } catch(e) {}
+                }, 100);
             } else {
                 btn.disabled = false;
                 btn.innerHTML = originalBtnText;

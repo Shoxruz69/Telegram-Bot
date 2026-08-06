@@ -411,37 +411,20 @@ def api_checkout():
         tz = timezone(timedelta(hours=5)) # Tashkent time UTC+5
         now_tz = datetime.now(tz)
 
-        last_order = Order.query.order_by(Order.id.desc()).first()
-
-        if not last_order:
-            next_daily_id = 1
-        elif reset_hours == 0:
-            next_daily_id = (getattr(last_order, 'daily_id', None) or last_order.id) + 1
+        if reset_hours == 0:
+            total_orders = Order.query.count()
+            next_daily_id = total_orders + 1
+        elif reset_hours == 24:
+            # Toshkent vaqti bilan bugungi kun boshlangandan buyon tushgan buyurtmalar soni + 1
+            today_start_tz = now_tz.replace(hour=0, minute=0, second=0, microsecond=0)
+            today_start_utc = today_start_tz.astimezone(timezone.utc).replace(tzinfo=None)
+            orders_today = Order.query.filter(Order.created_at >= today_start_utc).count()
+            next_daily_id = orders_today + 1
         else:
-            if last_order.created_at:
-                try:
-                    if isinstance(last_order.created_at, str):
-                        from datetime import datetime as dt_cls
-                        last_dt = dt_cls.strptime(last_order.created_at.split('.')[0], "%Y-%m-%d %H:%M:%S")
-                    else:
-                        last_dt = last_order.created_at
-                    last_tz = last_dt + timedelta(hours=5)
-                    if reset_hours == 24:
-                        if now_tz.date() > last_tz.date():
-                            next_daily_id = 1
-                        else:
-                            next_daily_id = (getattr(last_order, 'daily_id', None) or last_order.id) + 1
-                    else:
-                        diff_hours = (now_tz - last_tz).total_seconds() / 3600.0
-                        if diff_hours >= reset_hours:
-                            next_daily_id = 1
-                        else:
-                            next_daily_id = (getattr(last_order, 'daily_id', None) or last_order.id) + 1
-                except Exception as e:
-                    print(f"[Reset hours calc error]: {e}")
-                    next_daily_id = (getattr(last_order, 'daily_id', None) or last_order.id) + 1
-            else:
-                next_daily_id = 1
+            cutoff_tz = now_tz - timedelta(hours=reset_hours)
+            cutoff_utc = cutoff_tz.astimezone(timezone.utc).replace(tzinfo=None)
+            recent_orders = Order.query.filter(Order.created_at >= cutoff_utc).count()
+            next_daily_id = recent_orders + 1
 
         # Buyurtmani DB ga saqlash
         new_order = Order(
