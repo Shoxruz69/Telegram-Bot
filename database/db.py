@@ -2,16 +2,12 @@ import aiosqlite
 from contextlib import asynccontextmanager
 
 DB_NAME = 'database/restaurant.db'
-_db_conn = None
-
 @asynccontextmanager
 async def get_db():
-    global _db_conn
-    if _db_conn is None:
-        _db_conn = await aiosqlite.connect(DB_NAME)
-        await _db_conn.execute("PRAGMA journal_mode=WAL;")
-        await _db_conn.commit()
-    yield _db_conn
+    async with aiosqlite.connect(DB_NAME, timeout=30.0) as db:
+        await db.execute("PRAGMA journal_mode=WAL;")
+        await db.execute("PRAGMA busy_timeout=30000;")
+        yield db
 
 async def init_db():
     async with get_db() as db:

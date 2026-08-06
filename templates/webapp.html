@@ -1035,7 +1035,7 @@
 
             btn.innerText = "⏳ Yuborilmoqda...";
 
-            const orderItems = Object.values(cart).map(c => ({ id: c.item.id, qty: c.qty }));
+            const orderItems = Object.values(cart).map(c => ({ id: c.item.id, qty: c.qty, price: c.item.price }));
             const userId = getTelegramUserId();
 
             let response;

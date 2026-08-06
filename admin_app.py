@@ -306,12 +306,41 @@ def api_checkout():
     total_amount = 0
     order_items_data = []
     order_text_items = ""
+    active_promotions = Promotion.query.filter_by(is_active=True).all()
 
     for item in items:
         menu_item = Menu.query.get(int(item['id']))
         if menu_item:
             qty = int(item['qty'])
             price = menu_item.price
+            old_price = getattr(menu_item, 'old_price', 0) or 0
+
+            # Aksiya chegirmasini hisoblash
+            best_discount = 0
+            for p in active_promotions:
+                discount = p.discount_percent or 0
+                if discount <= 0:
+                    continue
+                matches_item = p.menu_item_id and int(p.menu_item_id) == menu_item.id
+                matches_cat = p.category_id and int(p.category_id) == menu_item.category_id
+                is_gen = not p.category_id and not p.menu_item_id
+                if matches_item or matches_cat or is_gen:
+                    if discount > best_discount:
+                        best_discount = discount
+
+            if best_discount > 0:
+                base = old_price if (old_price and old_price > price) else price
+                price = round(base * (1 - best_discount / 100.0))
+
+            # Frontend payload price bilan solishtirish
+            if 'price' in item and item['price']:
+                try:
+                    payload_price = int(item['price'])
+                    if 0 < payload_price < price:
+                        price = payload_price
+                except:
+                    pass
+
             subtotal = price * qty
             total_amount += subtotal
             order_items_data.append({
