@@ -182,8 +182,28 @@ with app.app_context():
             db.session.execute(text("ALTER TABLE promotions ADD COLUMN menu_item_id INTEGER"))
 
         db.session.commit()
+
+        # Existing buyurtmalarga kunlik daily_id larni to'g'ri ketma-ketlikda (#1, #2, #3...) qayta berish (Auto-repair)
+        orders_all = Order.query.order_by(Order.id.asc()).all()
+        date_groups = {}
+        for o in orders_all:
+            if o.created_at:
+                try:
+                    if isinstance(o.created_at, str):
+                        dt_obj = datetime.strptime(o.created_at.split('.')[0], "%Y-%m-%d %H:%M:%S")
+                    else:
+                        dt_obj = o.created_at
+                    day_str = (dt_obj + timedelta(hours=5)).strftime("%Y-%m-%d")
+                except:
+                    day_str = "2026-08-01"
+            else:
+                day_str = "2026-08-01"
+            
+            date_groups[day_str] = date_groups.get(day_str, 0) + 1
+            o.daily_id = date_groups[day_str]
+        db.session.commit()
     except Exception as e:
-        print("Auto-migration xatosi:", e)
+        print(f"[Auto-migration error]: {e}")
 
 # --- WebApp API ---
 @app.route('/webapp')

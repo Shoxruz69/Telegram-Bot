@@ -1085,11 +1085,14 @@
                 updateCart();
                 closeModal();
 
-                // Zudlik bilan Telegram chatga o'tkazish uchun Mini App ni yopish
+                // Zudlik bilan Telegram chatga o'tkazish uchun Mini App ni yopish (barcha platformalarda)
+                try { if (window.Telegram && window.Telegram.WebApp) window.Telegram.WebApp.close(); } catch(e) {}
+                try { tg.close(); } catch(e) {}
+                try { window.close(); } catch(e) {}
                 setTimeout(() => {
                     try { if (window.Telegram && window.Telegram.WebApp) window.Telegram.WebApp.close(); } catch(e) {}
                     try { tg.close(); } catch(e) {}
-                }, 100);
+                }, 50);
             } else {
                 btn.disabled = false;
                 btn.innerHTML = originalBtnText;

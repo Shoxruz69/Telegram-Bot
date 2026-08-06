@@ -17,9 +17,10 @@ echo "Bot PID: $BOT_PID"
 echo "Admin panel ishga tushirilmoqda (PORT: ${PORT:-5000})..."
 exec gunicorn admin_app:app \
     --bind 0.0.0.0:${PORT:-5000} \
-    --workers 1 \
-    --timeout 120 \
-    --keep-alive 5 \
+    --workers 2 \
+    --threads 4 \
+    --timeout 60 \
+    --keep-alive 15 \
     --log-level info \
     --access-logfile - \
     --error-logfile -
