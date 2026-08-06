@@ -49,6 +49,7 @@ async def init_db():
         await db.execute('''
             CREATE TABLE IF NOT EXISTS orders (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                daily_id INTEGER DEFAULT 1,
                 user_id INTEGER,
                 status TEXT DEFAULT 'Kutilmoqda',
                 payment_method TEXT,
@@ -75,7 +76,10 @@ async def init_db():
             CREATE TABLE IF NOT EXISTS settings (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 card_number TEXT,
-                card_name TEXT
+                card_name TEXT,
+                work_time_start TEXT DEFAULT '09:00',
+                work_time_end TEXT DEFAULT '22:00',
+                order_reset_hours INTEGER DEFAULT 24
             )
         ''')
         await db.commit()

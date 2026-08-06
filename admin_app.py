@@ -91,6 +91,7 @@ class Setting(db.Model):
     card_name = db.Column(db.String(100))
     work_time_start = db.Column(db.String(10), default="09:00")
     work_time_end = db.Column(db.String(10), default="22:00")
+    order_reset_hours = db.Column(db.Integer, default=24) # 24: Har 24 soatda 1-dan boshlanadi, 12: Har 12 soatda, 0: Reset o'chirilgan
 
     def __repr__(self):
         return f"Karta: {self.card_number} ({self.card_name})"
@@ -130,6 +131,7 @@ class OrderItem(db.Model):
 class Order(db.Model):
     __tablename__ = 'orders'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    daily_id = db.Column(db.Integer, default=1) # Har kunlik/soatlik 1, 2, 3... tartib raqam
     user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'))
     status = db.Column(db.String(50), default="Kutilmoqda")
     payment_method = db.Column(db.String(50))
@@ -142,7 +144,7 @@ class Order(db.Model):
     items = db.relationship('OrderItem', backref='order', lazy=True, cascade='all, delete-orphan')
 
     def __repr__(self):
-        return f"Buyurtma #{self.id} - {self.status}"
+        return f"Buyurtma #{self.daily_id or self.id} - {self.status}"
 
 # --- Jadvallarni yaratish va Auto-migration ---
 with app.app_context():
@@ -157,6 +159,13 @@ with app.app_context():
             db.session.execute(text("ALTER TABLE settings ADD COLUMN work_time_start VARCHAR(10) DEFAULT '09:00'"))
         if 'work_time_end' not in settings_cols:
             db.session.execute(text("ALTER TABLE settings ADD COLUMN work_time_end VARCHAR(10) DEFAULT '22:00'"))
+        if 'order_reset_hours' not in settings_cols:
+            db.session.execute(text("ALTER TABLE settings ADD COLUMN order_reset_hours INTEGER DEFAULT 24"))
+
+        # Orders migration
+        orders_cols = [col['name'] for col in inspector.get_columns('orders')]
+        if 'daily_id' not in orders_cols:
+            db.session.execute(text("ALTER TABLE orders ADD COLUMN daily_id INTEGER DEFAULT 1"))
             
         # Menu migration
         menu_cols = [col['name'] for col in inspector.get_columns('menu')]
@@ -387,8 +396,42 @@ def api_checkout():
         except Exception as e:
             print(f"[Base64 decode error]: {e}")
 
+    # Setting-dan order_reset_hours ni olish (default 24 soat)
+    setting = Setting.query.first()
+    reset_hours = getattr(setting, 'order_reset_hours', 24)
+    if reset_hours is None:
+        reset_hours = 24
+
+    tz = timezone(timedelta(hours=5)) # Tashkent time UTC+5
+    now_tz = datetime.now(tz)
+
+    last_order = Order.query.order_by(Order.id.desc()).first()
+
+    if not last_order:
+        next_daily_id = 1
+    elif reset_hours == 0:
+        next_daily_id = (getattr(last_order, 'daily_id', None) or last_order.id) + 1
+    else:
+        if last_order.created_at:
+            last_tz = last_order.created_at + timedelta(hours=5)
+            if reset_hours == 24:
+                # Toshkent vaqti bilan sana o'zgargan bo'lsa (yangi kun) 1 dan boshlanadi
+                if now_tz.date() > last_tz.date():
+                    next_daily_id = 1
+                else:
+                    next_daily_id = (getattr(last_order, 'daily_id', None) or last_order.id) + 1
+            else:
+                diff_hours = (now_tz - last_tz).total_seconds() / 3600.0
+                if diff_hours >= reset_hours:
+                    next_daily_id = 1
+                else:
+                    next_daily_id = (getattr(last_order, 'daily_id', None) or last_order.id) + 1
+        else:
+            next_daily_id = 1
+
     # Buyurtmani DB ga saqlash
     new_order = Order(
+        daily_id=next_daily_id,
         user_id=int(user_id) if str(user_id).isdigit() else 0,
         status="Kutilmoqda",
         payment_method=payment_method,
@@ -410,10 +453,11 @@ def api_checkout():
 
     db.session.commit()
     order_id = new_order.id
+    order_no = new_order.daily_id or order_id
 
     # Admin va mijozga FONDA xabar yuborish (UI ni kuttiradigan narsa yo'q)
     order_text = (
-        f"🆕 YANGI BUYURTMA #{order_id}!\n\n"
+        f"🆕 YANGI BUYURTMA #{order_no}!\n\n"
         f"👤 Mijoz: {phone}\n"
         f"📍 Manzil: {address}\n"
         f"💳 To'lov: {payment_method}\n\n"
@@ -467,7 +511,7 @@ def api_checkout():
         if user_id and str(user_id) not in ('0', '', 'None'):
             try:
                 user_msg = (
-                    f"✅ Buyurtmangiz #{order_id} qabul qilindi!\n"
+                    f"✅ Buyurtmangiz #{order_no} qabul qilindi!\n"
                     f"💰 Jami: {total_amount:,} so'm ({payment_method})\n"
                     f"⏳ Admin tasdiqlashi kutilmoqda..."
                 )
@@ -482,7 +526,7 @@ def api_checkout():
     threading.Thread(target=notify_all, daemon=True).start()
 
     # DB ga yozilgandan so'ng DARHOL javob qaytariladi
-    return jsonify({'success': True, 'order_id': order_id})
+    return jsonify({'success': True, 'order_id': order_no})
 
 
 @app.route('/api/upload_receipt/<int:order_id>', methods=['POST'])
@@ -605,13 +649,17 @@ def _format_datetime(view, context, model, name):
     tashkent_time = model.created_at + timedelta(hours=5)
     return tashkent_time.strftime("%Y-%m-%d %H:%M:%S")
 
+def _display_order_id(view, context, model, name):
+    display_no = model.daily_id or model.id
+    return Markup(f"<b>#{display_no}</b>")
+
 class OrderAdminView(ModelView):
     # Admin panelda ko'rinadigan ustunlar
     list_template = 'admin/order_list.html'
     extra_css = ['/static/admin_theme.css']
-    column_list = ('id', 'user_phone', 'order_items_text', 'total_amount', 'payment_method', 'address', 'status', 'receipt_image', 'created_at')
+    column_list = ('daily_id', 'user_phone', 'order_items_text', 'total_amount', 'payment_method', 'address', 'status', 'receipt_image', 'created_at')
     column_labels = {
-        'id': '№',
+        'daily_id': 'Buyurtma №',
         'user_phone': 'Telefon',
         'order_items_text': 'Buyurtma tarkibi',
         'total_amount': 'Jami (so\'m)',
@@ -622,6 +670,7 @@ class OrderAdminView(ModelView):
         'created_at': 'Vaqt'
     }
     column_formatters = {
+        'daily_id': _display_order_id,
         'receipt_image': _receipt_link,
         'order_items_text': _order_items_display,
         'user_phone': _user_phone,
@@ -635,7 +684,6 @@ class OrderAdminView(ModelView):
             ('Bekor qilindi', '❌ Bekor qilindi')
         ]
     }
-    # Faqat status va address tahrirlash mumkin
     form_columns = ['status']
     can_create = False
     can_delete = False
@@ -651,6 +699,7 @@ class OrderAdminView(ModelView):
         try:
             user_id = model.user_id
             order_id = model.id
+            order_no = model.daily_id or model.id
             status = model.status
             payment = model.payment_method or "Naqd"
             total = model.total_amount or 0
@@ -669,21 +718,21 @@ class OrderAdminView(ModelView):
             if status == 'Tasdiqlandi':
                 if payment == 'Karta':
                     msg = (
-                        f"✅ #{order_id}-raqamli buyurtmangiz TASDIQLANDI!\n\n"
+                        f"✅ #{order_no}-raqamli buyurtmangiz TASDIQLANDI!\n\n"
                         f"💳 To'lovingiz qabul qilindi!\n"
                         f"💰 Jami: {total:,} so'm\n\n"
                         f"🚚 Buyurtmangiz tez orada yetkazib beriladi. Rahmat! 🙏"
                     )
                 else:
                     msg = (
-                        f"✅ #{order_id}-raqamli buyurtmangiz TASDIQLANDI!\n\n"
+                        f"✅ #{order_no}-raqamli buyurtmangiz TASDIQLANDI!\n\n"
                         f"💵 To'lov turi: Naqd\n"
                         f"💰 Jami: {total:,} so'm\n\n"
                         f"🚚 Buyurtmangiz tez orada yetkazib beriladi. Rahmat! 🙏"
                     )
             elif status == 'Bekor qilindi':
                 msg = (
-                    f"❌ #{order_id}-raqamli buyurtmangiz BEKOR QILINDI!\n\n"
+                    f"❌ #{order_no}-raqamli buyurtmangiz BEKOR QILINDI!\n\n"
                     f"Qo'shimcha ma'lumot uchun biz bilan bog'laning."
                 )
             else:
@@ -726,6 +775,24 @@ class OrderItemAdminView(ModelView):
 class ThemedModelView(ModelView):
     extra_css = ['/static/admin_theme.css']
 
+class SettingAdminView(ThemedModelView):
+    column_list = ('card_number', 'card_name', 'work_time_start', 'work_time_end', 'order_reset_hours')
+    column_labels = {
+        'card_number': 'Karta Raqami',
+        'card_name': 'Karta Egasi',
+        'work_time_start': 'Ish Boshlanishi (hh:mm)',
+        'work_time_end': 'Ish Tugashi (hh:mm)',
+        'order_reset_hours': 'Buyurtma Raqami Reset Intervali (Soat)'
+    }
+    form_columns = ['card_number', 'card_name', 'work_time_start', 'work_time_end', 'order_reset_hours']
+    form_widget_args = {
+        'order_reset_hours': {
+            'help': 'Masalan: 24 (har 24 soatda buyurtma #1 dan boshlanadi), 12 (har 12 soatda 1-dan boshlanadi), 0 (reset o\'chiriladi). Eski buyurtmalar tarixdan yo\'qolmaydi!'
+        }
+    }
+    can_create = False
+    can_delete = False
+
 class PromotionAdminView(ThemedModelView):
     column_list = ('id', 'title', 'description', 'discount_percent', 'end_date', 'category', 'menu_item', 'is_active', 'created_at')
     column_labels = {
@@ -758,7 +825,7 @@ admin.add_view(OrderAdminView(Order, db.session, name="📦 Buyurtmalar"))
 admin.add_view(MenuAdminView(Menu, db.session, name="🍔 Menyu (Taomlar)"))
 admin.add_view(PromotionAdminView(Promotion, db.session, name="🏷️ Chegirmalar"))
 admin.add_view(ThemedModelView(Category, db.session, name="📁 Kategoriyalar"))
-admin.add_view(ThemedModelView(Setting, db.session, name="⚙️ Sozlamalar"))
+admin.add_view(SettingAdminView(Setting, db.session, name="⚙️ Sozlamalar"))
 admin.add_view(ThemedModelView(User, db.session, name="👤 Mijozlar"))
 
 if __name__ == '__main__':
