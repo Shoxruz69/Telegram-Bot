@@ -277,16 +277,22 @@ def api_checkout():
     except:
         data = request.form.to_dict()
 
-    user_id = str(data.get('user_id', ''))
-    phone = str(data.get('phone', ''))
-    address = str(data.get('address', ''))
+    user_id = str(data.get('user_id', '')).strip()
+    phone = str(data.get('phone', '')).strip()
+    address = str(data.get('address', '')).strip()
     payment_method = str(data.get('payment_method', 'Naqd'))
     items_raw = data.get('items', '[]')
     latitude = data.get('latitude', 0)
     longitude = data.get('longitude', 0)
 
-    if not user_id or not phone:
-        return jsonify({'success': False, 'error': "Telefon raqam yoki user_id yo'q!"})
+    # Agar user_id kelmagan yoki '0' bo'lsa, DB dan ushbu telefon raqamli foydalanuvchini izlaymiz
+    if (not user_id or user_id == '0') and phone:
+        found_u = User.query.filter(User.phone == phone, User.user_id != 0).first()
+        if found_u:
+            user_id = str(found_u.user_id)
+
+    if not phone:
+        return jsonify({'success': False, 'error': "Telefon raqam kiritilmagan!"})
 
     try:
         items = json.loads(items_raw) if isinstance(items_raw, str) else items_raw
@@ -321,16 +327,18 @@ def api_checkout():
 
     # Foydalanuvchini saqlash/yangilash
     try:
-        user_obj = User.query.get(int(user_id))
-        if not user_obj:
-            user_obj = User(user_id=int(user_id), phone=phone, latitude=lat_val, longitude=lon_val)
-            db.session.add(user_obj)
-        else:
-            user_obj.phone = phone
-            user_obj.latitude = lat_val
-            user_obj.longitude = lon_val
-    except:
-        pass
+        parsed_uid = int(user_id) if (user_id and user_id.isdigit()) else 0
+        if parsed_uid > 0:
+            user_obj = User.query.get(parsed_uid)
+            if not user_obj:
+                user_obj = User(user_id=parsed_uid, phone=phone, latitude=lat_val, longitude=lon_val)
+                db.session.add(user_obj)
+            else:
+                user_obj.phone = phone
+                user_obj.latitude = lat_val
+                user_obj.longitude = lon_val
+    except Exception as e:
+        print(f"[User save error]: {e}")
 
     receipts_dir = os.path.join(app.root_path, 'static', 'uploads', 'receipts')
 
@@ -618,6 +626,17 @@ class OrderAdminView(ModelView):
             payment = model.payment_method or "Naqd"
             total = model.total_amount or 0
 
+            # Agar order.user_id bot foydalanuvchisi emas bo'lsa (0 bo'lsa), uning telefon raqami bo'yicha DB dan user_id ni izlaymiz
+            if (not user_id or str(user_id) == '0') and model.user and model.user.phone:
+                found_user = User.query.filter(User.phone == model.user.phone, User.user_id != 0).first()
+                if found_user:
+                    user_id = found_user.user_id
+                    try:
+                        model.user_id = found_user.user_id
+                        db.session.commit()
+                    except Exception as e:
+                        print(f"[DB user update error]: {e}")
+
             if status == 'Tasdiqlandi':
                 if payment == 'Karta':
                     msg = (
@@ -641,22 +660,25 @@ class OrderAdminView(ModelView):
             else:
                 return  # Kutilmoqda holatida xabar yuborma
 
+            target_uid = user_id
             def send_status_msg():
                 token = os.getenv("BOT_TOKEN")
-                if token and user_id:
+                if token and target_uid and str(target_uid) not in ('0', '', 'None'):
                     try:
                         resp = requests.post(
                             f"https://api.telegram.org/bot{token}/sendMessage",
-                            json={"chat_id": int(user_id), "text": msg},
-                            timeout=5
+                            json={"chat_id": int(target_uid), "text": msg},
+                            timeout=10
                         )
-                        print(f"[Admin Notify] Status '{status}' -> user {user_id}: {resp.status_code}")
+                        print(f"[Admin status notify] Status '{status}' -> user {target_uid}: HTTP {resp.status_code} - {resp.text}", flush=True)
                     except Exception as e:
-                        print("[Admin status notify error]:", e)
+                        print("[Admin status notify error]:", e, flush=True)
+                else:
+                    print(f"[Admin status notify warning]: Telegram xabar yuborilmadi. target_uid={target_uid}", flush=True)
 
             threading.Thread(target=send_status_msg, daemon=True).start()
         except Exception as err:
-            print("[after_model_change error]:", err)
+            print("[after_model_change error]:", err, flush=True)
 
 class OrderItemAdminView(ModelView):
     column_list = ('id', 'order_id', 'name', 'price', 'quantity')
