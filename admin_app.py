@@ -183,25 +183,54 @@ with app.app_context():
 
         db.session.commit()
 
-        # Existing buyurtmalarga kunlik daily_id larni to'g'ri ketma-ketlikda (#1, #2, #3...) qayta berish (Auto-repair)
-        orders_all = Order.query.order_by(Order.id.asc()).all()
-        date_groups = {}
-        for o in orders_all:
-            if o.created_at:
-                try:
-                    if isinstance(o.created_at, str):
-                        dt_obj = datetime.strptime(o.created_at.split('.')[0], "%Y-%m-%d %H:%M:%S")
+        # Existing buyurtmalarga order_reset_hours sozlamasiga ko'ra daily_id berish
+        def recalculate_daily_ids():
+            try:
+                setting_obj = Setting.query.first()
+                rh = getattr(setting_obj, 'order_reset_hours', 24)
+                if rh is None:
+                    rh = 24
+
+                orders_list = Order.query.order_by(Order.id.asc()).all()
+                if not orders_list:
+                    return
+
+                prev_dt = None
+                curr_daily_id = 0
+
+                for o in orders_list:
+                    dt_val = None
+                    if o.created_at:
+                        if isinstance(o.created_at, str):
+                            try:
+                                dt_val = datetime.strptime(o.created_at.split('.')[0], "%Y-%m-%d %H:%M:%S")
+                            except:
+                                dt_val = None
+                        elif isinstance(o.created_at, datetime):
+                            dt_val = o.created_at
+
+                    if rh == 0:
+                        curr_daily_id += 1
+                        o.daily_id = curr_daily_id
                     else:
-                        dt_obj = o.created_at
-                    day_str = (dt_obj + timedelta(hours=5)).strftime("%Y-%m-%d")
-                except:
-                    day_str = "2026-08-01"
-            else:
-                day_str = "2026-08-01"
-            
-            date_groups[day_str] = date_groups.get(day_str, 0) + 1
-            o.daily_id = date_groups[day_str]
-        db.session.commit()
+                        if prev_dt is None or dt_val is None:
+                            curr_daily_id = 1
+                        else:
+                            diff_h = (dt_val - prev_dt).total_seconds() / 3600.0
+                            if diff_h >= rh:
+                                curr_daily_id = 1
+                            else:
+                                curr_daily_id += 1
+                        o.daily_id = curr_daily_id
+
+                    if dt_val:
+                        prev_dt = dt_val
+
+                db.session.commit()
+            except Exception as ex:
+                print(f"[recalculate_daily_ids error]: {ex}")
+
+        recalculate_daily_ids()
     except Exception as e:
         print(f"[Auto-migration error]: {e}")
 
@@ -428,23 +457,30 @@ def api_checkout():
         if reset_hours is None:
             reset_hours = 24
 
-        tz = timezone(timedelta(hours=5)) # Tashkent time UTC+5
-        now_tz = datetime.now(tz)
+        now_utc = datetime.utcnow()
+        last_order = Order.query.order_by(Order.id.desc()).first()
 
-        if reset_hours == 0:
-            total_orders = Order.query.count()
-            next_daily_id = total_orders + 1
-        elif reset_hours == 24:
-            # Toshkent vaqti bilan bugungi kun boshlangandan buyon tushgan buyurtmalar soni + 1
-            today_start_tz = now_tz.replace(hour=0, minute=0, second=0, microsecond=0)
-            today_start_utc = today_start_tz.astimezone(timezone.utc).replace(tzinfo=None)
-            orders_today = Order.query.filter(Order.created_at >= today_start_utc).count()
-            next_daily_id = orders_today + 1
+        if not last_order:
+            next_daily_id = 1
+        elif reset_hours == 0:
+            next_daily_id = (getattr(last_order, 'daily_id', None) or last_order.id) + 1
         else:
-            cutoff_tz = now_tz - timedelta(hours=reset_hours)
-            cutoff_utc = cutoff_tz.astimezone(timezone.utc).replace(tzinfo=None)
-            recent_orders = Order.query.filter(Order.created_at >= cutoff_utc).count()
-            next_daily_id = recent_orders + 1
+            last_dt = getattr(last_order, 'created_at', None)
+            if last_dt:
+                if isinstance(last_dt, str):
+                    try:
+                        last_dt = datetime.strptime(last_dt.split('.')[0], "%Y-%m-%d %H:%M:%S")
+                    except:
+                        last_dt = None
+
+            if last_dt and isinstance(last_dt, datetime):
+                diff_hours = (now_utc - last_dt).total_seconds() / 3600.0
+                if diff_hours >= reset_hours:
+                    next_daily_id = 1
+                else:
+                    next_daily_id = (getattr(last_order, 'daily_id', None) or last_order.id) + 1
+            else:
+                next_daily_id = (getattr(last_order, 'daily_id', None) or last_order.id) + 1
 
         # Buyurtmani DB ga saqlash
         new_order = Order(
@@ -678,6 +714,7 @@ class OrderAdminView(ModelView):
     # Admin panelda ko'rinadigan ustunlar
     list_template = 'admin/order_list.html'
     extra_css = ['/static/admin_theme.css']
+    column_default_sort = ('id', 'desc')
     column_list = ('daily_id', 'user_phone', 'order_items_text', 'total_amount', 'payment_method', 'address', 'status', 'receipt_image', 'created_at')
     column_labels = {
         'daily_id': 'Buyurtma №',
@@ -813,6 +850,45 @@ class SettingAdminView(ThemedModelView):
     }
     can_create = False
     can_delete = False
+
+    def after_model_change(self, form, model, is_created):
+        try:
+            # Sozlamalar o'zgarganda daily_id larni qayta hisoblash
+            orders_list = Order.query.order_by(Order.id.asc()).all()
+            rh = model.order_reset_hours or 24
+            prev_dt = None
+            curr_daily_id = 0
+            for o in orders_list:
+                dt_val = None
+                if o.created_at:
+                    if isinstance(o.created_at, str):
+                        try:
+                            dt_val = datetime.strptime(o.created_at.split('.')[0], "%Y-%m-%d %H:%M:%S")
+                        except:
+                            dt_val = None
+                    elif isinstance(o.created_at, datetime):
+                        dt_val = o.created_at
+
+                if rh == 0:
+                    curr_daily_id += 1
+                    o.daily_id = curr_daily_id
+                else:
+                    if prev_dt is None or dt_val is None:
+                        curr_daily_id = 1
+                    else:
+                        diff_h = (dt_val - prev_dt).total_seconds() / 3600.0
+                        if diff_h >= rh:
+                            curr_daily_id = 1
+                        else:
+                            curr_daily_id += 1
+                    o.daily_id = curr_daily_id
+
+                if dt_val:
+                    prev_dt = dt_val
+
+            db.session.commit()
+        except Exception as e:
+            print(f"[Setting update recalculate error]: {e}")
 
 class PromotionAdminView(ThemedModelView):
     column_list = ('id', 'title', 'description', 'discount_percent', 'end_date', 'category', 'menu_item', 'is_active', 'created_at')
