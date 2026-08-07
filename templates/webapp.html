@@ -794,15 +794,18 @@
 
         function add(id) {
             const item = allItems.find(i => i.id === id);
+            if (!item) return;
             if (!cart[id]) {
                 cart[id] = { item: item, qty: 1 };
-                document.getElementById(`item-${id}`).classList.add('in-cart');
+                const itemEl = document.getElementById(`item-${id}`);
+                if (itemEl) itemEl.classList.add('in-cart');
             } else {
                 cart[id].qty++;
             }
-            document.getElementById(`qty-${id}`).innerText = cart[id].qty;
+            const qtyEl = document.getElementById(`qty-${id}`);
+            if (qtyEl) qtyEl.innerText = cart[id].qty;
             updateCart();
-            tg.HapticFeedback.impactOccurred('light');
+            try { tg.HapticFeedback.impactOccurred('light'); } catch(e) {}
         }
 
         function minus(id) {
@@ -810,12 +813,14 @@
                 cart[id].qty--;
                 if (cart[id].qty <= 0) {
                     delete cart[id];
-                    document.getElementById(`item-${id}`).classList.remove('in-cart');
+                    const itemEl = document.getElementById(`item-${id}`);
+                    if (itemEl) itemEl.classList.remove('in-cart');
                 } else {
-                    document.getElementById(`qty-${id}`).innerText = cart[id].qty;
+                    const qtyEl = document.getElementById(`qty-${id}`);
+                    if (qtyEl) qtyEl.innerText = cart[id].qty;
                 }
                 updateCart();
-                tg.HapticFeedback.impactOccurred('light');
+                try { tg.HapticFeedback.impactOccurred('light'); } catch(e) {}
             }
         }
 
@@ -827,16 +832,23 @@
                 count += cart[id].qty;
             }
 
-            document.getElementById('cart-count').innerText = count;
-            document.getElementById('cart-total').innerText = total.toLocaleString();
-            document.getElementById('modal-total').innerText = total.toLocaleString();
+            const countEl = document.getElementById('cart-count');
+            if (countEl) countEl.innerText = count;
+
+            const totalEl = document.getElementById('cart-total');
+            if (totalEl) totalEl.innerText = total.toLocaleString();
+
+            const modalTotalEl = document.getElementById('modal-total');
+            if (modalTotalEl) modalTotalEl.innerText = total.toLocaleString();
 
             const bottomBar = document.getElementById('bottom-bar');
-            if (count > 0) {
-                bottomBar.classList.add('visible');
-            } else {
-                bottomBar.classList.remove('visible');
-                closeModal();
+            if (bottomBar) {
+                if (count > 0) {
+                    bottomBar.classList.add('visible');
+                } else {
+                    bottomBar.classList.remove('visible');
+                    closeModal();
+                }
             }
         }
 
@@ -844,20 +856,25 @@
 
         function setPayment(method) {
             selectedPayment = method;
-            document.getElementById('pay-karta').classList.remove('active');
-            document.getElementById('pay-naqd').classList.remove('active');
+            const payKarta = document.getElementById('pay-karta');
+            const payNaqd = document.getElementById('pay-naqd');
+            if (payKarta) payKarta.classList.remove('active');
+            if (payNaqd) payNaqd.classList.remove('active');
             if (method === 'Karta') {
-                document.getElementById('pay-karta').classList.add('active');
-                document.getElementById('card-details').style.display = 'block';
+                if (payKarta) payKarta.classList.add('active');
+                const cardDet = document.getElementById('card-details');
+                if (cardDet) cardDet.style.display = 'block';
             }
             if (method === 'Naqd') {
-                document.getElementById('pay-naqd').classList.add('active');
-                document.getElementById('card-details').style.display = 'none';
+                if (payNaqd) payNaqd.classList.add('active');
+                const cardDet = document.getElementById('card-details');
+                if (cardDet) cardDet.style.display = 'none';
             }
         }
 
         function openModal() {
             const list = document.getElementById('modal-cart-list');
+            if (!list) return;
             let html = '';
             for (let id in cart) {
                 const c = cart[id];
@@ -870,7 +887,8 @@
                 `;
             }
             list.innerHTML = html;
-            document.getElementById('cart-modal').classList.add('active');
+            const cartModal = document.getElementById('cart-modal');
+            if (cartModal) cartModal.classList.add('active');
 
             if (!userLat || !userLon) {
                 getLocation(false);
@@ -878,20 +896,21 @@
         }
 
         function closeModal() {
-            document.getElementById('cart-modal').classList.remove('active');
+            const cartModal = document.getElementById('cart-modal');
+            if (cartModal) cartModal.classList.remove('active');
         }
 
         function getLocation(isSilent = false) {
             const btn = document.getElementById('loc-btn');
             const status = document.getElementById('loc-status');
 
-            if (!isSilent) {
+            if (!isSilent && btn) {
                 btn.innerText = '⏳ Aniqlanmoqda...';
-                status.innerText = '';
+                if (status) status.innerText = '';
             }
 
             if (!navigator.geolocation) {
-                if (!isSilent) {
+                if (!isSilent && status && btn) {
                     status.innerText = 'Brauzeringiz geolokatsiyani qo\'llab-quvvatlamaydi.';
                     btn.innerText = '📍 Lokatsiyani aniqlash';
                 }
@@ -902,17 +921,19 @@
                 (pos) => {
                     userLat = pos.coords.latitude;
                     userLon = pos.coords.longitude;
-                    btn.innerText = '✅ Lokatsiya aniqlandi!';
-                    btn.classList.add('done');
-                    status.innerText = `${userLat.toFixed(5)}, ${userLon.toFixed(5)}`;
+                    if (btn) {
+                        btn.innerText = '✅ Lokatsiya aniqlandi!';
+                        btn.classList.add('done');
+                    }
+                    if (status) status.innerText = `${userLat.toFixed(5)}, ${userLon.toFixed(5)}`;
 
                     const addrInput = document.getElementById('form-address');
-                    if (!addrInput.value) {
+                    if (addrInput && !addrInput.value) {
                         addrInput.value = `Lokatsiya: ${userLat.toFixed(5)}, ${userLon.toFixed(5)}`;
                     }
                 },
                 (err) => {
-                    if (!isSilent) {
+                    if (!isSilent && btn && status) {
                         btn.innerText = '📍 Lokatsiyani aniqlash';
                         status.innerText = 'Ruxsat berilmadi. Manzilni qo\'lda yozing.';
                     }
@@ -997,8 +1018,10 @@
         }
 
         async function checkout() {
-            const phone = document.getElementById('form-phone').value.trim();
-            const address = document.getElementById('form-address').value.trim();
+            const phoneEl = document.getElementById('form-phone');
+            const addressEl = document.getElementById('form-address');
+            const phone = phoneEl ? phoneEl.value.trim() : '';
+            const address = addressEl ? addressEl.value.trim() : '';
 
             if (!phone) {
                 tg.showAlert("Iltimos, telefon raqamingizni kiriting!");
@@ -1010,6 +1033,7 @@
             }
 
             const btn = document.getElementById('submit-btn');
+            if (!btn) return;
             const originalBtnText = btn.innerHTML;
             btn.disabled = true;
 
@@ -1017,7 +1041,7 @@
             let receiptBase64 = null;
 
             if (selectedPayment === 'Karta') {
-                if (receiptInput.files.length === 0) {
+                if (!receiptInput || receiptInput.files.length === 0) {
                     tg.showAlert("Iltimos, to'lov chekini (screenshot) yuklang!");
                     btn.disabled = false;
                     return;
@@ -1084,21 +1108,33 @@
                 btn.style.color = "#ffffff";
 
                 try { tg.HapticFeedback.notificationOccurred('success'); } catch(e) {}
-                localStorage.setItem('user_phone', phone);
+                try { localStorage.setItem('user_phone', phone); } catch(e) {}
+                
+                // Clear cart state safely
+                for (let id in cart) {
+                    try {
+                        const itemEl = document.getElementById(`item-${id}`);
+                        if (itemEl) itemEl.classList.remove('in-cart');
+                    } catch(e) {}
+                }
                 cart = {};
-                updateCart();
-                closeModal();
 
-                // 0.2-0.3 sekundda Mini App ni zudlik bilan yopish va Telegram chatga o'tkazish
-                try { if (window.Telegram && window.Telegram.WebApp) window.Telegram.WebApp.close(); } catch(e) {}
-                try { tg.close(); } catch(e) {}
-                try { window.close(); } catch(e) {}
+                try { updateCart(); } catch(e) {}
+                try { closeModal(); } catch(e) {}
 
-                setTimeout(() => {
+                // Zudlik bilan Telegram Mini App ni yopish va chatga qaytarish
+                const forceClose = () => {
                     try { if (window.Telegram && window.Telegram.WebApp) window.Telegram.WebApp.close(); } catch(e) {}
                     try { tg.close(); } catch(e) {}
                     try { window.close(); } catch(e) {}
-                }, 200);
+                };
+
+                try { tg.sendData(JSON.stringify({ status: "success", order_id: data ? data.order_id : 0 })); } catch(e) {}
+
+                forceClose();
+                setTimeout(forceClose, 50);
+                setTimeout(forceClose, 150);
+                setTimeout(forceClose, 300);
             } else {
                 btn.disabled = false;
                 btn.innerHTML = originalBtnText;
