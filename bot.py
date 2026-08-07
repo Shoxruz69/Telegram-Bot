@@ -91,6 +91,22 @@ async def main():
     # Bot komandalarini va Menyuni avtomatik sozlash
     from keyboards.reply import WEB_APP_URL
     try:
+        # Telegram qidiruvida "C", "Cafe", "Kafe" deb qidirganda ham birinchilardan chiqishi uchun ism va tavsiflarni indekslash
+        try:
+            await bot.set_my_name(name="Cafe Express 🍔 | Fast Food & Taomlar")
+        except Exception as e:
+            logging.warning(f"set_my_name error: {e}")
+
+        try:
+            await bot.set_my_short_description(short_description="Cafe Express — Fast Food, Pitssa, Ichimliklar va Taomlar yetkazib berish boti. Cafe, Kafe, C.")
+        except Exception as e:
+            logging.warning(f"set_my_short_description error: {e}")
+
+        try:
+            await bot.set_my_description(description="Welcome to Cafe Express! Mazali taomlar, pitssa, burger va ichimliklarni tezda buyurtma qiling.")
+        except Exception as e:
+            logging.warning(f"set_my_description error: {e}")
+
         await bot.set_my_commands([
             BotCommand(command="start", description="Botni qayta ishga tushirish"),
             BotCommand(command="menu", description="Menyuni ochish"),
@@ -101,7 +117,7 @@ async def main():
         )
         logging.info(f"WebApp URL: {WEB_APP_URL}")
     except Exception as e:
-        logging.warning(f"Komandalar o'rnatishda xatolik: {e}")
+        logging.warning(f"Komandalar va nomlarni o'rnatishda xatolik: {e}")
 
     logging.info("Bot ishga tushirildi, polling boshlanmoqda...")
 
