@@ -5,36 +5,61 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Cafe Express</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --gold:       #D4AF37;
-            --gold-light: #F3E5AB;
-            --gold-dark:  #997A15;
-            --black:      #0A0A0B;
-            --black-soft: #141416;
-            --card-dark:  #1C1B1E;
-            --cream:      #FFFFFF;
-            --cream-muted:#E6DEC4;
-            --text-light: #F5F5F7;
-            --text-muted: #A39988;
-            --radius:     16px;
+            --gold:         #D4AF37;
+            --gold-light:   #F3E5AB;
+            --gold-dark:    #997A15;
+            --gold-glow:    rgba(212, 175, 55, 0.35);
+
+            --black:        #0A0A0B;
+            --black-soft:   #141416;
+            --card-dark:    #1C1B1E;
+            --card-hover:   #252428;
+            --bg-input:     #1C1B1E;
+
+            --text-light:   #F5F5F7;
+            --text-muted:   #A39988;
+            --border-gold:  rgba(212, 175, 55, 0.25);
+            --border-subtle:rgba(255, 255, 255, 0.08);
+
+            --radius:       16px;
+            --radius-full:  9999px;
+            --transition:   all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* ── LIGHT THEME OVERRIDES ── */
+        body.light-theme {
+            --black:        #F4F5F7;
+            --black-soft:   #FFFFFF;
+            --card-dark:    #FFFFFF;
+            --card-hover:   #F9FAFB;
+            --bg-input:     #F3F4F6;
+
+            --text-light:   #111827;
+            --text-muted:   #4B5563;
+            --border-gold:  rgba(184, 134, 11, 0.35);
+            --border-subtle:rgba(0, 0, 0, 0.08);
+            background-color: var(--black);
+            color: var(--text-light);
         }
 
         * {
             box-sizing: border-box;
             -webkit-tap-highlight-color: transparent;
+            margin: 0;
+            padding: 0;
         }
 
         body {
             font-family: 'Poppins', sans-serif;
             background-color: var(--black);
             color: var(--text-light);
-            margin: 0;
-            padding: 0;
             padding-bottom: 100px;
             overflow-x: hidden;
             min-height: 100vh;
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
 
         /* ── HEADER ── */
@@ -42,14 +67,19 @@
             position: sticky;
             top: 0;
             z-index: 100;
-            padding: 14px 20px;
+            padding: 12px 16px;
             background: rgba(17, 17, 17, 0.95);
+            backdrop-filter: blur(12px);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid rgba(201,162,39,0.25);
-            -webkit-transform: translateZ(0);
+            border-bottom: 1px solid var(--border-gold);
             transform: translateZ(0);
+            transition: var(--transition);
+        }
+
+        body.light-theme .header {
+            background: rgba(255, 255, 255, 0.95);
         }
 
         .header-brand {
@@ -62,78 +92,134 @@
             width: 38px;
             height: 38px;
             border-radius: 50%;
-            background: linear-gradient(135deg, var(--gold), var(--gold-dark));
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-            box-shadow: 0 0 12px rgba(201,162,39,0.4);
+            overflow: hidden;
+            border: 2px solid var(--gold);
+            box-shadow: 0 0 10px var(--gold-glow);
+            flex-shrink: 0;
+        }
+
+        .header-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
 
         .header h3 {
-            margin: 0;
             font-family: 'Playfair Display', serif;
-            font-size: 20px;
+            font-size: 18px;
             font-weight: 700;
             background: linear-gradient(90deg, var(--gold-light), var(--gold));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            letter-spacing: 0.5px;
+            line-height: 1.2;
         }
 
         .header-sub {
             font-size: 10px;
             color: var(--text-muted);
-            font-weight: 400;
+            font-weight: 500;
             display: block;
             margin-top: -2px;
-            -webkit-text-fill-color: var(--text-muted);
+        }
+
+        /* ── HEADER CONTROLS (THEME & LANG) ── */
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .theme-toggle-btn {
+            width: 34px;
+            height: 34px;
+            border-radius: var(--radius-full);
+            border: 1px solid var(--border-gold);
+            background: var(--card-dark);
+            color: var(--gold);
+            font-size: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .theme-toggle-btn:active {
+            transform: scale(0.92);
+        }
+
+        .mini-lang-selector {
+            display: flex;
+            background: var(--card-dark);
+            border: 1px solid var(--border-gold);
+            border-radius: var(--radius-full);
+            padding: 2px;
+            gap: 2px;
+        }
+
+        .mini-lang-btn {
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 11px;
+            font-weight: 700;
+            padding: 4px 8px;
+            border-radius: var(--radius-full);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .mini-lang-btn.active {
+            background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+            color: #0A0A0B;
+            box-shadow: 0 2px 6px var(--gold-glow);
         }
 
         /* ── CATEGORIES ── */
         .category-tabs {
             display: flex;
             overflow-x: auto;
-            padding: 16px 20px 8px;
-            gap: 10px;
+            padding: 14px 16px 6px;
+            gap: 8px;
             scroll-behavior: smooth;
         }
         .category-tabs::-webkit-scrollbar { display: none; }
 
         .tab {
-            padding: 8px 20px;
+            padding: 7px 16px;
             background: var(--card-dark);
-            border: 1px solid rgba(201,162,39,0.15);
+            border: 1px solid var(--border-gold);
             border-radius: 20px;
             white-space: nowrap;
             font-weight: 600;
-            font-size: 13px;
+            font-size: 12.5px;
             color: var(--text-muted);
             cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+            transition: var(--transition);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
         }
         .tab.active {
             background: linear-gradient(135deg, var(--gold), var(--gold-dark));
-            color: var(--black);
+            color: #0A0A0B;
             border-color: transparent;
-            box-shadow: 0 4px 14px rgba(201,162,39,0.45);
-            transform: translateY(-2px);
+            box-shadow: 0 4px 14px var(--gold-glow);
+            transform: translateY(-1px);
         }
 
         /* ── MENU GRID ── */
         .menu-list {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 16px;
+            gap: 14px;
             padding: 10px 16px 0;
         }
 
         .menu-item {
-            background: #1e1e1e;
+            background: var(--card-dark);
             border-radius: var(--radius);
             overflow: hidden;
-            border: 1px solid rgba(201,162,39,0.3);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            border: 1px solid var(--border-gold);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
             display: flex;
             flex-direction: column;
             transition: transform 0.2s, box-shadow 0.2s;
@@ -142,198 +228,201 @@
         .menu-item:active { transform: scale(0.97); }
         .menu-item.in-cart {
             border-color: var(--gold);
-            box-shadow: 0 0 16px rgba(201,162,39,0.25);
-            background: #24221a;
+            box-shadow: 0 0 16px var(--gold-glow);
         }
 
         .img-container {
             width: 100%;
-            height: 130px;
+            height: 125px;
             overflow: hidden;
             position: relative;
-            background: #1a1a1a;
+            background-color: #24221A;
         }
-        .menu-item img {
+        .img-container img {
             width: 100%;
             height: 100%;
             object-fit: cover;
-            transition: transform 0.4s;
-        }
-        .menu-item:hover img { transform: scale(1.07); }
-
-        /* Gold shimmer overlay on image */
-        .img-container::after {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(to top, rgba(17,17,17,0.55) 0%, transparent 60%);
-            pointer-events: none;
+            transition: transform 0.3s ease;
         }
 
         .item-info {
-            padding: 10px 12px 12px;
-            flex-grow: 1;
+            padding: 12px;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
+            flex: 1;
+            gap: 8px;
         }
+
         .item-name {
-            font-size: 14px;
+            font-size: 13.5px;
             font-weight: 700;
-            margin: 0 0 3px 0;
-            line-height: 1.2;
-            color: var(--cream);
+            color: var(--text-light);
+            line-height: 1.3;
         }
+
         .item-desc {
-            font-size: 10.5px;
+            font-size: 11px;
             color: var(--text-muted);
-            margin: 0 0 8px 0;
-            line-height: 1.4;
+            line-height: 1.3;
             display: -webkit-box;
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
+
         .price-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-top: auto;
         }
+
         .item-price {
-            font-size: 13px;
-            font-weight: 700;
-            color: var(--gold-light);
+            font-size: 13.5px;
+            font-weight: 800;
+            color: var(--gold);
         }
 
-        /* ── ADD / QTY BUTTONS ── */
         .add-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: var(--radius-full);
             background: linear-gradient(135deg, var(--gold), var(--gold-dark));
-            color: var(--black);
             border: none;
-            width: 30px;
-            height: 30px;
-            border-radius: 9px;
+            color: #0A0A0B;
             font-size: 18px;
-            font-weight: bold;
-            cursor: pointer;
+            font-weight: 800;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 3px 10px rgba(201,162,39,0.4);
-            transition: 0.2s;
+            cursor: pointer;
+            box-shadow: 0 2px 8px var(--gold-glow);
         }
-        .add-btn:active { transform: scale(0.88); }
+        .add-btn:active { transform: scale(0.9); }
 
         .qty-controls {
             display: none;
             align-items: center;
             gap: 6px;
-            background: rgba(201,162,39,0.1);
-            border-radius: 9px;
+            background: var(--card-hover);
+            border: 1px solid var(--border-gold);
+            border-radius: var(--radius-full);
             padding: 2px 4px;
-            border: 1px solid rgba(201,162,39,0.3);
-        }
-        .qty-btn {
-            background: transparent;
-            color: var(--gold-light);
-            border: none;
-            width: 26px;
-            height: 26px;
-            font-size: 17px;
-            font-weight: 700;
-            cursor: pointer;
-            line-height: 1;
-        }
-        .qty-val {
-            font-weight: 700;
-            font-size: 13px;
-            min-width: 14px;
-            text-align: center;
-            color: var(--gold-light);
         }
         .menu-item.in-cart .add-btn { display: none; }
         .menu-item.in-cart .qty-controls { display: flex; }
 
-        /* ── BOTTOM CART BAR ── */
+        .qty-btn {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: var(--card-dark);
+            border: 1px solid var(--border-gold);
+            color: var(--gold);
+            font-size: 14px;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .qty-val {
+            font-size: 13px;
+            font-weight: 800;
+            color: var(--text-light);
+            min-width: 16px;
+            text-align: center;
+        }
+
+        /* ── BOTTOM BAR ── */
         .bottom-bar {
             position: fixed;
-            bottom: 14px;
-            left: 16px;
-            right: 16px;
-            background: linear-gradient(135deg, var(--gold-dark), var(--gold));
-            color: var(--black);
-            padding: 12px 18px;
-            border-radius: 20px;
-            box-shadow: 0 8px 30px rgba(201,162,39,0.5);
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--card-dark);
+            border-top: 1px solid var(--border-gold);
+            padding: 12px 18px 24px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            z-index: 100;
-            transform: translateY(150%);
-            transition: transform 0.4s cubic-bezier(0.175,0.885,0.32,1.275);
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            z-index: 90;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.5);
         }
         .bottom-bar.visible { transform: translateY(0); }
 
-        .cart-info { display: flex; flex-direction: column; }
-        .cart-count { font-size: 11px; opacity: 0.75; font-weight: 600; }
-        .cart-total { font-size: 17px; font-weight: 800; }
+        .cart-info {
+            display: flex;
+            flex-direction: column;
+        }
+        .cart-count {
+            font-size: 11px;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+        .cart-total {
+            font-size: 17px;
+            font-weight: 800;
+            color: var(--gold);
+        }
 
         .checkout-btn {
-            background: var(--black);
-            color: var(--gold-light);
+            padding: 10px 22px;
+            background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+            color: #0A0A0B;
             border: none;
-            padding: 9px 22px;
-            border-radius: 13px;
-            font-weight: 700;
-            font-size: 13px;
+            border-radius: var(--radius-full);
+            font-size: 14px;
+            font-weight: 800;
             cursor: pointer;
-            font-family: inherit;
-            letter-spacing: 0.3px;
-        }
-
-        /* ── SKELETON ── */
-        .skeleton {
-            background: linear-gradient(90deg, #242424 25%, #2e2e2e 50%, #242424 75%);
-            background-size: 200% 100%;
-            animation: loading 1.5s infinite;
-        }
-        @keyframes loading {
-            0%   { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
+            box-shadow: 0 4px 15px var(--gold-glow);
         }
 
         /* ── MODAL ── */
         .modal-overlay {
             position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
             background: rgba(0,0,0,0.75);
+            backdrop-filter: blur(8px);
             z-index: 1000;
-            display: none;
             opacity: 0;
-            transition: opacity 0.3s;
+            visibility: hidden;
+            transition: opacity 0.25s ease, visibility 0.25s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
         }
-        .modal-overlay.active { display: block; opacity: 1; }
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
 
         .modal-content {
-            position: absolute;
-            bottom: 0; left: 0; right: 0;
-            background: var(--black-soft);
+            background: var(--card-dark);
+            border-top: 1px solid var(--border-gold);
             border-radius: 24px 24px 0 0;
-            border-top: 2px solid rgba(201,162,39,0.35);
-            padding: 20px 20px 30px;
-            transform: translateY(100%);
-            transition: transform 0.4s cubic-bezier(0.175,0.885,0.32,1.275);
-            max-height: 85vh;
+            padding: 20px 20px 32px;
+            max-height: 88vh;
             overflow-y: auto;
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         }
-        .modal-overlay.active .modal-content { transform: translateY(0); }
+        .modal-overlay.active .modal-content {
+            transform: translateY(0);
+        }
 
         .modal-handle {
             width: 40px;
             height: 4px;
-            background: rgba(201,162,39,0.35);
-            border-radius: 4px;
+            background: var(--border-gold);
+            border-radius: 2px;
             margin: 0 auto 16px;
         }
 
@@ -341,152 +430,177 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 18px;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-subtle);
         }
         .modal-header h3 {
-            margin: 0;
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--gold-light);
             font-family: 'Playfair Display', serif;
-        }
-        .close-btn {
-            background: rgba(201,162,39,0.1);
-            border: 1px solid rgba(201,162,39,0.25);
-            width: 32px; height: 32px;
-            border-radius: 50%;
-            font-weight: bold;
-            color: var(--gold-light);
-            cursor: pointer;
-            font-size: 14px;
+            font-size: 18px;
+            color: var(--gold);
         }
 
-        .cart-list { margin-bottom: 18px; }
+        .close-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 18px;
+            cursor: pointer;
+        }
+
+        .cart-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 18px;
+        }
+
         .cart-list-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 10px 0;
-            border-bottom: 1px solid rgba(201,162,39,0.1);
+            font-size: 13.5px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-subtle);
         }
-        .cart-list-item-name { font-weight: 600; font-size: 13px; flex: 1; color: var(--cream); }
-        .cart-list-item-qty  { font-weight: 700; color: var(--gold); margin: 0 12px; font-size: 13px; }
-        .cart-list-item-price{ font-weight: 700; font-size: 13px; color: var(--gold-light); }
+        .cart-list-item-name { font-weight: 600; flex: 1; }
+        .cart-list-item-qty { color: var(--gold); font-weight: 700; margin: 0 12px; }
+        .cart-list-item-price { font-weight: 700; }
 
-        /* ── PAYMENT OPTIONS ── */
-        .payment-method { margin-bottom: 16px; }
-        .payment-method p { font-weight: 600; margin-bottom: 10px; font-size: 14px; color: var(--text-muted); }
-        .payment-options { display: flex; gap: 10px; }
-        .pay-opt {
-            flex: 1;
-            padding: 11px;
-            text-align: center;
-            border: 2px solid rgba(201,162,39,0.2);
-            border-radius: 12px;
+        /* Payment selector */
+        .payment-method {
+            margin-bottom: 18px;
+        }
+        .payment-method p {
+            font-size: 12.5px;
             font-weight: 600;
+            color: var(--gold);
+            margin-bottom: 8px;
+        }
+        .payment-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .pay-opt {
+            padding: 10px;
+            border: 1px solid var(--border-gold);
+            background: var(--card-hover);
+            border-radius: 12px;
+            text-align: center;
             font-size: 13px;
+            font-weight: 700;
             cursor: pointer;
-            transition: 0.2s;
-            color: var(--text-muted);
-            background: var(--card-dark);
+            transition: var(--transition);
         }
         .pay-opt.active {
-            border-color: var(--gold);
-            background: rgba(201,162,39,0.12);
-            color: var(--gold-light);
+            background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+            color: #0A0A0B;
+            border-color: transparent;
+            box-shadow: 0 2px 10px var(--gold-glow);
         }
 
-        /* ── FORM INPUTS ── */
+        /* Form inputs */
+        .checkout-form {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
         .form-input {
             width: 100%;
-            padding: 12px 14px;
-            margin-top: 10px;
-            border: 1px solid rgba(201,162,39,0.2);
-            border-radius: 10px;
-            font-size: 13px;
-            background: var(--card-dark);
-            color: var(--cream);
-            box-sizing: border-box;
-            font-family: inherit;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-        .form-input:focus { border-color: var(--gold); }
-        .form-input::placeholder { color: var(--text-muted); }
-
-        /* ── CARD DETAILS ── */
-        .card-details {
-            margin-top: 14px;
-            padding: 14px;
-            background: rgba(201,162,39,0.07);
+            padding: 11px 14px;
             border-radius: 12px;
-            border: 1px dashed rgba(201,162,39,0.4);
-        }
-        .card-details p { margin: 0 0 8px; font-size: 13px; color: var(--text-muted); }
-        .card-box {
-            background: linear-gradient(135deg, #2a2010, #1e1a0e);
-            padding: 12px 14px;
-            border-radius: 10px;
-            border: 1px solid rgba(201,162,39,0.3);
-            color: var(--gold-light);
-        }
-        .card-box strong { font-size: 16px; letter-spacing: 1px; }
-        .card-box small  { color: var(--text-muted); font-size: 12px; }
-
-        /* ── LOCATION BUTTON ── */
-        .loc-btn {
-            width: 100%;
-            padding: 12px;
-            margin-top: 10px;
-            border: 2px dashed rgba(201,162,39,0.4);
-            border-radius: 10px;
-            font-size: 13px;
-            font-weight: 600;
-            background: rgba(201,162,39,0.06);
-            color: var(--gold);
-            cursor: pointer;
-            transition: all 0.3s;
+            border: 1px solid var(--border-gold);
+            background: var(--bg-input);
+            color: var(--text-light);
             font-family: inherit;
+            font-size: 13px;
+            outline: none;
         }
-        .loc-btn:hover { background: rgba(201,162,39,0.12); }
+        .form-input:focus {
+            border-color: var(--gold);
+            box-shadow: 0 0 10px var(--gold-glow);
+        }
+
+        .loc-btn {
+            padding: 10px;
+            border-radius: 12px;
+            border: 1px dashed var(--border-gold);
+            background: var(--card-hover);
+            color: var(--gold);
+            font-weight: 600;
+            font-size: 12.5px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
         .loc-btn.done {
             border-style: solid;
-            background: rgba(46,213,115,0.08);
-            border-color: #2ed573;
-            color: #2ed573;
+            background: rgba(16, 185, 129, 0.15);
+            border-color: #10B981;
+            color: #10B981;
         }
 
-        /* ── FINAL CHECKOUT ── */
+        .card-details {
+            background: var(--card-hover);
+            border: 1px solid var(--border-gold);
+            border-radius: 12px;
+            padding: 12px;
+            margin-top: 6px;
+        }
+        .card-details p {
+            font-size: 11.5px;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+        .card-box {
+            background: var(--card-dark);
+            border: 1px solid var(--border-gold);
+            border-radius: 8px;
+            padding: 8px;
+            text-align: center;
+        }
+        .card-box strong { font-size: 15px; color: var(--gold); letter-spacing: 1px; }
+
         .final-checkout-btn {
             width: 100%;
             margin-top: 16px;
-            padding: 15px;
+            padding: 14px;
             background: linear-gradient(135deg, var(--gold), var(--gold-dark));
-            color: var(--black);
+            color: #0A0A0B;
             border: none;
             border-radius: 14px;
-            font-size: 15px;
+            font-size: 14.5px;
             font-weight: 800;
             cursor: pointer;
             font-family: inherit;
-            box-shadow: 0 6px 20px rgba(201,162,39,0.45);
-            letter-spacing: 0.2px;
-            transition: 0.2s;
+            box-shadow: 0 4px 18px var(--gold-glow);
         }
-        .final-checkout-btn:active { transform: scale(0.98); }
         .final-checkout-btn:disabled { opacity: 0.6; }
     </style>
 </head>
 <body>
 
+    <!-- Header -->
     <div class="header">
         <div class="header-brand">
-            <div class="header-logo" style="padding:0;overflow:hidden;background:none;">
-                <img src="/static/cafe_logo.png" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" alt="Logo">
+            <div class="header-logo">
+                <img src="/static/cafe_logo.png" alt="Logo">
             </div>
             <div>
                 <h3>Cafe Express</h3>
-                <span class="header-sub">Tez yetkazib berish</span>
+                <span class="header-sub" id="header-sub-text">Tez yetkazib berish</span>
+            </div>
+        </div>
+
+        <div class="header-controls">
+            <!-- Theme toggle button -->
+            <button class="theme-toggle-btn" id="theme-btn" onclick="toggleTheme()" title="Rejim">🌙</button>
+
+            <!-- Language selector -->
+            <div class="mini-lang-selector">
+                <button class="mini-lang-btn active" data-lang="uz" onclick="setAppLang('uz')">UZ</button>
+                <button class="mini-lang-btn" data-lang="ru" onclick="setAppLang('ru')">RU</button>
+                <button class="mini-lang-btn" data-lang="en" onclick="setAppLang('en')">EN</button>
             </div>
         </div>
     </div>
@@ -494,75 +608,43 @@
     <div id="promo-banner-container"></div>
 
     <div class="category-tabs" id="categories">
-        <div class="tab skeleton" style="width: 80px; height: 35px;"></div>
-        <div class="tab skeleton" style="width: 100px; height: 35px;"></div>
+        <div class="tab" style="width: 80px; height: 32px;"></div>
     </div>
 
     <div class="menu-list" id="menu-items">
-        <div class="menu-item skeleton" style="height: 230px;"></div>
-        <div class="menu-item skeleton" style="height: 230px;"></div>
+        <div class="menu-item" style="height: 220px;"></div>
+        <div class="menu-item" style="height: 220px;"></div>
     </div>
 
+    <!-- Bottom Cart Floating Bar -->
     <div class="bottom-bar" id="bottom-bar">
         <div class="cart-info">
-            <span class="cart-count">🛒 <span id="cart-count">0</span> ta mahsulot</span>
-            <span class="cart-total"><span id="cart-total">0</span> so'm</span>
+            <span class="cart-count">🛒 <span id="cart-count">0</span> <span id="cart-count-lbl">ta mahsulot</span></span>
+            <span class="cart-total"><span id="cart-total">0</span> <span class="currency-unit">so'm</span></span>
         </div>
-        <button class="checkout-btn" onclick="openModal()">Savat →</button>
+        <button class="checkout-btn" id="btn-open-cart" onclick="openModal()">Savat →</button>
     </div>
 
-    <!-- Muvaffaqiyat Ekrani -->
-    <div id="success-overlay" style="
-        display:none;
-        position:fixed;
-        top:0;left:0;right:0;bottom:0;
-        background:linear-gradient(135deg,#0d0d0d,#1a1500);
-        z-index:9999;
-        flex-direction:column;
-        align-items:center;
-        justify-content:center;
-        text-align:center;
-        padding:40px;
-    ">
-        <div style="
-            width:110px;height:110px;
-            background:linear-gradient(135deg,#c9a227,#a07c10);
-            border-radius:50%;
-            display:flex;align-items:center;justify-content:center;
-            font-size:52px;
-            margin-bottom:28px;
-            box-shadow: 0 0 40px rgba(201,162,39,0.5);
-            animation:popIn 0.4s ease;
-        ">✅</div>
-        <h2 id="success-title" style="
-            font-family:'Playfair Display',serif;
-            color:#c9a227;
-            font-size:26px;
-            margin:0 0 12px;
-        ">Buyurtma qabul qilindi!</h2>
-        <p id="success-sub" style="color:#9a8a6a;font-size:14px;margin:0 0 12px;">Admin tasdiqlashini kutmoqda...</p>
-        <p style="color:#555;font-size:12px;">Tasdiqlangach Telegramda xabar olasiz</p>
-        <style>
-            @keyframes popIn {
-                0% { transform: scale(0); }
-                80% { transform: scale(1.1); }
-                100% { transform: scale(1); }
-            }
-        </style>
+    <!-- Success Screen Overlay -->
+    <div id="success-overlay" style="display:none; position:fixed; top:0;left:0;right:0;bottom:0; background:linear-gradient(135deg,#0d0d0d,#1a1500); z-index:9999; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:40px;">
+        <div style="width:90px;height:90px; background:linear-gradient(135deg,#D4AF37,#997A15); border-radius:50%; display:flex;align-items:center;justify-content:center; font-size:42px; margin-bottom:20px; box-shadow: 0 0 30px rgba(212,175,55,0.5);">✅</div>
+        <h2 id="success-title" style="font-family:'Playfair Display',serif; color:#D4AF37; font-size:24px; margin-bottom:8px;">Buyurtma qabul qilindi!</h2>
+        <p id="success-sub" style="color:#A39988;font-size:13.5px;margin-bottom:10px;">Admin tasdiqlashini kutmoqda...</p>
+        <p id="success-notify" style="color:#78716C;font-size:12px;">Tasdiqlangach Telegramda xabar olasiz</p>
     </div>
 
-    <!-- Modal -->
+    <!-- Cart / Checkout Modal -->
     <div class="modal-overlay" id="cart-modal">
         <div class="modal-content">
             <div class="modal-handle"></div>
             <div class="modal-header">
-                <h3>🛒 Savatcha</h3>
+                <h3 id="modal-cart-title">🛒 Savatcha</h3>
                 <button class="close-btn" onclick="closeModal()">✕</button>
             </div>
             <div class="cart-list" id="modal-cart-list"></div>
 
             <div class="payment-method">
-                <p>To'lov turini tanlang:</p>
+                <p id="lbl-payment-title">To'lov turini tanlang:</p>
                 <div class="payment-options">
                     <div class="pay-opt active" onclick="setPayment('Karta')" id="pay-karta">💳 Karta</div>
                     <div class="pay-opt" onclick="setPayment('Naqd')" id="pay-naqd">💵 Naqd</div>
@@ -575,41 +657,192 @@
                 <button type="button" class="loc-btn" id="loc-btn" onclick="getLocation()">
                     📍 Lokatsiyani aniqlash
                 </button>
-                <small id="loc-status" style="display:block;margin-top:6px;color:#9a8a6a;"></small>
+                <small id="loc-status" style="display:block;margin-top:4px;color:var(--text-muted);"></small>
 
                 <div id="card-details" class="card-details">
-                    <p>Karta raqamiga pul o'tkazing:</p>
+                    <p id="lbl-card-transfer">Karta raqamiga pul o'tkazing:</p>
                     <div class="card-box">
                         <strong id="card-num-text">8600 0000 0000 0000</strong><br>
                         <small id="card-name-text">Ism Familiya</small>
                     </div>
-                    <p style="margin-top:10px;">To'lov chekini yuklang:</p>
+                    <p id="lbl-card-receipt" style="margin-top:10px;">To'lov chekini yuklang:</p>
                     <input type="file" id="form-receipt" accept="image/*" class="form-input">
                 </div>
             </div>
 
             <button class="final-checkout-btn" id="submit-btn" onclick="checkout()">
-                Buyurtma berish — <span id="modal-total">0</span> so'm
+                <span id="btn-submit-text">Buyurtma berish</span> — <span id="modal-total">0</span> <span class="currency-unit">so'm</span>
             </button>
         </div>
     </div>
 
     <script>
-        const tg = window.Telegram.WebApp;
-        tg.expand();
-        try { tg.ready(); } catch(e) {}
-
-        if (tg.colorScheme === 'dark' || true) {
-            // Always dark mode for our theme
+        const tg = window.Telegram ? window.Telegram.WebApp : null;
+        if (tg) {
+            tg.expand();
+            try { tg.ready(); } catch(e) {}
+            tg.MainButton.hide();
         }
 
-        tg.MainButton.hide();
+        // ==========================================
+        // MULTI-LANGUAGE & THEME SETUP
+        // ==========================================
+        const appI18n = {
+            uz: {
+                header_sub: "Tez yetkazib berish",
+                cart_btn: "Savat →",
+                cart_items: "ta mahsulot",
+                cart_title: "🛒 Savatcha",
+                payment_title: "To'lov turini tanlang:",
+                pay_card: "💳 Karta",
+                pay_cash: "💵 Naqd",
+                phone_placeholder: "Telefon raqam (+998901234567)",
+                address_placeholder: "Manzil (Tuman, ko'cha, uy...)",
+                loc_btn: "📍 Lokatsiyani aniqlash",
+                loc_done: "✅ Lokatsiya aniqlandi!",
+                card_transfer: "Karta raqamiga pul o'tkazing:",
+                card_receipt: "To'lov chekini yuklang:",
+                order_submit: "Buyurtma berish",
+                discounts_tab: "🏷️ Chegirmalar",
+                empty_cat: "Ushbu bo'limda taomlar mavjud emas",
+                order_success: "Buyurtma qabul qilindi!",
+                order_success_sub: "Admin tasdiqlashini kutmoqda...",
+                order_notify: "Tasdiqlangach Telegramda xabar olasiz",
+                currency: "so'm",
+                fill_phone: "Iltimos, telefon raqamingizni kiriting!",
+                fill_address: "Iltimos, manzilingizni kiriting!",
+                upload_receipt: "Iltimos, to'lov chekini (screenshot) yuklang!"
+            },
+            ru: {
+                header_sub: "Быстрая доставка",
+                cart_btn: "Корзина →",
+                cart_items: "товаров",
+                cart_title: "🛒 Корзина",
+                payment_title: "Выберите способ оплаты:",
+                pay_card: "💳 Карта",
+                pay_cash: "💵 Наличные",
+                phone_placeholder: "Номер телефона (+998901234567)",
+                address_placeholder: "Адрес (Район, улица, дом...)",
+                loc_btn: "📍 Определить локацию",
+                loc_done: "✅ Локация определена!",
+                card_transfer: "Переведите на номер карты:",
+                card_receipt: "Загрузите чек оплаты:",
+                order_submit: "Оформить заказ",
+                discounts_tab: "🏷️ Акции",
+                empty_cat: "В этом разделе пока нет блюд",
+                order_success: "Заказ принят!",
+                order_success_sub: "Ожидает подтверждения админа...",
+                order_notify: "Вы получите уведомление в Telegram",
+                currency: "сум",
+                fill_phone: "Пожалуйста, введите номер телефона!",
+                fill_address: "Пожалуйста, укажите ваш адрес!",
+                upload_receipt: "Пожалуйста, прикрепите чек оплаты!"
+            },
+            en: {
+                header_sub: "Fast Delivery",
+                cart_btn: "Cart →",
+                cart_items: "items",
+                cart_title: "🛒 Cart",
+                payment_title: "Choose Payment Method:",
+                pay_card: "💳 Card",
+                pay_cash: "💵 Cash",
+                phone_placeholder: "Phone number (+998901234567)",
+                address_placeholder: "Address (Street, building...)",
+                loc_btn: "📍 Detect Location",
+                loc_done: "✅ Location detected!",
+                card_transfer: "Transfer to card number:",
+                card_receipt: "Upload payment receipt:",
+                order_submit: "Place Order",
+                discounts_tab: "🏷️ Discounts",
+                empty_cat: "No items available in this category",
+                order_success: "Order received!",
+                order_success_sub: "Waiting for admin confirmation...",
+                order_notify: "You will receive a Telegram notification",
+                currency: "UZS",
+                fill_phone: "Please enter your phone number!",
+                fill_address: "Please enter your delivery address!",
+                upload_receipt: "Please upload the payment receipt!"
+            }
+        };
+
+        let currentLang = localStorage.getItem('webapp_lang') || 'uz';
+        let currentTheme = localStorage.getItem('webapp_theme') || 'dark';
+
+        function t(key) {
+            const dict = appI18n[currentLang] || appI18n.uz;
+            return dict[key] || key;
+        }
+
+        function setAppLang(lang) {
+            if (!appI18n[lang]) lang = 'uz';
+            currentLang = lang;
+            localStorage.setItem('webapp_lang', lang);
+
+            // Update mini lang buttons
+            document.querySelectorAll('.mini-lang-btn').forEach(b => {
+                b.classList.toggle('active', b.dataset.lang === lang);
+            });
+
+            applyAppTranslations();
+            renderCategories(cachedCategories);
+            updateCart();
+        }
+
+        function toggleTheme() {
+            currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            localStorage.setItem('webapp_theme', currentTheme);
+            applyTheme();
+        }
+
+        function applyTheme() {
+            const isLight = currentTheme === 'light';
+            document.body.classList.toggle('light-theme', isLight);
+            const btn = document.getElementById('theme-btn');
+            if (btn) btn.textContent = isLight ? '☀️' : '🌙';
+        }
+
+        function applyAppTranslations() {
+            const setTxt = (id, val) => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = val;
+            };
+
+            setTxt('header-sub-text', t('header_sub'));
+            setTxt('btn-open-cart', t('cart_btn'));
+            setTxt('cart-count-lbl', t('cart_items'));
+            setTxt('modal-cart-title', t('cart_title'));
+            setTxt('lbl-payment-title', t('payment_title'));
+            setTxt('pay-karta', t('pay_card'));
+            setTxt('pay-naqd', t('pay_cash'));
+            setTxt('lbl-card-transfer', t('card_transfer'));
+            setTxt('lbl-card-receipt', t('card_receipt'));
+            setTxt('btn-submit-text', t('order_submit'));
+            setTxt('success-title', t('order_success'));
+            setTxt('success-sub', t('order_success_sub'));
+            setTxt('success-notify', t('order_notify'));
+
+            const phoneInput = document.getElementById('form-phone');
+            if (phoneInput) phoneInput.placeholder = t('phone_placeholder');
+
+            const addrInput = document.getElementById('form-address');
+            if (addrInput) addrInput.placeholder = t('address_placeholder');
+
+            const locBtn = document.getElementById('loc-btn');
+            if (locBtn && !userLat) locBtn.textContent = t('loc_btn');
+
+            document.querySelectorAll('.currency-unit').forEach(el => el.textContent = t('currency'));
+        }
+
+        // Apply theme immediately
+        applyTheme();
 
         let allItems = [];
+        let cachedCategories = [];
         let cart = {};
         let globalSettings = {};
         let userLat = null;
         let userLon = null;
+        let activeCategoryId = null;
 
         function applyPromotions(menu, promotions) {
             if (!promotions || promotions.length === 0) return menu;
@@ -647,15 +880,15 @@
             let html = '';
             promotions.forEach(p => {
                 html += `
-                    <div style="margin: 10px 16px 6px 16px; padding: 12px 16px; background: linear-gradient(135deg, rgba(212, 175, 55, 0.18), rgba(239, 68, 68, 0.22)); border: 1px solid rgba(212, 175, 55, 0.45); border-radius: 14px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.15);">
+                    <div style="margin: 8px 16px; padding: 10px 14px; background: linear-gradient(135deg, rgba(212, 175, 55, 0.18), rgba(239, 68, 68, 0.22)); border: 1px solid var(--border-gold); border-radius: 14px; display: flex; align-items: center; justify-content: space-between;">
                         <div style="flex:1;">
-                            <div style="color: #F3E5AB; font-weight: 700; font-size: 13.5px; display: flex; align-items: center; gap: 6px;">
-                                <span style="background:#EF4444; color:#ffffff; font-size:9.5px; font-weight:bold; padding:2px 6px; border-radius:4px; text-shadow:0 1px 2px rgba(0,0,0,0.4);">CHEGIRMA</span>
-                                🎁 ${p.title} ${p.discount_percent ? '(' + p.discount_percent + '% Chegirma)' : ''}
+                            <div style="color: var(--gold-light); font-weight: 700; font-size: 13px; display: flex; align-items: center; gap: 6px;">
+                                <span style="background:#EF4444; color:#ffffff; font-size:9.5px; font-weight:bold; padding:2px 6px; border-radius:4px;">PROMO</span>
+                                🎁 ${p.title} ${p.discount_percent ? '(' + p.discount_percent + '%)' : ''}
                             </div>
-                            <div style="color: #A39988; font-size: 11px; margin-top: 4px; line-height: 1.3;">${p.description || ''} ${p.end_date ? '• Tugash: ' + p.end_date : ''}</div>
+                            <div style="color: var(--text-muted); font-size: 11px; margin-top: 2px;">${p.description || ''}</div>
                         </div>
-                        <span style="font-size: 24px; margin-left: 8px;">🔥</span>
+                        <span style="font-size: 22px;">🔥</span>
                     </div>
                 `;
             });
@@ -664,18 +897,25 @@
 
         async function init() {
             try {
+                // Set language buttons
+                document.querySelectorAll('.mini-lang-btn').forEach(b => {
+                    b.classList.toggle('active', b.dataset.lang === currentLang);
+                });
+                applyAppTranslations();
+
                 const res = await fetch('/api/data');
                 const data = await res.json();
 
-                allItems = applyPromotions(data.menu, data.promotions);
-                globalSettings = data.settings;
+                allItems = applyPromotions(data.menu || [], data.promotions || []);
+                cachedCategories = data.categories || [];
+                globalSettings = data.settings || {};
 
                 renderPromoBanner(data.promotions);
 
-                document.getElementById('card-num-text').innerText = globalSettings.card_number;
-                document.getElementById('card-name-text').innerText = globalSettings.card_name;
+                document.getElementById('card-num-text').innerText = globalSettings.card_number || '8600 0000 0000 0000';
+                document.getElementById('card-name-text').innerText = globalSettings.card_name || 'Cafe Express';
 
-                renderCategories(data.categories);
+                renderCategories(cachedCategories);
 
                 const savedPhone = localStorage.getItem('user_phone');
                 if (savedPhone) {
@@ -690,16 +930,18 @@
 
         function renderCategories(categories) {
             const container = document.getElementById('categories');
+            if (!container) return;
             container.innerHTML = '';
 
             const hasPromoItems = allItems.some(i => i.old_price && i.old_price > i.price);
             if (hasPromoItems) {
                 const promoDiv = document.createElement('div');
-                promoDiv.className = 'tab active';
-                promoDiv.innerText = '🏷️ Chegirmalar';
+                promoDiv.className = `tab ${activeCategoryId === 'promo' ? 'active' : ''}`;
+                promoDiv.innerText = t('discounts_tab');
                 promoDiv.onclick = () => {
                     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
                     promoDiv.classList.add('active');
+                    activeCategoryId = 'promo';
                     renderMenu('promo');
                 };
                 container.appendChild(promoDiv);
@@ -707,25 +949,34 @@
 
             categories.forEach((c, index) => {
                 const div = document.createElement('div');
-                div.className = `tab ${(!hasPromoItems && index === 0) ? 'active' : ''}`;
+                const isSelected = activeCategoryId === c.id || (!activeCategoryId && !hasPromoItems && index === 0);
+                div.className = `tab ${isSelected ? 'active' : ''}`;
                 div.innerText = c.name;
                 div.onclick = () => {
                     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
                     div.classList.add('active');
+                    activeCategoryId = c.id;
                     renderMenu(c.id);
                 };
                 container.appendChild(div);
             });
 
-            if (hasPromoItems) {
-                renderMenu('promo');
-            } else if (categories.length > 0) {
-                renderMenu(categories[0].id);
+            if (!activeCategoryId) {
+                if (hasPromoItems) {
+                    activeCategoryId = 'promo';
+                    renderMenu('promo');
+                } else if (categories.length > 0) {
+                    activeCategoryId = categories[0].id;
+                    renderMenu(categories[0].id);
+                }
+            } else {
+                renderMenu(activeCategoryId);
             }
         }
 
         function renderMenu(categoryId) {
             const container = document.getElementById('menu-items');
+            if (!container) return;
             container.innerHTML = '';
 
             let filtered = [];
@@ -736,9 +987,11 @@
             }
 
             if (filtered.length === 0) {
-                container.innerHTML = '<div style="text-align:center; padding:30px; color:#a1a1aa; width:100%;">Ushbu bo\'limda taomlar mavjud emas</div>';
+                container.innerHTML = `<div style="text-align:center; padding:30px; color:var(--text-muted); grid-column: 1 / -1;">${t('empty_cat')}</div>`;
                 return;
             }
+
+            const curr = t('currency');
 
             filtered.forEach(item => {
                 const inCart = cart[item.id] ? cart[item.id].qty : 0;
@@ -749,28 +1002,28 @@
 
                 const imgUrl = item.image_url && item.image_url.startsWith('http') ?
                                item.image_url :
-                               (item.image_url ? '/static/uploads/' + item.image_url : 'https://placehold.co/300x200/1e1e1e/c9a227?text=Cafe+Express');
+                               (item.image_url ? '/static/uploads/' + item.image_url : 'https://placehold.co/300x200/18181b/D4AF37?text=Cafe+Express');
 
                 const isPromo = item.old_price && item.old_price > item.price;
                 const badgeHtml = isPromo ? `
-                    <div style="position:absolute; top:8px; left:8px; background:linear-gradient(135deg, #EF4444, #DC2626); color:#ffffff; font-size:10px; font-weight:bold; padding:2px 8px; border-radius:6px; box-shadow:0 2px 6px rgba(239,68,68,0.5); z-index:2; text-shadow:0 1px 2px rgba(0,0,0,0.3);">
-                        🏷️ CHEGIRMA
+                    <div style="position:absolute; top:8px; left:8px; background:linear-gradient(135deg, #EF4444, #DC2626); color:#ffffff; font-size:10px; font-weight:bold; padding:2px 8px; border-radius:6px; z-index:2;">
+                        🏷️ PROMO
                     </div>
                 ` : '';
 
                 const priceHtml = isPromo ? `
                     <span class="item-price">
                         ${item.price.toLocaleString()}
-                        <s style="color:#a1a1aa; font-size:11px; font-weight:normal; margin-left:4px; text-decoration:line-through; opacity:0.8;">${item.old_price.toLocaleString()}</s> so'm
+                        <s style="color:var(--text-muted); font-size:10.5px; font-weight:normal; margin-left:3px; text-decoration:line-through;">${item.old_price.toLocaleString()}</s> ${curr}
                     </span>
                 ` : `
-                    <span class="item-price">${item.price.toLocaleString()} so'm</span>
+                    <span class="item-price">${item.price.toLocaleString()} ${curr}</span>
                 `;
 
                 div.innerHTML = `
-                    <div class="img-container" style="position:relative;">
+                    <div class="img-container">
                         ${badgeHtml}
-                        <img src="${imgUrl}" alt="${item.name}" loading="lazy" onerror="this.src='https://placehold.co/300x200/1e1e1e/c9a227?text=Cafe+Express'">
+                        <img src="${imgUrl}" alt="${item.name}" loading="lazy" onerror="this.src='https://placehold.co/300x200/18181b/D4AF37?text=Food'">
                     </div>
                     <div class="item-info">
                         <div>
@@ -805,7 +1058,9 @@
             const qtyEl = document.getElementById(`qty-${id}`);
             if (qtyEl) qtyEl.innerText = cart[id].qty;
             updateCart();
-            try { tg.HapticFeedback.impactOccurred('light'); } catch(e) {}
+            if (tg && tg.HapticFeedback) {
+                try { tg.HapticFeedback.impactOccurred('light'); } catch(e) {}
+            }
         }
 
         function minus(id) {
@@ -820,7 +1075,9 @@
                     if (qtyEl) qtyEl.innerText = cart[id].qty;
                 }
                 updateCart();
-                try { tg.HapticFeedback.impactOccurred('light'); } catch(e) {}
+                if (tg && tg.HapticFeedback) {
+                    try { tg.HapticFeedback.impactOccurred('light'); } catch(e) {}
+                }
             }
         }
 
@@ -858,31 +1115,24 @@
             selectedPayment = method;
             const payKarta = document.getElementById('pay-karta');
             const payNaqd = document.getElementById('pay-naqd');
-            if (payKarta) payKarta.classList.remove('active');
-            if (payNaqd) payNaqd.classList.remove('active');
-            if (method === 'Karta') {
-                if (payKarta) payKarta.classList.add('active');
-                const cardDet = document.getElementById('card-details');
-                if (cardDet) cardDet.style.display = 'block';
-            }
-            if (method === 'Naqd') {
-                if (payNaqd) payNaqd.classList.add('active');
-                const cardDet = document.getElementById('card-details');
-                if (cardDet) cardDet.style.display = 'none';
-            }
+            if (payKarta) payKarta.classList.toggle('active', method === 'Karta');
+            if (payNaqd) payNaqd.classList.toggle('active', method === 'Naqd');
+            const cardDet = document.getElementById('card-details');
+            if (cardDet) cardDet.style.display = (method === 'Karta') ? 'block' : 'none';
         }
 
         function openModal() {
             const list = document.getElementById('modal-cart-list');
             if (!list) return;
             let html = '';
+            const curr = t('currency');
             for (let id in cart) {
                 const c = cart[id];
                 html += `
                     <div class="cart-list-item">
                         <div class="cart-list-item-name">${c.item.name}</div>
                         <div class="cart-list-item-qty">${c.qty} x</div>
-                        <div class="cart-list-item-price">${(c.item.price * c.qty).toLocaleString()} so'm</div>
+                        <div class="cart-list-item-price">${(c.item.price * c.qty).toLocaleString()} ${curr}</div>
                     </div>
                 `;
             }
@@ -905,14 +1155,12 @@
             const status = document.getElementById('loc-status');
 
             if (!isSilent && btn) {
-                btn.innerText = '⏳ Aniqlanmoqda...';
-                if (status) status.innerText = '';
+                btn.innerText = '⏳ ...';
             }
 
             if (!navigator.geolocation) {
-                if (!isSilent && status && btn) {
-                    status.innerText = 'Brauzeringiz geolokatsiyani qo\'llab-quvvatlamaydi.';
-                    btn.innerText = '📍 Lokatsiyani aniqlash';
+                if (!isSilent && btn) {
+                    btn.innerText = t('loc_btn');
                 }
                 return;
             }
@@ -922,20 +1170,19 @@
                     userLat = pos.coords.latitude;
                     userLon = pos.coords.longitude;
                     if (btn) {
-                        btn.innerText = '✅ Lokatsiya aniqlandi!';
+                        btn.innerText = t('loc_done');
                         btn.classList.add('done');
                     }
                     if (status) status.innerText = `${userLat.toFixed(5)}, ${userLon.toFixed(5)}`;
 
                     const addrInput = document.getElementById('form-address');
                     if (addrInput && !addrInput.value) {
-                        addrInput.value = `Lokatsiya: ${userLat.toFixed(5)}, ${userLon.toFixed(5)}`;
+                        addrInput.value = `GPS: ${userLat.toFixed(5)}, ${userLon.toFixed(5)}`;
                     }
                 },
                 (err) => {
-                    if (!isSilent && btn && status) {
-                        btn.innerText = '📍 Lokatsiyani aniqlash';
-                        status.innerText = 'Ruxsat berilmadi. Manzilni qo\'lda yozing.';
+                    if (!isSilent && btn) {
+                        btn.innerText = t('loc_btn');
                     }
                 },
                 { enableHighAccuracy: false, timeout: 5000, maximumAge: 60000 }
@@ -944,41 +1191,22 @@
 
         function getTelegramUserId() {
             try {
-                if (window.Telegram && window.Telegram.WebApp) {
-                    const tgApp = window.Telegram.WebApp;
-                    if (tgApp.initDataUnsafe && tgApp.initDataUnsafe.user && tgApp.initDataUnsafe.user.id) {
-                        const uid = String(tgApp.initDataUnsafe.user.id);
-                        if (uid !== '0') {
-                            localStorage.setItem('tg_user_id', uid);
-                            return uid;
-                        }
-                    }
-                    if (tgApp.initData) {
-                        const params = new URLSearchParams(tgApp.initData);
-                        const userStr = params.get('user');
-                        if (userStr) {
-                            const u = JSON.parse(userStr);
-                            if (u && u.id) {
-                                const uid = String(u.id);
-                                localStorage.setItem('tg_user_id', uid);
-                                return uid;
-                            }
-                        }
+                if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id) {
+                    const uid = String(tg.initDataUnsafe.user.id);
+                    if (uid !== '0') {
+                        localStorage.setItem('tg_user_id', uid);
+                        return uid;
                     }
                 }
-            } catch(e) {
-                console.error("Error parsing tg user_id:", e);
-            }
+            } catch(e) {}
             const urlParams = new URLSearchParams(window.location.search);
             const qUser = urlParams.get('user_id') || urlParams.get('tgWebAppStartParam');
             if (qUser && String(qUser) !== '0') {
                 localStorage.setItem('tg_user_id', String(qUser));
                 return String(qUser);
             }
-
             const savedId = localStorage.getItem('tg_user_id');
             if (savedId && savedId !== '0') return savedId;
-
             return '0';
         }
 
@@ -1012,7 +1240,7 @@
                     img.onerror = () => reject(new Error("Rasm o'qib bo'lmadi"));
                     img.src = e.target.result;
                 };
-                reader.onerror = () => reject(new Error("Fayl o'qishda xatolik"));
+                reader.onerror = () => reject(new Error("Fayl xatosi"));
                 reader.readAsDataURL(file);
             });
         }
@@ -1024,13 +1252,17 @@
             const address = addressEl ? addressEl.value.trim() : '';
 
             if (!phone) {
-                tg.showAlert("Iltimos, telefon raqamingizni kiriting!");
+                if (tg && tg.showAlert) tg.showAlert(t('fill_phone'));
+                else alert(t('fill_phone'));
                 return;
             }
             if (!address) {
-                tg.showAlert("Iltimos, manzilingizni kiriting!");
+                if (tg && tg.showAlert) tg.showAlert(t('fill_address'));
+                else alert(t('fill_address'));
                 return;
             }
+
+            localStorage.setItem('user_phone', phone);
 
             const btn = document.getElementById('submit-btn');
             if (!btn) return;
@@ -1042,29 +1274,28 @@
 
             if (selectedPayment === 'Karta') {
                 if (!receiptInput || receiptInput.files.length === 0) {
-                    tg.showAlert("Iltimos, to'lov chekini (screenshot) yuklang!");
+                    if (tg && tg.showAlert) tg.showAlert(t('upload_receipt'));
+                    else alert(t('upload_receipt'));
                     btn.disabled = false;
                     return;
                 }
-                btn.innerText = "📎 Chek tayyorlanmoqda...";
+                btn.innerText = "📎 ...";
                 try {
                     receiptBase64 = await compressAndGetBase64(receiptInput.files[0]);
                 } catch(e) {
-                    tg.showAlert("Rasm xatosi: " + e.message);
                     btn.disabled = false;
                     btn.innerHTML = originalBtnText;
                     return;
                 }
             }
 
-            btn.innerText = "⏳ Yuborilmoqda...";
+            btn.innerText = "⏳ ...";
 
             const orderItems = Object.values(cart).map(c => ({ id: c.item.id, qty: c.qty, price: c.item.price }));
             const userId = getTelegramUserId();
 
-            let response;
             try {
-                response = await fetch('/api/checkout', {
+                const response = await fetch('/api/checkout', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -1078,72 +1309,36 @@
                         receipt_base64: receiptBase64
                     })
                 });
-            } catch(e) {
-                console.error("Checkout fetch network error:", e);
-                btn.disabled = false;
-                btn.innerHTML = originalBtnText;
-                tg.showAlert("Internet aloqasini tekshiring va qayta urinib ko'ring.");
-                return;
-            }
 
-            let responseText = "";
-            try {
-                responseText = await response.text();
-            } catch(e) {
-                console.error("Error reading response text:", e);
-            }
+                const data = await response.json();
+                if (data.success) {
+                    cart = {};
+                    updateCart();
+                    closeModal();
 
-            let data = null;
-            try {
-                data = JSON.parse(responseText);
-            } catch(e) {
-                console.error("JSON parse error:", responseText);
-            }
+                    const successOverlay = document.getElementById('success-overlay');
+                    if (successOverlay) {
+                        successOverlay.style.display = 'flex';
+                    }
 
-            const isSuccess = (data && data.success) || (response.ok && data && data.order_id);
-
-            if (isSuccess) {
-                btn.innerText = "⏳ Yuborildi! Tasdiqlanmoqda...";
-                btn.style.backgroundColor = "#e67e22";
-                btn.style.color = "#ffffff";
-
-                try { tg.HapticFeedback.notificationOccurred('success'); } catch(e) {}
-                try { localStorage.setItem('user_phone', phone); } catch(e) {}
-                
-                // Clear cart state safely
-                for (let id in cart) {
-                    try {
-                        const itemEl = document.getElementById(`item-${id}`);
-                        if (itemEl) itemEl.classList.remove('in-cart');
-                    } catch(e) {}
+                    setTimeout(() => {
+                        if (tg) {
+                            try { tg.close(); } catch(e) {}
+                        }
+                    }, 3500);
+                } else {
+                    alert(data.error || "Xatolik yuz berdi");
+                    btn.disabled = false;
+                    btn.innerHTML = originalBtnText;
                 }
-                cart = {};
-
-                try { updateCart(); } catch(e) {}
-                try { closeModal(); } catch(e) {}
-
-                // Zudlik bilan Telegram Mini App ni yopish va chatga qaytarish
-                const forceClose = () => {
-                    try { if (window.Telegram && window.Telegram.WebApp) window.Telegram.WebApp.close(); } catch(e) {}
-                    try { tg.close(); } catch(e) {}
-                    try { window.close(); } catch(e) {}
-                };
-
-                try { tg.sendData(JSON.stringify({ status: "success", order_id: data ? data.order_id : 0 })); } catch(e) {}
-
-                forceClose();
-                setTimeout(forceClose, 50);
-                setTimeout(forceClose, 150);
-                setTimeout(forceClose, 300);
-            } else {
+            } catch(e) {
+                alert("Internet aloqasini tekshiring.");
                 btn.disabled = false;
                 btn.innerHTML = originalBtnText;
-                const errorMsg = (data && data.error) ? data.error : "Buyurtma berishda xatolik yuz berdi!";
-                tg.showAlert(errorMsg);
             }
         }
 
-        init();
+        window.onload = init;
     </script>
 </body>
 </html>
