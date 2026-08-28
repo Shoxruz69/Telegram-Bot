@@ -659,28 +659,417 @@ def upload_receipt(order_id):
     return jsonify({'success': True})
 
 
-# --- Model Ko'rinishlari (Views) sozlamalari ---
+# --- Bitepoint Order Notification Helper ---
+def send_telegram_order_status_update(user_id, order_id, status, payment_method, total_amount):
+    bot_token = os.getenv("BOT_TOKEN")
+    if not bot_token or not user_id:
+        return
+    payment = payment_method or "Naqd"
+    total = total_amount or 0
+    if status == 'Tasdiqlandi':
+        msg = (
+            f"✅ #{order_id}-raqamli buyurtmangiz TASDIQLANDI!\n\n"
+            f"💳 To'lov turi: {payment}\n"
+            f"💰 Jami: {total:,} so'm\n\n"
+            f"🚚 Buyurtmangiz tez orada yetkazib beriladi. Rahmat! 🙏"
+        )
+    elif status == 'Tayyorlanmoqda':
+        msg = (
+            f"🔥 #{order_id}-raqamli buyurtmangiz tayyorlanmoqda!\n"
+            f"Oshpazlarimiz taomingizni tayyorlashga kirishdi 👨‍🍳"
+        )
+    elif status == 'Tugatildi':
+        msg = (
+            f"🎉 #{order_id}-raqamli buyurtmangiz yetkazildi / tugatildi!\n"
+            f"Yoqimli ishtaha! Bizni tanlaganingiz uchun rahmat! ❤️"
+        )
+    elif status == 'Bekor qilindi':
+        msg = (
+            f"❌ #{order_id}-raqamli buyurtmangiz BEKOR QILINDI!\n\n"
+            f"Qo'shimcha ma'lumot uchun biz bilan bog'laning."
+        )
+    else:
+        return
+
+    def _worker():
+        try:
+            resp = requests.post(
+                f"https://api.telegram.org/bot{bot_token}/sendMessage",
+                json={"chat_id": int(user_id), "text": msg},
+                timeout=8
+            )
+            print(f"[Admin Notify] Status '{status}' -> user {user_id}: {resp.status_code}")
+        except Exception as e:
+            print("[Admin status notify error]:", e)
+
+    threading.Thread(target=_worker, daemon=True).start()
+
+
+# --- Bitepoint Modern POS & Admin Panel Routes ---
+@app.route('/')
+def index_redirect():
+    return redirect('/admin')
+
+@app.route('/admin')
+@app.route('/admin/')
+def bitepoint_admin():
+    return render_template('admin/bitepoint_admin.html')
+
+
+# --- REST API for Bitepoint Admin ---
+
+@app.route('/api/admin/orders')
+def api_admin_orders():
+    orders = Order.query.order_by(Order.id.desc()).all()
+    result = []
+    for o in orders:
+        created_dt = o.created_at
+        if created_dt:
+            tashkent_dt = created_dt + timedelta(hours=5)
+            date_str = tashkent_dt.strftime("%d-%b, %Y")
+            time_str = tashkent_dt.strftime("%H:%M")
+        else:
+            date_str = "Noma'lum"
+            time_str = "--:--"
+
+        items_list = []
+        for it in o.items:
+            items_list.append({
+                'id': it.id,
+                'menu_item_id': it.menu_item_id,
+                'name': it.name,
+                'price': it.price or 0,
+                'quantity': it.quantity or 1
+            })
+
+        user_phone = o.user.phone if o.user else "—"
+        user_lat = o.user.latitude if o.user else None
+        user_lon = o.user.longitude if o.user else None
+
+        result.append({
+            'id': o.id,
+            'user_id': o.user_id,
+            'user_phone': user_phone,
+            'latitude': user_lat,
+            'longitude': user_lon,
+            'status': o.status or 'Kutilmoqda',
+            'payment_method': o.payment_method or 'Naqd',
+            'receipt_image': o.receipt_image,
+            'total_amount': o.total_amount or 0,
+            'address': o.address or 'N/A',
+            'created_date': date_str,
+            'created_time': time_str,
+            'items': items_list
+        })
+    return jsonify({'success': True, 'orders': result})
+
+
+@app.route('/api/admin/orders/<int:order_id>/status', methods=['POST'])
+def api_admin_order_status(order_id):
+    order = Order.query.get(order_id)
+    if not order:
+        return jsonify({'success': False, 'error': 'Buyurtma topilmadi'}), 404
+    data = request.get_json(force=True, silent=True) or request.form.to_dict() or {}
+    new_status = data.get('status')
+    if not new_status:
+        return jsonify({'success': False, 'error': 'Status kiritilmadi'}), 400
+
+    order.status = new_status
+    db.session.commit()
+
+    send_telegram_order_status_update(order.user_id, order.id, new_status, order.payment_method, order.total_amount)
+    return jsonify({'success': True, 'status': new_status})
+
+
+@app.route('/api/admin/orders/<int:order_id>/delete', methods=['POST'])
+def api_admin_order_delete(order_id):
+    order = Order.query.get(order_id)
+    if not order:
+        return jsonify({'success': False, 'error': 'Buyurtma topilmadi'}), 404
+    db.session.delete(order)
+    db.session.commit()
+    return jsonify({'success': True})
+
+
+@app.route('/api/admin/menu')
+def api_admin_menu():
+    menus = Menu.query.all()
+    return jsonify({
+        'success': True,
+        'menu': [{
+            'id': m.id,
+            'category_id': m.category_id,
+            'name': m.name,
+            'description': m.description or '',
+            'price': m.price or 0,
+            'old_price': m.old_price or 0,
+            'image_url': m.image_url or ''
+        } for m in menus]
+    })
+
+
+@app.route('/api/admin/menu/create', methods=['POST'])
+def api_admin_menu_create():
+    data = request.get_json(force=True, silent=True) or request.form.to_dict() or {}
+    name = data.get('name', '').strip()
+    if not name:
+        return jsonify({'success': False, 'error': 'Taom nomi kiritilmadi'}), 400
+
+    menu = Menu(
+        name=name,
+        category_id=int(data.get('category_id', 1)),
+        price=int(data.get('price', 0)),
+        old_price=int(data.get('old_price', 0)),
+        description=data.get('description', ''),
+        image_url=data.get('image_url', '')
+    )
+    db.session.add(menu)
+    db.session.commit()
+    return jsonify({'success': True, 'id': menu.id})
+
+
+@app.route('/api/admin/menu/<int:item_id>/update', methods=['POST'])
+def api_admin_menu_update(item_id):
+    menu = Menu.query.get(item_id)
+    if not menu:
+        return jsonify({'success': False, 'error': 'Taom topilmadi'}), 404
+    data = request.get_json(force=True, silent=True) or request.form.to_dict() or {}
+    menu.name = data.get('name', menu.name)
+    menu.category_id = int(data.get('category_id', menu.category_id))
+    menu.price = int(data.get('price', menu.price))
+    menu.old_price = int(data.get('old_price', menu.old_price or 0))
+    menu.description = data.get('description', menu.description)
+    menu.image_url = data.get('image_url', menu.image_url)
+    db.session.commit()
+    return jsonify({'success': True})
+
+
+@app.route('/api/admin/menu/<int:item_id>/delete', methods=['POST'])
+def api_admin_menu_delete(item_id):
+    menu = Menu.query.get(item_id)
+    if not menu:
+        return jsonify({'success': False, 'error': 'Taom topilmadi'}), 404
+    db.session.delete(menu)
+    db.session.commit()
+    return jsonify({'success': True})
+
+
+@app.route('/api/admin/categories')
+def api_admin_categories():
+    categories = Category.query.all()
+    return jsonify({
+        'success': True,
+        'categories': [{'id': c.id, 'name': c.name} for c in categories]
+    })
+
+
+@app.route('/api/admin/category/create', methods=['POST'])
+def api_admin_category_create():
+    data = request.get_json(force=True, silent=True) or request.form.to_dict() or {}
+    name = data.get('name', '').strip()
+    if not name:
+        return jsonify({'success': False, 'error': 'Kategoriya nomi kiritilmadi'}), 400
+    cat = Category(name=name)
+    db.session.add(cat)
+    db.session.commit()
+    return jsonify({'success': True, 'id': cat.id})
+
+
+@app.route('/api/admin/category/<int:cat_id>/update', methods=['POST'])
+def api_admin_category_update(cat_id):
+    cat = Category.query.get(cat_id)
+    if not cat:
+        return jsonify({'success': False, 'error': 'Kategoriya topilmadi'}), 404
+    data = request.get_json(force=True, silent=True) or request.form.to_dict() or {}
+    name = data.get('name', '').strip()
+    if not name:
+        return jsonify({'success': False, 'error': 'Kategoriya nomi kiritilmadi'}), 400
+    cat.name = name
+    db.session.commit()
+    return jsonify({'success': True})
+
+
+@app.route('/api/admin/category/<int:cat_id>/delete', methods=['POST'])
+def api_admin_category_delete(cat_id):
+    cat = Category.query.get(cat_id)
+    if not cat:
+        return jsonify({'success': False, 'error': 'Kategoriya topilmadi'}), 404
+    db.session.delete(cat)
+    db.session.commit()
+    return jsonify({'success': True})
+
+
+@app.route('/api/admin/promotions')
+def api_admin_promotions():
+    promos = Promotion.query.order_by(Promotion.id.desc()).all()
+    return jsonify({
+        'success': True,
+        'promotions': [{
+            'id': p.id,
+            'title': p.title,
+            'description': p.description or '',
+            'discount_percent': p.discount_percent or 0,
+            'end_date': p.end_date or '',
+            'category_id': p.category_id,
+            'menu_item_id': p.menu_item_id,
+            'image_url': p.image_url or '',
+            'is_active': bool(p.is_active)
+        } for p in promos]
+    })
+
+
+@app.route('/api/admin/promotion/create', methods=['POST'])
+def api_admin_promotion_create():
+    data = request.get_json(force=True, silent=True) or request.form.to_dict() or {}
+    title = data.get('title', '').strip()
+    if not title:
+        return jsonify({'success': False, 'error': 'Aksiya sarlavhasi kiritilmadi'}), 400
+    promo = Promotion(
+        title=title,
+        description=data.get('description', ''),
+        discount_percent=int(data.get('discount_percent', 0)),
+        end_date=data.get('end_date', ''),
+        is_active=True
+    )
+    db.session.add(promo)
+    db.session.commit()
+    return jsonify({'success': True, 'id': promo.id})
+
+
+@app.route('/api/admin/promotion/<int:promo_id>/toggle', methods=['POST'])
+def api_admin_promotion_toggle(promo_id):
+    promo = Promotion.query.get(promo_id)
+    if not promo:
+        return jsonify({'success': False, 'error': 'Aksiya topilmadi'}), 404
+    promo.is_active = not bool(promo.is_active)
+    db.session.commit()
+    return jsonify({'success': True, 'is_active': promo.is_active})
+
+
+@app.route('/api/admin/promotion/<int:promo_id>/delete', methods=['POST'])
+def api_admin_promotion_delete(promo_id):
+    promo = Promotion.query.get(promo_id)
+    if not promo:
+        return jsonify({'success': False, 'error': 'Aksiya topilmadi'}), 404
+    db.session.delete(promo)
+    db.session.commit()
+    return jsonify({'success': True})
+
+
+@app.route('/api/admin/settings')
+def api_admin_get_settings():
+    setting = Setting.query.first()
+    if not setting:
+        setting = Setting(card_number="8600 0000 0000 0000", card_name="Admin", work_time_start="09:00", work_time_end="22:00")
+        db.session.add(setting)
+        db.session.commit()
+    return jsonify({
+        'success': True,
+        'settings': {
+            'card_number': setting.card_number or '',
+            'card_name': setting.card_name or '',
+            'work_time_start': getattr(setting, 'work_time_start', '09:00') or '09:00',
+            'work_time_end': getattr(setting, 'work_time_end', '22:00') or '22:00'
+        }
+    })
+
+
+@app.route('/api/admin/settings/update', methods=['POST'])
+def api_admin_update_settings():
+    data = request.get_json(force=True, silent=True) or request.form.to_dict() or {}
+    setting = Setting.query.first()
+    if not setting:
+        setting = Setting()
+        db.session.add(setting)
+    setting.card_number = data.get('card_number', setting.card_number)
+    setting.card_name = data.get('card_name', setting.card_name)
+    setting.work_time_start = data.get('work_time_start', getattr(setting, 'work_time_start', '09:00'))
+    setting.work_time_end = data.get('work_time_end', getattr(setting, 'work_time_end', '22:00'))
+    db.session.commit()
+    return jsonify({'success': True})
+
+
+@app.route('/api/admin/stats')
+def api_admin_stats():
+    orders = Order.query.all()
+    today_orders_count = 0
+    today_revenue = 0
+    cash_revenue = 0
+    card_revenue = 0
+    pending_orders = 0
+    dish_sales = {}
+
+    tz = timezone(timedelta(hours=5))
+    now = datetime.now(tz)
+    today_date_str = now.strftime("%Y-%m-%d")
+
+    for o in orders:
+        if o.status == 'Kutilmoqda':
+            pending_orders += 1
+
+        order_dt = o.created_at
+        is_today = False
+        if order_dt:
+            tashkent_dt = order_dt + timedelta(hours=5)
+            if tashkent_dt.strftime("%Y-%m-%d") == today_date_str:
+                is_today = True
+
+        if is_today and o.status != 'Bekor qilindi':
+            today_orders_count += 1
+            amount = o.total_amount or 0
+            today_revenue += amount
+            if o.payment_method == 'Karta':
+                card_revenue += amount
+            else:
+                cash_revenue += amount
+
+        if o.status != 'Bekor qilindi':
+            for item in o.items:
+                dish_sales[item.name] = dish_sales.get(item.name, 0) + (item.quantity or 1)
+
+    avg_order = int(today_revenue / today_orders_count) if today_orders_count > 0 else 0
+    top_dishes = sorted([{'name': k, 'qty': v} for k, v in dish_sales.items()], key=lambda x: x['qty'], reverse=True)[:5]
+
+    return jsonify({
+        'success': True,
+        'stats': {
+            'today_revenue': today_revenue,
+            'today_orders': today_orders_count,
+            'avg_order': avg_order,
+            'pending_orders': pending_orders,
+            'cash_revenue': cash_revenue,
+            'card_revenue': card_revenue,
+            'top_dishes': top_dishes
+        }
+    })
+
+
+@app.route('/api/admin/upload_image', methods=['POST'])
+def api_admin_upload_image():
+    if 'image' not in request.files:
+        return jsonify({'success': False, 'error': 'Rasm tanlanmagan'}), 400
+    file = request.files['image']
+    if file.filename == '':
+        return jsonify({'success': False, 'error': 'Fayl nomi bo\'sh'}), 400
+
+    filename = str(uuid.uuid4())[:8] + "_" + secure_filename(file.filename or 'food.jpg')
+    menu_dir = os.path.join(app.root_path, 'static', 'uploads', 'menu')
+    os.makedirs(menu_dir, exist_ok=True)
+    file_path = os.path.join(menu_dir, filename)
+    file.save(file_path)
+    return jsonify({'success': True, 'image_url': f'/static/uploads/menu/{filename}'})
+
+
+# --- Flask-Admin Fallback Panel ---
 class ThemedModelView(ModelView):
     extra_css = ['/static/admin_theme.css']
 
 class MenuAdminView(ThemedModelView):
     column_list = ('id', 'category', 'name', 'description', 'price', 'old_price', 'image_url')
-    column_labels = {
-        'id': '№',
-        'category': 'Kategoriya',
-        'name': 'Nomi',
-        'description': 'Tavsif',
-        'price': 'Sotuv Narxi (so\'m)',
-        'old_price': 'Eski Narxi (Ustidan chiziladi)',
-        'image_url': 'Rasm URL'
-    }
     form_columns = ['category', 'name', 'description', 'price', 'old_price', 'image_url']
     can_create = True
     can_edit = True
     can_delete = True
-
-    def get_query(self):
-        return super(MenuAdminView, self).get_query().options(joinedload(Menu.category))
 
 def _receipt_link(view, context, model, name):
     if not model.receipt_image:
@@ -701,8 +1090,6 @@ def _user_phone(view, context, model, name):
 def _format_datetime(view, context, model, name):
     if not model.created_at:
         return ''
-    from datetime import timedelta
-    # Add 5 hours for Tashkent time (UTC+5)
     tashkent_time = model.created_at + timedelta(hours=5)
     return tashkent_time.strftime("%Y-%m-%d %H:%M:%S")
 
@@ -711,9 +1098,9 @@ def _display_order_id(view, context, model, name):
     return Markup(f"<b>#{display_no}</b>")
 
 class OrderAdminView(ModelView):
-    # Admin panelda ko'rinadigan ustunlar
     list_template = 'admin/order_list.html'
     extra_css = ['/static/admin_theme.css']
+<<<<<<< HEAD
     column_default_sort = ('id', 'desc')
     column_list = ('daily_id', 'user_phone', 'order_items_text', 'total_amount', 'payment_method', 'address', 'status', 'receipt_image', 'created_at')
     column_labels = {
@@ -727,6 +1114,9 @@ class OrderAdminView(ModelView):
         'receipt_image': 'Chek',
         'created_at': 'Vaqt'
     }
+=======
+    column_list = ('id', 'user_phone', 'order_items_text', 'total_amount', 'payment_method', 'address', 'status', 'receipt_image', 'created_at')
+>>>>>>> d940d91 (Update Cafe Express Admin design matching mini app, multi-language switcher, and clean order modal)
     column_formatters = {
         'daily_id': _display_order_id,
         'receipt_image': _receipt_link,
@@ -734,16 +1124,18 @@ class OrderAdminView(ModelView):
         'user_phone': _user_phone,
         'created_at': _format_datetime,
     }
-    column_extra_row_actions = []
     form_choices = {
         'status': [
             ('Kutilmoqda', '⏳ Kutilmoqda'),
+            ('Tayyorlanmoqda', '🔥 Tayyorlanmoqda'),
             ('Tasdiqlandi', '✅ Tasdiqlandi'),
+            ('Tugatildi', '🏁 Tugatildi'),
             ('Bekor qilindi', '❌ Bekor qilindi')
         ]
     }
     form_columns = ['status']
     can_create = False
+<<<<<<< HEAD
     can_delete = False
 
     def get_query(self):
@@ -892,39 +1284,20 @@ class SettingAdminView(ThemedModelView):
 
 class PromotionAdminView(ThemedModelView):
     column_list = ('id', 'title', 'description', 'discount_percent', 'end_date', 'category', 'menu_item', 'is_active', 'created_at')
-    column_labels = {
-        'id': '№',
-        'title': 'Chegirma Nomi',
-        'description': 'Tavsif / Shartlar',
-        'discount_percent': 'Chegirma (%)',
-        'end_date': 'Tugash Vaqti (yyyy-mm-dd hh:mm)',
-        'category': 'Kategoriya (Ixtiyoriy)',
-        'menu_item': 'Taom (Ixtiyoriy)',
-        'image_url': 'Rasm URL',
-        'is_active': 'Faollik',
-        'created_at': 'Vaqt'
-    }
     form_columns = ['title', 'description', 'discount_percent', 'end_date', 'category', 'menu_item', 'image_url', 'is_active']
     can_create = True
     can_edit = True
     can_delete = True
 
-class MyHomeView(AdminIndexView):
-    @expose('/')
-    def index(self):
-        return redirect('/admin/order/')
-    
-    def is_visible(self):
-        return False
-
-admin = Admin(app, name='☕ Cafe Express Admin', index_view=MyHomeView(url='/admin'))
-admin.add_view(OrderAdminView(Order, db.session, name="📦 Buyurtmalar"))
-admin.add_view(MenuAdminView(Menu, db.session, name="🍔 Menyu (Taomlar)"))
-admin.add_view(PromotionAdminView(Promotion, db.session, name="🏷️ Chegirmalar"))
-admin.add_view(ThemedModelView(Category, db.session, name="📁 Kategoriyalar"))
-admin.add_view(SettingAdminView(Setting, db.session, name="⚙️ Sozlamalar"))
-admin.add_view(ThemedModelView(User, db.session, name="👤 Mijozlar"))
+flask_admin = Admin(app, name='☕ Cafe Express DB', url='/flask-admin', endpoint='flask_admin')
+flask_admin.add_view(OrderAdminView(Order, db.session, name="📦 Buyurtmalar"))
+flask_admin.add_view(MenuAdminView(Menu, db.session, name="🍔 Menyu (Taomlar)"))
+flask_admin.add_view(PromotionAdminView(Promotion, db.session, name="🏷️ Chegirmalar"))
+flask_admin.add_view(ThemedModelView(Category, db.session, name="📁 Kategoriyalar"))
+flask_admin.add_view(SettingAdminView(Setting, db.session, name="⚙️ Sozlamalar"))
+flask_admin.add_view(ThemedModelView(User, db.session, name="👤 Mijozlar"))
 
 if __name__ == '__main__':
-    print("Admin panel ishga tushdi: http://127.0.0.1:5000/admin")
+    print("Cafe Express Admin panel ishga tushdi: http://127.0.0.1:5000/admin")
     app.run(host='127.0.0.1', port=5000)
+
