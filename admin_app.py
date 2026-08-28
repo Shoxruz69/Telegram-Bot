@@ -1100,7 +1100,6 @@ def _display_order_id(view, context, model, name):
 class OrderAdminView(ModelView):
     list_template = 'admin/order_list.html'
     extra_css = ['/static/admin_theme.css']
-<<<<<<< HEAD
     column_default_sort = ('id', 'desc')
     column_list = ('daily_id', 'user_phone', 'order_items_text', 'total_amount', 'payment_method', 'address', 'status', 'receipt_image', 'created_at')
     column_labels = {
@@ -1114,9 +1113,6 @@ class OrderAdminView(ModelView):
         'receipt_image': 'Chek',
         'created_at': 'Vaqt'
     }
-=======
-    column_list = ('id', 'user_phone', 'order_items_text', 'total_amount', 'payment_method', 'address', 'status', 'receipt_image', 'created_at')
->>>>>>> d940d91 (Update Cafe Express Admin design matching mini app, multi-language switcher, and clean order modal)
     column_formatters = {
         'daily_id': _display_order_id,
         'receipt_image': _receipt_link,
@@ -1135,8 +1131,7 @@ class OrderAdminView(ModelView):
     }
     form_columns = ['status']
     can_create = False
-<<<<<<< HEAD
-    can_delete = False
+    can_delete = True
 
     def get_query(self):
         return super(OrderAdminView, self).get_query().options(
