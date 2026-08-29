@@ -565,9 +565,25 @@
           <label class="form-label" id="lbl-promocode-code">Promokod Kodi (Masalan: 696JF)</label>
           <input type="text" id="promocode-code-input" class="form-input" required placeholder="696JF" style="text-transform: uppercase; font-weight: 700; letter-spacing: 1px;">
         </div>
-        <div class="form-group">
-          <label class="form-label" id="lbl-promocode-discount">Chegirma Foizi (%)</label>
-          <input type="number" id="promocode-discount-input" class="form-input" min="1" max="100" required placeholder="3" value="3">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group">
+            <label class="form-label" id="lbl-promocode-discount">Chegirma Foizi (%)</label>
+            <input type="number" id="promocode-discount-input" class="form-input" min="1" max="100" required placeholder="3" value="3">
+          </div>
+          <div class="form-group">
+            <label class="form-label" id="lbl-promocode-end-date">Tugash Sanasi va Vaqti</label>
+            <input type="text" id="promocode-end-date" class="form-input" placeholder="2026-12-31 23:59">
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group">
+            <label class="form-label" id="lbl-promocode-min-amount">Min. Buyurtma (so'm)</label>
+            <input type="number" id="promocode-min-amount" class="form-input" min="0" placeholder="100000">
+          </div>
+          <div class="form-group">
+            <label class="form-label" id="lbl-promocode-max-amount">Maks. Buyurtma (so'm)</label>
+            <input type="number" id="promocode-max-amount" class="form-input" min="0" placeholder="500000">
+          </div>
         </div>
         <button type="submit" class="btn-primary" style="width: 100%; justify-content: center; margin-top: 14px;">
           <span id="btn-save-promocode-text">💾 Promokodni Saqlash</span>

@@ -130,6 +130,9 @@ class PromoCode(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     code = db.Column(db.String(50), unique=True, nullable=False)
     discount_percent = db.Column(db.Integer, nullable=False, default=0)
+    end_date = db.Column(db.String(100), nullable=True) # Tugash vaqti masalan: '2026-12-31 23:59'
+    min_order_amount = db.Column(db.Integer, default=0) # Minimal buyurtma summasi
+    max_order_amount = db.Column(db.Integer, default=0) # Maksimal buyurtma summasi
     is_active = db.Column(db.Boolean, default=True)
     times_used = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
@@ -229,6 +232,15 @@ with app.app_context():
         if 'description_en' not in promo_cols:
             db.session.execute(text("ALTER TABLE promotions ADD COLUMN description_en TEXT"))
 
+        # Promocodes migration
+        promocodes_cols = [col['name'] for col in inspector.get_columns('promocodes')]
+        if 'end_date' not in promocodes_cols:
+            db.session.execute(text("ALTER TABLE promocodes ADD COLUMN end_date VARCHAR(100)"))
+        if 'min_order_amount' not in promocodes_cols:
+            db.session.execute(text("ALTER TABLE promocodes ADD COLUMN min_order_amount INTEGER DEFAULT 0"))
+        if 'max_order_amount' not in promocodes_cols:
+            db.session.execute(text("ALTER TABLE promocodes ADD COLUMN max_order_amount INTEGER DEFAULT 0"))
+
         db.session.commit()
 
         # Seed initial sample promo code if table is empty
@@ -289,6 +301,101 @@ with app.app_context():
         recalculate_daily_ids()
     except Exception as e:
         print(f"[Auto-migration error]: {e}")
+
+
+def check_promocode_validity(promo, order_amount=0):
+    """
+    Promokodning faolligi, muddati va buyurtma summasi chegaralarini tekshiradi.
+    Qaytadi: (is_valid: bool, error_message: str or None)
+    """
+    if not promo or not promo.is_active:
+        return False, "Promokod mavjud emas yoki nofaol!"
+
+    # 1. Muddat tekshiruvi (end_date)
+    if getattr(promo, 'end_date', None):
+        end_str = str(promo.end_date).strip()
+        if end_str:
+            try:
+                tz = timezone(timedelta(hours=5))
+                now_tashkent = datetime.now(tz)
+                clean_dt = end_str.replace('T', ' ')
+                if len(clean_dt) == 10:
+                    clean_dt += " 23:59"
+                end_dt = datetime.strptime(clean_dt[:16], "%Y-%m-%d %H:%M").replace(tzinfo=tz)
+                if now_tashkent > end_dt:
+                    return False, "Promokod amal qilish muddati tugagan!"
+            except Exception as e:
+                print(f"[Promo date parse error]: {e}")
+
+    # 2. Minimal buyurtma summasi
+    min_amount = getattr(promo, 'min_order_amount', 0) or 0
+    max_amount = getattr(promo, 'max_order_amount', 0) or 0
+
+    if order_amount and order_amount > 0:
+        if min_amount > 0 and order_amount < min_amount:
+            formatted_min = f"{min_amount:,}".replace(',', ' ')
+            return False, f"Ushbu promokod faqat {formatted_min} so'mdan yuqori buyurtmalar uchun amal qiladi!"
+
+        # 3. Maksimal buyurtma summasi
+        if max_amount > 0 and order_amount > max_amount:
+            formatted_max = f"{max_amount:,}".replace(',', ' ')
+            return False, f"Ushbu promokod maksimal {formatted_max} so'mgacha bo'lgan buyurtmalar uchun amal qiladi!"
+
+    return True, None
+
+
+def broadcast_to_users(text, photo_url_or_path=None, parse_mode='HTML'):
+    """
+    Bot foydalanuvchilariga (User jadvalidagi mijozlarga) fonda reklama xabarini yuboradi.
+    """
+    def send_broadcast_worker():
+        bot_token = os.getenv("BOT_TOKEN")
+        if not bot_token:
+            print("[Broadcast warning]: BOT_TOKEN sozlanmagan!")
+            return
+
+        with app.app_context():
+            users = User.query.filter(User.user_id.isnot(None), User.user_id != 0).all()
+            print(f"[Broadcast]: {len(users)} ta foydalanuvchiga yuborilmoqda...")
+            for u in users:
+                try:
+                    chat_id = u.user_id
+                    if photo_url_or_path:
+                        if str(photo_url_or_path).startswith(('http://', 'https://')):
+                            requests.post(
+                                f"https://api.telegram.org/bot{bot_token}/sendPhoto",
+                                data={'chat_id': chat_id, 'photo': photo_url_or_path, 'caption': text, 'parse_mode': parse_mode},
+                                timeout=8
+                            )
+                        else:
+                            local_photo = photo_url_or_path
+                            if not os.path.isabs(local_photo):
+                                local_photo = os.path.join(app.root_path, 'static', 'uploads', local_photo)
+                            if os.path.exists(local_photo):
+                                with open(local_photo, 'rb') as photo:
+                                    requests.post(
+                                        f"https://api.telegram.org/bot{bot_token}/sendPhoto",
+                                        data={'chat_id': chat_id, 'caption': text, 'parse_mode': parse_mode},
+                                        files={'photo': photo},
+                                        timeout=8
+                                    )
+                            else:
+                                requests.post(
+                                    f"https://api.telegram.org/bot{bot_token}/sendMessage",
+                                    json={'chat_id': chat_id, 'text': text, 'parse_mode': parse_mode},
+                                    timeout=8
+                                )
+                    else:
+                        requests.post(
+                            f"https://api.telegram.org/bot{bot_token}/sendMessage",
+                            json={'chat_id': chat_id, 'text': text, 'parse_mode': parse_mode},
+                            timeout=8
+                        )
+                except Exception as e:
+                    print(f"[Broadcast user {u.user_id} error]: {e}")
+
+    threading.Thread(target=send_broadcast_worker, daemon=True).start()
+
 
 # --- WebApp API ---
 @app.route('/webapp')
@@ -568,12 +675,14 @@ def api_checkout():
         applied_promo = None
         promo_discount_amount = 0
         if promocode_str:
-            promo_obj = PromoCode.query.filter_by(code=promocode_str, is_active=True).first()
-            if promo_obj and promo_obj.discount_percent > 0:
-                applied_promo = promo_obj
-                promo_discount_amount = round(total_amount * (promo_obj.discount_percent / 100.0))
-                total_amount = max(0, total_amount - promo_discount_amount)
-                promo_obj.times_used = (promo_obj.times_used or 0) + 1
+            promo_obj = PromoCode.query.filter_by(code=promocode_str).first()
+            if promo_obj:
+                is_valid, _ = check_promocode_validity(promo_obj, total_amount)
+                if is_valid and promo_obj.discount_percent > 0:
+                    applied_promo = promo_obj
+                    promo_discount_amount = round(total_amount * (promo_obj.discount_percent / 100.0))
+                    total_amount = max(0, total_amount - promo_discount_amount)
+                    promo_obj.times_used = (promo_obj.times_used or 0) + 1
 
         # Buyurtmani DB ga saqlash
         new_order = Order(
@@ -930,6 +1039,24 @@ def api_admin_menu_create():
     )
     db.session.add(menu)
     db.session.commit()
+
+    # Yangi taom haqida barcha mijozlarga reklama xabarini yuborish
+    try:
+        desc_clean = (menu.description or '').strip()
+        desc_line = f"📝 {desc_clean}\n" if desc_clean else ""
+        formatted_price = f"{menu.price:,}".replace(',', ' ')
+        ad_text = (
+            f"✨ <b>BIZDA YANGI TAOM!</b>\n\n"
+            f"🍽️ <b>{menu.name}</b>\n"
+            f"💰 Narxi: <b>{formatted_price} so'm</b>\n"
+            f"{desc_line}\n"
+            f"😋 Hoziroq Mini App ga kiring va tatib ko'ring! 🚀"
+        )
+        photo_target = menu.image_url if menu.image_url else None
+        broadcast_to_users(ad_text, photo_target)
+    except Exception as be:
+        print(f"[Broadcast menu error]: {be}")
+
     return jsonify({'success': True, 'id': menu.id})
 
 
@@ -1106,6 +1233,9 @@ def api_admin_promocodes():
             'id': p.id,
             'code': p.code,
             'discount_percent': p.discount_percent,
+            'end_date': getattr(p, 'end_date', '') or '',
+            'min_order_amount': getattr(p, 'min_order_amount', 0) or 0,
+            'max_order_amount': getattr(p, 'max_order_amount', 0) or 0,
             'is_active': bool(p.is_active),
             'times_used': p.times_used or 0,
             'created_at': p.created_at.strftime('%Y-%m-%d %H:%M') if p.created_at else ''
@@ -1122,6 +1252,17 @@ def api_admin_promocode_create():
     except:
         discount_percent = 0
 
+    end_date = (data.get('end_date') or '').strip() or None
+    try:
+        min_order_amount = int(data.get('min_order_amount', 0))
+    except:
+        min_order_amount = 0
+
+    try:
+        max_order_amount = int(data.get('max_order_amount', 0))
+    except:
+        max_order_amount = 0
+
     if not code:
         return jsonify({'success': False, 'error': 'Promokod kodi kiritilishi shart!'}), 400
     if discount_percent <= 0 or discount_percent > 100:
@@ -1131,10 +1272,56 @@ def api_admin_promocode_create():
     if existing:
         return jsonify({'success': False, 'error': f"'{code}' nomli promokod allaqachon mavjud!"}), 400
 
-    promo = PromoCode(code=code, discount_percent=discount_percent, is_active=True)
+    promo = PromoCode(
+        code=code,
+        discount_percent=discount_percent,
+        end_date=end_date,
+        min_order_amount=min_order_amount,
+        max_order_amount=max_order_amount,
+        is_active=True
+    )
     db.session.add(promo)
     db.session.commit()
-    return jsonify({'success': True, 'id': promo.id, 'promocode': {'id': promo.id, 'code': promo.code, 'discount_percent': promo.discount_percent}})
+
+    # Yangi promokod haqida barcha mijozlarga reklama xabarini yuborish
+    try:
+        cond_lines = []
+        if min_order_amount > 0 and max_order_amount > 0:
+            cond_lines.append(f"💳 Buyurtma summasi: <b>{min_order_amount:,} - {max_order_amount:,} so'm</b> oralig'ida".replace(',', ' '))
+        elif min_order_amount > 0:
+            cond_lines.append(f"💳 Minimal buyurtma: <b>{min_order_amount:,} so'm</b>".replace(',', ' '))
+        elif max_order_amount > 0:
+            cond_lines.append(f"💳 Maksimal buyurtma: <b>{max_order_amount:,} so'm</b> gacha".replace(',', ' '))
+
+        if end_date:
+            cond_lines.append(f"⏳ Amal qilish muddati: <b>{end_date}</b> gacha")
+
+        cond_text = ("\n".join(cond_lines) + "\n") if cond_lines else ""
+
+        ad_text = (
+            f"🎟️ <b>YANGI CHEGIRMA PROMO-KODI!</b>\n\n"
+            f"💥 Bizda ajoyib chegirma boshlandi!\n"
+            f"🔑 Promokod: <code>{code}</code>\n"
+            f"🏷️ Chegirma: <b>-{discount_percent}%</b>\n"
+            f"{cond_text}\n"
+            f"🍔 Hoziroq Mini App ga kiring va buyurtma bering! 🚀"
+        )
+        broadcast_to_users(ad_text)
+    except Exception as be:
+        print(f"[Broadcast promo error]: {be}")
+
+    return jsonify({
+        'success': True,
+        'id': promo.id,
+        'promocode': {
+            'id': promo.id,
+            'code': promo.code,
+            'discount_percent': promo.discount_percent,
+            'end_date': promo.end_date or '',
+            'min_order_amount': promo.min_order_amount or 0,
+            'max_order_amount': promo.max_order_amount or 0
+        }
+    })
 
 
 @app.route('/api/admin/promocode/<int:promo_id>/toggle', methods=['POST'])
@@ -1161,17 +1348,29 @@ def api_admin_promocode_delete(promo_id):
 def api_validate_promocode():
     data = request.get_json(force=True, silent=True) or request.form.to_dict() or {}
     code = (data.get('code') or '').strip().upper()
+    try:
+        order_amount = int(data.get('order_amount', 0))
+    except:
+        order_amount = 0
+
     if not code:
         return jsonify({'success': False, 'error': 'Promokod kiritilmadi'}), 400
 
-    promo = PromoCode.query.filter_by(code=code, is_active=True).first()
+    promo = PromoCode.query.filter_by(code=code).first()
     if not promo:
-        return jsonify({'success': False, 'error': 'Promokod mavjud emas yoki muddati tugagan!'})
+        return jsonify({'success': False, 'error': 'Bunday promokod mavjud emas!'})
+
+    is_valid, error_msg = check_promocode_validity(promo, order_amount)
+    if not is_valid:
+        return jsonify({'success': False, 'error': error_msg})
 
     return jsonify({
         'success': True,
         'code': promo.code,
-        'discount_percent': promo.discount_percent
+        'discount_percent': promo.discount_percent,
+        'end_date': getattr(promo, 'end_date', '') or '',
+        'min_order_amount': getattr(promo, 'min_order_amount', 0) or 0,
+        'max_order_amount': getattr(promo, 'max_order_amount', 0) or 0
     })
 
 

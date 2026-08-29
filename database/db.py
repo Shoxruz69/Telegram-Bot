@@ -114,6 +114,9 @@ async def init_db():
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 code TEXT UNIQUE NOT NULL,
                 discount_percent INTEGER NOT NULL DEFAULT 0,
+                end_date TEXT,
+                min_order_amount INTEGER DEFAULT 0,
+                max_order_amount INTEGER DEFAULT 0,
                 is_active BOOLEAN DEFAULT 1,
                 times_used INTEGER DEFAULT 0,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP

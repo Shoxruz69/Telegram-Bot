@@ -120,6 +120,10 @@ const i18n = {
     promocode_saved: "Promokod muvaffaqiyatli saqlandi!",
     promocode_deleted: "Promokod o'chirildi!",
     no_promocodes_found: "Hozircha promokodlar yo'q",
+    promo_expiry_lbl: "Muddati:",
+    promo_range_lbl: "Buyurtma summasi:",
+    promo_all_orders: "Barcha buyurtmalarga",
+    promo_unlimited: "Cheksiz",
 
     // Accounting & Stats
     accounting_title: "Kassa & Hisobot",
@@ -272,6 +276,10 @@ const i18n = {
     promocode_saved: "Промокод успешно сохранен!",
     promocode_deleted: "Промокод удален!",
     no_promocodes_found: "Пока нет промокодов",
+    promo_expiry_lbl: "Срок действия:",
+    promo_range_lbl: "Сумма заказа:",
+    promo_all_orders: "На все заказы",
+    promo_unlimited: "Бессрочно",
 
     // Accounting & Stats
     accounting_title: "Касса и отчеты",
@@ -424,6 +432,10 @@ const i18n = {
     promocode_saved: "Promo code saved successfully!",
     promocode_deleted: "Promo code deleted!",
     no_promocodes_found: "No promo codes yet",
+    promo_expiry_lbl: "Expires:",
+    promo_range_lbl: "Order amount:",
+    promo_all_orders: "All orders",
+    promo_unlimited: "No limit",
 
     // Accounting & Stats
     accounting_title: "Accounting & Reports",
@@ -1747,6 +1759,17 @@ function renderPromoCodesView() {
   }
 
   container.innerHTML = state.promocodes.map(p => {
+    let rangeText = t('promo_all_orders');
+    if (p.min_order_amount > 0 && p.max_order_amount > 0) {
+      rangeText = `${formatPrice(p.min_order_amount)} — ${formatPrice(p.max_order_amount)}`;
+    } else if (p.min_order_amount > 0) {
+      rangeText = `Min. ${formatPrice(p.min_order_amount)}`;
+    } else if (p.max_order_amount > 0) {
+      rangeText = `Maks. ${formatPrice(p.max_order_amount)}`;
+    }
+
+    const expiryText = p.end_date ? `⏳ ${p.end_date}` : `⏳ ${t('promo_unlimited')}`;
+
     return `
       <div class="stat-card" style="flex-direction: column; align-items: stretch; gap: 14px; position: relative;">
         <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -1757,12 +1780,14 @@ function renderPromoCodesView() {
           <span style="font-size: 18px; font-weight: 800; color: #10B981;">-${p.discount_percent}%</span>
         </div>
         <div>
-          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
             <span style="font-size: 20px;">🎟️</span>
             <span style="font-size: 20px; font-weight: 800; font-family: monospace; letter-spacing: 1.5px; color: var(--gold);">${p.code}</span>
           </div>
-          <div style="font-size: 12px; color: var(--text-muted);">
-            📊 ${p.times_used} ${t('times_used_suffix')}
+          <div style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--text-muted);">
+            <div>💳 <strong>${t('promo_range_lbl')}</strong> ${rangeText}</div>
+            <div>${expiryText}</div>
+            <div style="margin-top: 2px;">📊 ${p.times_used} ${t('times_used_suffix')}</div>
           </div>
         </div>
         <div style="display: flex; gap: 8px; border-top: 1px solid var(--border-subtle); padding-top: 10px;">
@@ -1780,8 +1805,16 @@ function openPromoCodeModal() {
   const modal = document.getElementById('promocode-modal-overlay');
   const codeInput = document.getElementById('promocode-code-input');
   const discInput = document.getElementById('promocode-discount-input');
+  const endDateInput = document.getElementById('promocode-end-date');
+  const minInput = document.getElementById('promocode-min-amount');
+  const maxInput = document.getElementById('promocode-max-amount');
+
   if (codeInput) codeInput.value = '';
   if (discInput) discInput.value = '3';
+  if (endDateInput) endDateInput.value = '';
+  if (minInput) minInput.value = '';
+  if (maxInput) maxInput.value = '';
+
   if (modal) modal.classList.add('active');
   setTimeout(() => codeInput && codeInput.focus(), 100);
 }
@@ -1795,6 +1828,9 @@ async function savePromoCodeForm(e) {
   e.preventDefault();
   const code = document.getElementById('promocode-code-input').value.trim().toUpperCase();
   const discount_percent = parseInt(document.getElementById('promocode-discount-input').value, 10) || 0;
+  const end_date = document.getElementById('promocode-end-date') ? document.getElementById('promocode-end-date').value.trim() : '';
+  const min_order_amount = document.getElementById('promocode-min-amount') ? (parseInt(document.getElementById('promocode-min-amount').value, 10) || 0) : 0;
+  const max_order_amount = document.getElementById('promocode-max-amount') ? (parseInt(document.getElementById('promocode-max-amount').value, 10) || 0) : 0;
 
   if (!code) {
     showToast("Promokod kodini kiriting!", "error");
@@ -1805,7 +1841,13 @@ async function savePromoCodeForm(e) {
     const res = await fetch('/api/admin/promocode/create', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code, discount_percent })
+      body: JSON.stringify({
+        code,
+        discount_percent,
+        end_date,
+        min_order_amount,
+        max_order_amount
+      })
     });
     const data = await res.json();
     if (data.success) {

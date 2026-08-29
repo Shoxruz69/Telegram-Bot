@@ -1990,9 +1990,37 @@
             }
 
             let discountedTotal = total;
-            if (appliedPromo && appliedPromo.discount_percent > 0) {
-                let promoDiscount = Math.round(total * (appliedPromo.discount_percent / 100.0));
-                discountedTotal = Math.max(0, total - promoDiscount);
+            const badge = document.getElementById('promo-applied-badge');
+            const badgeText = document.getElementById('promo-badge-text');
+
+            if (appliedPromo) {
+                const minAmt = appliedPromo.min_order_amount || 0;
+                const maxAmt = appliedPromo.max_order_amount || 0;
+
+                if (minAmt > 0 && total < minAmt) {
+                    if (badgeText) badgeText.innerText = `⚠️ ${appliedPromo.code} (Min: ${minAmt.toLocaleString()} ${t('currency')})`;
+                    if (badge) {
+                        badge.style.background = 'rgba(239, 68, 68, 0.15)';
+                        badge.style.borderColor = '#EF4444';
+                        badge.style.color = '#EF4444';
+                    }
+                } else if (maxAmt > 0 && total > maxAmt) {
+                    if (badgeText) badgeText.innerText = `⚠️ ${appliedPromo.code} (Maks: ${maxAmt.toLocaleString()} ${t('currency')})`;
+                    if (badge) {
+                        badge.style.background = 'rgba(239, 68, 68, 0.15)';
+                        badge.style.borderColor = '#EF4444';
+                        badge.style.color = '#EF4444';
+                    }
+                } else if (appliedPromo.discount_percent > 0) {
+                    const promoDiscount = Math.round(total * (appliedPromo.discount_percent / 100.0));
+                    discountedTotal = Math.max(0, total - promoDiscount);
+                    if (badgeText) badgeText.innerText = `✓ ${appliedPromo.code} (-${appliedPromo.discount_percent}% ${t('promo_applied')})`;
+                    if (badge) {
+                        badge.style.background = 'rgba(16, 185, 129, 0.15)';
+                        badge.style.borderColor = '#10B981';
+                        badge.style.color = '#10B981';
+                    }
+                }
             }
 
             const countEl = document.getElementById('cart-count');
@@ -2026,6 +2054,11 @@
             const code = (input ? input.value : '').trim().toUpperCase();
             if (!code) return;
 
+            let total = 0;
+            for (let id in cart) {
+                total += cart[id].item.price * cart[id].qty;
+            }
+
             const btn = document.getElementById('btn-apply-promo');
             if (btn) btn.innerText = '⏳ ...';
 
@@ -2033,17 +2066,19 @@
                 const res = await fetch('/api/validate_promocode', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ code })
+                    body: JSON.stringify({ code, order_amount: total })
                 });
                 const data = await res.json();
                 if (data.success) {
-                    appliedPromo = { code: data.code, discount_percent: data.discount_percent };
+                    appliedPromo = {
+                        code: data.code,
+                        discount_percent: data.discount_percent,
+                        end_date: data.end_date || '',
+                        min_order_amount: data.min_order_amount || 0,
+                        max_order_amount: data.max_order_amount || 0
+                    };
                     const badge = document.getElementById('promo-applied-badge');
-                    const badgeText = document.getElementById('promo-badge-text');
-                    if (badge && badgeText) {
-                        badgeText.innerText = `✓ ${data.code} (-${data.discount_percent}% ${t('promo_applied')})`;
-                        badge.style.display = 'flex';
-                    }
+                    if (badge) badge.style.display = 'flex';
                     if (input) input.style.display = 'none';
                     if (btn) btn.style.display = 'none';
                     updateCart();
