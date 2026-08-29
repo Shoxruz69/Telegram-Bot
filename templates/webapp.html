@@ -1562,23 +1562,33 @@
         // ==========================================
         // FAST, RELIABLE, AUTOMATIC LOCATION SYSTEM
         // ==========================================
-        async function reverseGeocode(lat, lon) {
+        // ==========================================
+        // REAL HARDWARE GPS & PRECISE LOCATION SYSTEM
+        // ==========================================
+        async function reverseGeocode(lat, lon, forceUpdate = false) {
             try {
                 const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`;
                 const res = await fetch(url, { headers: { 'Accept-Language': currentLang || 'uz' } });
                 const data = await res.json();
                 if (data && data.address) {
                     const a = data.address;
-                    const street = a.road || a.pedestrian || a.suburb || a.neighbourhood || '';
-                    const district = a.city_district || a.county || a.district || a.town || a.city || '';
-                    let cleanAddr = '';
-                    if (street && district) cleanAddr = `${street}, ${district}`;
-                    else if (street) cleanAddr = street;
-                    else if (data.display_name) cleanAddr = data.display_name.split(',').slice(0, 3).join(',');
+                    const road = a.road || a.pedestrian || a.suburb || a.neighbourhood || a.residential || '';
+                    const district = a.city_district || a.district || a.county || a.village || a.hamlet || '';
+                    const city = a.city || a.town || a.municipality || a.state || '';
+                    
+                    let parts = [];
+                    if (road) parts.push(road);
+                    if (district && district !== city) parts.push(district);
+                    if (city) parts.push(city);
+
+                    let cleanAddr = parts.join(', ');
+                    if (!cleanAddr && data.display_name) {
+                        cleanAddr = data.display_name.split(',').slice(0, 3).join(',');
+                    }
 
                     if (cleanAddr) {
                         const addrInput = document.getElementById('form-address');
-                        if (addrInput && (!addrInput.value || addrInput.value.startsWith('GPS:'))) {
+                        if (addrInput && (forceUpdate || !addrInput.value || addrInput.value.startsWith('GPS:') || addrInput.value === 'Toshkent')) {
                             addrInput.value = cleanAddr;
                             localStorage.setItem('user_address', cleanAddr);
                         }
@@ -1589,7 +1599,8 @@
             }
         }
 
-        function setCapturedLocation(lat, lon) {
+        function setCapturedLocation(lat, lon, forceAddressUpdate = false) {
+            if (!lat || !lon) return;
             userLat = lat;
             userLon = lon;
             localStorage.setItem('user_lat', String(lat));
@@ -1606,72 +1617,73 @@
             }
 
             const addrInput = document.getElementById('form-address');
-            const savedAddr = localStorage.getItem('user_address');
             if (addrInput) {
-                if (savedAddr && !addrInput.value) {
-                    addrInput.value = savedAddr;
-                } else if (!addrInput.value || addrInput.value.startsWith('GPS:')) {
+                if (forceAddressUpdate || !addrInput.value || addrInput.value.startsWith('GPS:') || addrInput.value === 'Toshkent') {
                     addrInput.value = `GPS: ${userLat.toFixed(5)}, ${userLon.toFixed(5)}`;
                 }
             }
 
-            // Reverse geocode in background without blocking UI
-            reverseGeocode(lat, lon);
+            // Real physical address reverse geocode
+            reverseGeocode(lat, lon, forceAddressUpdate);
         }
 
         function autoFetchLocation() {
-            // 1. Check cached location first (immediate 0ms setup)
+            // Check real cached GPS first (ignore fake Tashkent)
             const cachedLat = localStorage.getItem('user_lat');
             const cachedLon = localStorage.getItem('user_lon');
-            if (cachedLat && cachedLon && !userLat) {
-                setCapturedLocation(parseFloat(cachedLat), parseFloat(cachedLon));
+            const cachedAddr = localStorage.getItem('user_address');
+            
+            if (cachedAddr === 'Toshkent') {
+                localStorage.removeItem('user_address');
+                localStorage.removeItem('user_lat');
+                localStorage.removeItem('user_lon');
+            } else if (cachedLat && cachedLon && !userLat) {
+                setCapturedLocation(parseFloat(cachedLat), parseFloat(cachedLon), false);
             }
 
-            // 2. Silent permission check (NEVER shows permission popup on startup)
-            if (navigator.permissions && navigator.permissions.query) {
+            // 1. Silent Native Geolocation check if phone GPS is active
+            if (navigator.geolocation) {
                 try {
-                    navigator.permissions.query({ name: 'geolocation' }).then(res => {
-                        if (res.state === 'granted') {
-                            navigator.geolocation.getCurrentPosition(
-                                (pos) => setCapturedLocation(pos.coords.latitude, pos.coords.longitude),
-                                (err) => {},
-                                { enableHighAccuracy: false, timeout: 4000, maximumAge: 300000 }
-                            );
-                        }
-                    }).catch(() => {});
+                    navigator.geolocation.getCurrentPosition(
+                        (pos) => {
+                            if (pos && pos.coords) {
+                                setCapturedLocation(pos.coords.latitude, pos.coords.longitude, true);
+                            }
+                        },
+                        (err) => {
+                            console.log("Silent GPS note:", err.message);
+                        },
+                        { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+                    );
                 } catch(e) {}
             }
 
-            // 3. Fast Zero-Permission IP Geolocation fallback (Instant background discovery)
-            if (!userLat) {
-                fetch('https://ipwho.is/').then(r => r.json()).then(d => {
-                    if (d && d.success && d.latitude && d.longitude && !userLat) {
-                        userLat = d.latitude;
-                        userLon = d.longitude;
-                        const city = d.city || d.region || 'Toshkent';
-                        const addrInput = document.getElementById('form-address');
-                        if (addrInput && !addrInput.value) {
-                            addrInput.value = `${city}`;
+            // 2. Silent Telegram LocationManager check
+            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.LocationManager) {
+                try {
+                    const lm = window.Telegram.WebApp.LocationManager;
+                    lm.init(() => {
+                        if (lm.isLocationAvailable && lm.isAccessGranted) {
+                            lm.getLocation((loc) => {
+                                if (loc && loc.latitude && loc.longitude) {
+                                    setCapturedLocation(loc.latitude, loc.longitude, true);
+                                }
+                            });
                         }
-                        const status = document.getElementById('loc-status');
-                        if (status) status.innerText = `${userLat.toFixed(4)}, ${userLon.toFixed(4)} (${city})`;
-                    }
-                }).catch(() => {});
+                    });
+                } catch(e) {}
             }
         }
 
         function getLocation(isSilent = false) {
-            if (userLat && userLon) {
-                setCapturedLocation(userLat, userLon);
-                return;
-            }
-
             const btn = document.getElementById('loc-btn');
             if (!isSilent && btn) {
                 btn.innerText = '📍 ' + (currentLang === 'ru' ? 'Определяем...' : (currentLang === 'en' ? 'Detecting...' : 'Aniqlanmoqda...'));
             }
 
-            // Active request with Telegram LocationManager
+            let foundLocation = false;
+
+            // 1. Try Telegram LocationManager
             if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.LocationManager) {
                 try {
                     const lm = window.Telegram.WebApp.LocationManager;
@@ -1679,8 +1691,8 @@
                         if (lm.isLocationAvailable) {
                             lm.getLocation((loc) => {
                                 if (loc && loc.latitude && loc.longitude) {
-                                    setCapturedLocation(loc.latitude, loc.longitude);
-                                    return;
+                                    foundLocation = true;
+                                    setCapturedLocation(loc.latitude, loc.longitude, true);
                                 }
                             });
                         }
@@ -1688,21 +1700,23 @@
                 } catch(e) {}
             }
 
-            // Active request with Browser Geolocation
+            // 2. Hardware GPS via browser navigator.geolocation
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
                     (pos) => {
-                        setCapturedLocation(pos.coords.latitude, pos.coords.longitude);
+                        foundLocation = true;
+                        setCapturedLocation(pos.coords.latitude, pos.coords.longitude, true);
                     },
                     (err) => {
-                        if (!isSilent && btn) {
+                        console.log("GPS fetch error:", err);
+                        if (!isSilent && btn && !foundLocation) {
                             btn.innerText = t('loc_btn');
                         }
                     },
-                    { enableHighAccuracy: true, timeout: 6000, maximumAge: 0 }
+                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
                 );
             } else {
-                if (!isSilent && btn) {
+                if (!isSilent && btn && !foundLocation) {
                     btn.innerText = t('loc_btn');
                 }
             }
