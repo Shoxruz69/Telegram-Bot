@@ -466,6 +466,52 @@ def api_admin_translate():
     })
 
 
+_geocode_cache = {}
+
+@app.route('/api/reverse_geocode')
+def api_reverse_geocode():
+    lat = request.args.get('lat')
+    lon = request.args.get('lon')
+    lang = request.args.get('lang', 'uz')
+    if not lat or not lon:
+        return jsonify({'success': False, 'address': ''})
+
+    try:
+        cache_key = f"{round(float(lat), 4)},{round(float(lon), 4)},{lang}"
+        if cache_key in _geocode_cache:
+            return jsonify({'success': True, 'address': _geocode_cache[cache_key]})
+    except Exception:
+        pass
+
+    try:
+        url = f"https://nominatim.openstreetmap.org/reverse?format=json&lat={lat}&lon={lon}&zoom=18&addressdetails=1"
+        headers = {'User-Agent': 'CafeExpressBot/2.0 (contact@bitepoint.uz)', 'Accept-Language': lang}
+        res = requests.get(url, headers=headers, timeout=4)
+        if res.status_code == 200:
+            data = res.json()
+            if data and 'address' in data:
+                a = data['address']
+                road = a.get('road') or a.get('pedestrian') or a.get('suburb') or a.get('neighbourhood') or a.get('residential') or ''
+                district = a.get('city_district') or a.get('district') or a.get('county') or a.get('village') or a.get('hamlet') or ''
+                city = a.get('city') or a.get('town') or a.get('municipality') or a.get('state') or ''
+                
+                parts = []
+                if road: parts.append(road)
+                if district and district != city: parts.append(district)
+                if city: parts.append(city)
+                clean_addr = ", ".join(parts) if parts else data.get('display_name', '')
+                if clean_addr:
+                    try:
+                        _geocode_cache[cache_key] = clean_addr
+                    except:
+                        pass
+                    return jsonify({'success': True, 'address': clean_addr})
+    except Exception as e:
+        print(f"[Reverse geocode note]: {e}")
+
+    return jsonify({'success': False, 'address': f"GPS: {lat}, {lon}"})
+
+
 # --- WebApp API ---
 @app.route('/webapp')
 def webapp():

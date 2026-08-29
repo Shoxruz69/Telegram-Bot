@@ -1618,36 +1618,18 @@
         // ==========================================
         // FAST, RELIABLE, AUTOMATIC LOCATION SYSTEM
         // ==========================================
-        // ==========================================
-        // REAL HARDWARE GPS & PRECISE LOCATION SYSTEM
+        // FAST, RELIABLE, ZERO-LAG LOCATION SYSTEM
         // ==========================================
         async function reverseGeocode(lat, lon, forceUpdate = false) {
             try {
-                const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`;
-                const res = await fetch(url, { headers: { 'Accept-Language': currentLang || 'uz' } });
+                const res = await fetch(`/api/reverse_geocode?lat=${lat}&lon=${lon}&lang=${encodeURIComponent(currentLang || 'uz')}`);
                 const data = await res.json();
-                if (data && data.address) {
-                    const a = data.address;
-                    const road = a.road || a.pedestrian || a.suburb || a.neighbourhood || a.residential || '';
-                    const district = a.city_district || a.district || a.county || a.village || a.hamlet || '';
-                    const city = a.city || a.town || a.municipality || a.state || '';
-                    
-                    let parts = [];
-                    if (road) parts.push(road);
-                    if (district && district !== city) parts.push(district);
-                    if (city) parts.push(city);
-
-                    let cleanAddr = parts.join(', ');
-                    if (!cleanAddr && data.display_name) {
-                        cleanAddr = data.display_name.split(',').slice(0, 3).join(',');
-                    }
-
-                    if (cleanAddr) {
-                        const addrInput = document.getElementById('form-address');
-                        if (addrInput && (forceUpdate || !addrInput.value || addrInput.value.startsWith('GPS:') || addrInput.value === 'Toshkent')) {
-                            addrInput.value = cleanAddr;
-                            localStorage.setItem('user_address', cleanAddr);
-                        }
+                if (data && data.success && data.address) {
+                    const cleanAddr = data.address.trim();
+                    const addrInput = document.getElementById('form-address');
+                    if (addrInput && (forceUpdate || !addrInput.value || addrInput.value.startsWith('GPS:') || addrInput.value === 'Toshkent')) {
+                        addrInput.value = cleanAddr;
+                        localStorage.setItem('user_address', cleanAddr);
                     }
                 }
             } catch(e) {
@@ -1679,12 +1661,12 @@
                 }
             }
 
-            // Real physical address reverse geocode
+            // Real physical address reverse geocode via fast backend API
             reverseGeocode(lat, lon, forceAddressUpdate);
         }
 
         function autoFetchLocation() {
-            // Check real cached GPS first (ignore fake Tashkent)
+            // 1. Check cached GPS first (0ms instant response)
             const cachedLat = localStorage.getItem('user_lat');
             const cachedLon = localStorage.getItem('user_lon');
             const cachedAddr = localStorage.getItem('user_address');
@@ -1697,24 +1679,7 @@
                 setCapturedLocation(parseFloat(cachedLat), parseFloat(cachedLon), false);
             }
 
-            // 1. Silent Native Geolocation check if phone GPS is active
-            if (navigator.geolocation) {
-                try {
-                    navigator.geolocation.getCurrentPosition(
-                        (pos) => {
-                            if (pos && pos.coords) {
-                                setCapturedLocation(pos.coords.latitude, pos.coords.longitude, true);
-                            }
-                        },
-                        (err) => {
-                            console.log("Silent GPS note:", err.message);
-                        },
-                        { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
-                    );
-                } catch(e) {}
-            }
-
-            // 2. Silent Telegram LocationManager check
+            // 2. Silent Telegram LocationManager check (without any browser popups)
             if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.LocationManager) {
                 try {
                     const lm = window.Telegram.WebApp.LocationManager;
@@ -1722,12 +1687,29 @@
                         if (lm.isLocationAvailable && lm.isAccessGranted) {
                             lm.getLocation((loc) => {
                                 if (loc && loc.latitude && loc.longitude) {
-                                    setCapturedLocation(loc.latitude, loc.longitude, true);
+                                    setCapturedLocation(loc.latitude, loc.longitude, false);
                                 }
                             });
                         }
                     });
                 } catch(e) {}
+            }
+
+            // 3. Silent check if browser already has granted permission (without popping up permission modal)
+            if (navigator.permissions && navigator.permissions.query) {
+                navigator.permissions.query({ name: 'geolocation' }).then((result) => {
+                    if (result && result.state === 'granted' && navigator.geolocation) {
+                        navigator.geolocation.getCurrentPosition(
+                            (pos) => {
+                                if (pos && pos.coords) {
+                                    setCapturedLocation(pos.coords.latitude, pos.coords.longitude, false);
+                                }
+                            },
+                            () => {},
+                            { enableHighAccuracy: false, timeout: 3000, maximumAge: 300000 }
+                        );
+                    }
+                }).catch(() => {});
             }
         }
 
@@ -1764,12 +1746,23 @@
                         setCapturedLocation(pos.coords.latitude, pos.coords.longitude, true);
                     },
                     (err) => {
-                        console.log("GPS fetch error:", err);
-                        if (!isSilent && btn && !foundLocation) {
-                            btn.innerText = t('loc_btn');
-                        }
+                        navigator.geolocation.getCurrentPosition(
+                            (pos2) => {
+                                if (pos2 && pos2.coords) {
+                                    foundLocation = true;
+                                    setCapturedLocation(pos2.coords.latitude, pos2.coords.longitude, true);
+                                }
+                            },
+                            (err2) => {
+                                console.log("GPS fetch error:", err2);
+                                if (!isSilent && btn && !foundLocation) {
+                                    btn.innerText = t('loc_btn');
+                                }
+                            },
+                            { enableHighAccuracy: false, timeout: 4000, maximumAge: 60000 }
+                        );
                     },
-                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                    { enableHighAccuracy: true, timeout: 6000, maximumAge: 60000 }
                 );
             } else {
                 if (!isSilent && btn && !foundLocation) {
