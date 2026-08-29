@@ -145,7 +145,15 @@ async def init_db():
 
 async def add_user(user_id, phone, lat, lon):
     async with get_db() as db:
-        await db.execute('INSERT OR REPLACE INTO users (user_id, phone, latitude, longitude) VALUES (?, ?, ?, ?)', (user_id, phone, lat, lon))
+        async with db.execute('SELECT phone, latitude, longitude FROM users WHERE user_id = ?', (user_id,)) as cursor:
+            existing = await cursor.fetchone()
+            if existing:
+                final_phone = phone if phone else existing[0]
+                final_lat = lat if (lat and lat != 0.0) else existing[1]
+                final_lon = lon if (lon and lon != 0.0) else existing[2]
+                await db.execute('UPDATE users SET phone = ?, latitude = ?, longitude = ? WHERE user_id = ?', (final_phone, final_lat, final_lon, user_id))
+            else:
+                await db.execute('INSERT INTO users (user_id, phone, latitude, longitude) VALUES (?, ?, ?, ?)', (user_id, phone or '', lat or 0.0, lon or 0.0))
         await db.commit()
 
 async def get_user(user_id):

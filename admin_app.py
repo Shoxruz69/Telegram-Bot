@@ -349,7 +349,7 @@ def check_promocode_validity(promo, order_amount=0):
 
 def broadcast_to_users(text, photo_url_or_path=None, parse_mode='HTML'):
     """
-    Bot foydalanuvchilariga (User jadvalidagi mijozlarga) fonda reklama xabarini yuboradi.
+    Bot foydalanuvchilariga (User va Order jadvalidagi barcha mijozlarga) fonda reklama xabarini yuboradi.
     """
     def send_broadcast_worker():
         bot_token = os.getenv("BOT_TOKEN")
@@ -358,44 +358,122 @@ def broadcast_to_users(text, photo_url_or_path=None, parse_mode='HTML'):
             return
 
         with app.app_context():
-            users = User.query.filter(User.user_id.isnot(None), User.user_id != 0).all()
-            print(f"[Broadcast]: {len(users)} ta foydalanuvchiga yuborilmoqda...")
-            for u in users:
+            target_ids = set()
+
+            # 1. User jadvalidan barcha foydalanuvchilar
+            try:
+                users = User.query.filter(User.user_id.isnot(None), User.user_id > 1000).all()
+                for u in users:
+                    target_ids.add(int(u.user_id))
+            except Exception as e:
+                print(f"[Broadcast users query error]: {e}")
+
+            # 2. Order jadvalidan barcha mijozlar
+            try:
+                orders = Order.query.filter(Order.user_id.isnot(None), Order.user_id > 1000).all()
+                for o in orders:
+                    target_ids.add(int(o.user_id))
+            except Exception as e:
+                print(f"[Broadcast orders query error]: {e}")
+
+            # 3. Admin ID
+            admin_id = os.getenv("ADMIN_ID")
+            if admin_id and str(admin_id).isdigit() and int(admin_id) > 1000:
+                target_ids.add(int(admin_id))
+
+            print(f"[Broadcast]: Jami {len(target_ids)} ta mijozga reklama yuborilmoqda: {target_ids}")
+
+            # Mini App ochish tugmasi
+            raw_url = os.getenv("RENDER_EXTERNAL_URL", "") or os.getenv("WEB_APP_URL", "")
+            web_app_url = raw_url.strip() if raw_url else ""
+            if web_app_url and not web_app_url.startswith("http"):
+                web_app_url = f"https://{web_app_url}"
+            if web_app_url and not web_app_url.endswith("/webapp"):
+                web_app_url = f"{web_app_url.rstrip('/')}/webapp"
+
+            reply_markup = None
+            if web_app_url:
+                reply_markup = {
+                    "inline_keyboard": [[
+                        {"text": "🍔 Mini App ni ochish", "web_app": {"url": web_app_url}}
+                    ]]
+                }
+
+            sent_count = 0
+            for chat_id in target_ids:
                 try:
-                    chat_id = u.user_id
                     if photo_url_or_path:
                         if str(photo_url_or_path).startswith(('http://', 'https://')):
-                            requests.post(
+                            payload = {
+                                'chat_id': chat_id,
+                                'photo': photo_url_or_path,
+                                'caption': text,
+                                'parse_mode': parse_mode
+                            }
+                            if reply_markup:
+                                payload['reply_markup'] = json.dumps(reply_markup)
+                            r = requests.post(
                                 f"https://api.telegram.org/bot{bot_token}/sendPhoto",
-                                data={'chat_id': chat_id, 'photo': photo_url_or_path, 'caption': text, 'parse_mode': parse_mode},
+                                data=payload,
                                 timeout=8
                             )
+                            if r.status_code == 200:
+                                sent_count += 1
                         else:
                             local_photo = photo_url_or_path
                             if not os.path.isabs(local_photo):
                                 local_photo = os.path.join(app.root_path, 'static', 'uploads', local_photo)
                             if os.path.exists(local_photo):
                                 with open(local_photo, 'rb') as photo:
-                                    requests.post(
+                                    payload = {
+                                        'chat_id': chat_id,
+                                        'caption': text,
+                                        'parse_mode': parse_mode
+                                    }
+                                    if reply_markup:
+                                        payload['reply_markup'] = json.dumps(reply_markup)
+                                    r = requests.post(
                                         f"https://api.telegram.org/bot{bot_token}/sendPhoto",
-                                        data={'chat_id': chat_id, 'caption': text, 'parse_mode': parse_mode},
+                                        data=payload,
                                         files={'photo': photo},
                                         timeout=8
                                     )
+                                    if r.status_code == 200:
+                                        sent_count += 1
                             else:
-                                requests.post(
+                                payload = {
+                                    'chat_id': chat_id,
+                                    'text': text,
+                                    'parse_mode': parse_mode
+                                }
+                                if reply_markup:
+                                    payload['reply_markup'] = reply_markup
+                                r = requests.post(
                                     f"https://api.telegram.org/bot{bot_token}/sendMessage",
-                                    json={'chat_id': chat_id, 'text': text, 'parse_mode': parse_mode},
+                                    json=payload,
                                     timeout=8
                                 )
+                                if r.status_code == 200:
+                                    sent_count += 1
                     else:
-                        requests.post(
+                        payload = {
+                            'chat_id': chat_id,
+                            'text': text,
+                            'parse_mode': parse_mode
+                        }
+                        if reply_markup:
+                            payload['reply_markup'] = reply_markup
+                        r = requests.post(
                             f"https://api.telegram.org/bot{bot_token}/sendMessage",
-                            json={'chat_id': chat_id, 'text': text, 'parse_mode': parse_mode},
+                            json=payload,
                             timeout=8
                         )
+                        if r.status_code == 200:
+                            sent_count += 1
                 except Exception as e:
-                    print(f"[Broadcast user {u.user_id} error]: {e}")
+                    print(f"[Broadcast to user {chat_id} error]: {e}")
+
+            print(f"[Broadcast completed]: {sent_count}/{len(target_ids)} mijozga muvaffaqiyatli yuborildi.")
 
     threading.Thread(target=send_broadcast_worker, daemon=True).start()
 
@@ -564,13 +642,22 @@ def api_data():
     user_id = request.args.get('user_id')
     user_data = None
     if user_id and str(user_id).isdigit():
-        u = User.query.get(int(user_id))
-        if u:
-            user_data = {
-                'phone': u.phone or '',
-                'latitude': u.latitude or 0,
-                'longitude': u.longitude or 0
-            }
+        uid_int = int(user_id)
+        if uid_int > 1000:
+            try:
+                u = User.query.get(uid_int)
+                if not u:
+                    u = User(user_id=uid_int, phone="", latitude=0.0, longitude=0.0)
+                    db.session.add(u)
+                    db.session.commit()
+                if u:
+                    user_data = {
+                        'phone': u.phone or '',
+                        'latitude': u.latitude or 0,
+                        'longitude': u.longitude or 0
+                    }
+            except Exception as e:
+                print(f"[api_data user auto-register error]: {e}")
 
     return jsonify({
         'categories': [{

@@ -80,6 +80,18 @@ async def main():
     # Ma'lumotlar bazasini initsializatsiya qilish
     await init_db()
 
+    # Barcha botga yozgan foydalanuvchilarni avtomatik bazaga qo'shish middleware
+    from database.db import add_user
+    @dp.message.outer_middleware()
+    async def auto_register_middleware(handler, event, data):
+        try:
+            u = getattr(event, 'from_user', None)
+            if u and u.id and not u.is_bot:
+                await add_user(u.id, "", 0.0, 0.0)
+        except Exception as ex:
+            logging.warning(f"auto_register_middleware error: {ex}")
+        return await handler(event, data)
+
     # Routerni ulash
     dp.include_router(start.router)
     dp.include_router(menu.router)
