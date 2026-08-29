@@ -129,7 +129,9 @@
         </div>
 
         <div class="header-right">
-          
+          <!-- Theme Toggle Button -->
+          <button class="theme-toggle-btn" id="admin-theme-btn" onclick="toggleAdminTheme()" title="Rejim" style="width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--border-gold); background: var(--bg-card); color: var(--gold-primary); font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: var(--transition);">🌙</button>
+
           <!-- Language Selector -->
           <div class="lang-selector">
             <button class="lang-btn active" data-lang="uz" onclick="setLanguage('uz')">🇺🇿 UZ</button>
@@ -377,7 +379,7 @@
        CREATE / EDIT CATEGORY MODAL
        ==================================================================== -->
   <div class="modal-overlay" id="category-modal-overlay">
-    <div class="modal-container" style="max-width: 440px;">
+    <div class="modal-container" style="max-width: 460px;">
       <div class="modal-header-bar">
         <h3 class="modal-title" id="category-modal-title">Yangi Kategoriya Qo'shish</h3>
         <button class="btn-close-modal" onclick="closeCategoryModal()">✕</button>
@@ -385,8 +387,16 @@
       <form onsubmit="saveCategoryForm(event)" style="padding: 24px;">
         <input type="hidden" id="category-id">
         <div class="form-group">
-          <label class="form-label" id="lbl-cat-name">Kategoriya Nomi</label>
-          <input type="text" id="category-name-input" class="form-input" required placeholder="Masalan: Milliy Taomlar">
+          <label class="form-label" id="lbl-cat-name-uz">Kategoriya Nomi (UZ 🇺🇿)</label>
+          <input type="text" id="category-name-input" class="form-input" required placeholder="Masalan: Fast Food">
+        </div>
+        <div class="form-group">
+          <label class="form-label" id="lbl-cat-name-ru">Название (RU 🇷🇺)</label>
+          <input type="text" id="category-name-ru-input" class="form-input" placeholder="Например: Фастфуд">
+        </div>
+        <div class="form-group">
+          <label class="form-label" id="lbl-cat-name-en">Name (EN 🇬🇧)</label>
+          <input type="text" id="category-name-en-input" class="form-input" placeholder="e.g. Fast Food">
         </div>
         <button type="submit" class="btn-primary" style="width: 100%; justify-content: center; margin-top: 12px;">
           💾 Saqlash
@@ -399,21 +409,36 @@
        CREATE / EDIT DISH MODAL
        ==================================================================== -->
   <div class="modal-overlay" id="dish-modal-overlay">
-    <div class="modal-container" style="max-width: 520px;">
+    <div class="modal-container" style="max-width: 580px; max-height: 90vh; overflow-y: auto;">
       <div class="modal-header-bar">
         <h3 class="modal-title" id="dish-modal-title">Yangi Taom Qo'shish</h3>
         <button class="btn-close-modal" onclick="closeDishModal()">✕</button>
       </div>
       <form id="dish-form" onsubmit="saveDish(event)" style="padding: 24px;">
         <input type="hidden" id="dish-id">
-        <div class="form-group">
-          <label class="form-label">Taom Nomi</label>
-          <input type="text" id="dish-name" class="form-input" required placeholder="Masalan: Double Cheeseburger">
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group">
+            <label class="form-label">Taom Nomi (UZ 🇺🇿)</label>
+            <input type="text" id="dish-name" class="form-input" required placeholder="Masalan: Gamburger">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Kategoriya</label>
+            <select id="dish-category-select" class="form-select"></select>
+          </div>
         </div>
-        <div class="form-group">
-          <label class="form-label">Kategoriya</label>
-          <select id="dish-category-select" class="form-select"></select>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group">
+            <label class="form-label">Название (RU 🇷🇺)</label>
+            <input type="text" id="dish-name-ru" class="form-input" placeholder="Например: Гамбургер">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Name (EN 🇬🇧)</label>
+            <input type="text" id="dish-name-en" class="form-input" placeholder="e.g. Hamburger">
+          </div>
         </div>
+
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
           <div class="form-group">
             <label class="form-label">Sotuv Narxi (so'm)</label>
@@ -424,10 +449,23 @@
             <input type="number" id="dish-old-price" class="form-input" placeholder="0">
           </div>
         </div>
+
         <div class="form-group">
-          <label class="form-label">Tavsif / Tarkibi</label>
-          <textarea id="dish-description" class="form-textarea" placeholder="Taom haqida qisqacha ma'lumot..."></textarea>
+          <label class="form-label">Tavsif (UZ 🇺🇿)</label>
+          <textarea id="dish-description" class="form-textarea" placeholder="Taom haqida ma'lumot..."></textarea>
         </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group">
+            <label class="form-label">Описание (RU 🇷🇺)</label>
+            <textarea id="dish-description-ru" class="form-textarea" placeholder="Описание на русском..."></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Description (EN 🇬🇧)</label>
+            <textarea id="dish-description-en" class="form-textarea" placeholder="Description in English..."></textarea>
+          </div>
+        </div>
+
         <div class="form-group">
           <label class="form-label">Rasm URL yoki Fayldan yuklash</label>
           <input type="text" id="dish-image-url" class="form-input" placeholder="https://... yoki fayl tanlang" style="margin-bottom: 6px;">
@@ -444,28 +482,54 @@
        CREATE PROMOTION MODAL
        ==================================================================== -->
   <div class="modal-overlay" id="promo-modal-overlay">
-    <div class="modal-container" style="max-width: 480px;">
+    <div class="modal-container" style="max-width: 520px; max-height: 90vh; overflow-y: auto;">
       <div class="modal-header-bar">
         <h3 class="modal-title">Yangi Aksiya / Chegirma</h3>
         <button class="btn-close-modal" onclick="closePromotionModal()">✕</button>
       </div>
       <form onsubmit="savePromotion(event)" style="padding: 24px;">
         <div class="form-group">
-          <label class="form-label">Aksiya Sarlavhasi</label>
+          <label class="form-label">Aksiya Sarlavhasi (UZ 🇺🇿)</label>
           <input type="text" id="promo-title" class="form-input" required placeholder="Masalan: Yozgi 20% Chegirma">
         </div>
-        <div class="form-group">
-          <label class="form-label">Chegirma Foizi (%)</label>
-          <input type="number" id="promo-discount" class="form-input" min="1" max="99" required placeholder="20">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group">
+            <label class="form-label">Заголовок (RU 🇷🇺)</label>
+            <input type="text" id="promo-title-ru" class="form-input" placeholder="Летняя скидка 20%">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Title (EN 🇬🇧)</label>
+            <input type="text" id="promo-title-en" class="form-input" placeholder="Summer 20% Discount">
+          </div>
         </div>
-        <div class="form-group">
-          <label class="form-label">Tugash Sanasi va Vaqti</label>
-          <input type="text" id="promo-end-date" class="form-input" placeholder="2026-12-31 23:59">
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group">
+            <label class="form-label">Chegirma Foizi (%)</label>
+            <input type="number" id="promo-discount" class="form-input" min="1" max="99" required placeholder="20">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Tugash Sanasi va Vaqti</label>
+            <input type="text" id="promo-end-date" class="form-input" placeholder="2026-12-31 23:59">
+          </div>
         </div>
+
         <div class="form-group">
-          <label class="form-label">Aksiya Shartlari / Tavsifi</label>
+          <label class="form-label">Aksiya Shartlari / Tavsifi (UZ 🇺🇿)</label>
           <textarea id="promo-desc" class="form-textarea" placeholder="Barcha taomlarga..."></textarea>
         </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group">
+            <label class="form-label">Описание (RU 🇷🇺)</label>
+            <textarea id="promo-desc-ru" class="form-textarea" placeholder="Описание на русском..."></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Description (EN 🇬🇧)</label>
+            <textarea id="promo-desc-en" class="form-textarea" placeholder="Description in English..."></textarea>
+          </div>
+        </div>
+
         <button type="submit" class="btn-primary" style="width: 100%; justify-content: center; margin-top: 12px;">
           💾 Aksiyani Saqlash
         </button>

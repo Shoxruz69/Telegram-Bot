@@ -1334,6 +1334,9 @@
 
         function getCategoryName(category) {
             if (!category) return '';
+            if (currentLang === 'ru' && category.name_ru) return category.name_ru;
+            if (currentLang === 'en' && category.name_en) return category.name_en;
+            if (currentLang === 'uz' && category.name) return category.name;
             const raw = category.name || '';
             if (categoryTranslations[raw] && categoryTranslations[raw][currentLang]) {
                 return categoryTranslations[raw][currentLang];
@@ -1343,6 +1346,9 @@
 
         function getItemName(item) {
             if (!item) return '';
+            if (currentLang === 'ru' && item.name_ru) return item.name_ru;
+            if (currentLang === 'en' && item.name_en) return item.name_en;
+            if (currentLang === 'uz' && item.name) return item.name;
             const raw = item.name || '';
             if (menuTranslations[raw] && menuTranslations[raw].name && menuTranslations[raw].name[currentLang]) {
                 return menuTranslations[raw].name[currentLang];
@@ -1352,6 +1358,9 @@
 
         function getItemDesc(item) {
             if (!item) return '';
+            if (currentLang === 'ru' && item.description_ru) return item.description_ru;
+            if (currentLang === 'en' && item.description_en) return item.description_en;
+            if (currentLang === 'uz' && item.description) return item.description;
             const raw = item.name || '';
             if (menuTranslations[raw] && menuTranslations[raw].desc && menuTranslations[raw].desc[currentLang]) {
                 return menuTranslations[raw].desc[currentLang];
@@ -1361,6 +1370,9 @@
 
         function getPromoTitle(promo) {
             if (!promo) return '';
+            if (currentLang === 'ru' && promo.title_ru) return promo.title_ru;
+            if (currentLang === 'en' && promo.title_en) return promo.title_en;
+            if (currentLang === 'uz' && promo.title) return promo.title;
             const raw = promo.title || '';
             if (promoTranslations[raw] && promoTranslations[raw].title && promoTranslations[raw].title[currentLang]) {
                 return promoTranslations[raw].title[currentLang];
@@ -1370,6 +1382,9 @@
 
         function getPromoDesc(promo) {
             if (!promo) return '';
+            if (currentLang === 'ru' && promo.description_ru) return promo.description_ru;
+            if (currentLang === 'en' && promo.description_en) return promo.description_en;
+            if (currentLang === 'uz' && promo.description) return promo.description;
             const raw = promo.title || '';
             if (promoTranslations[raw] && promoTranslations[raw].desc && promoTranslations[raw].desc[currentLang]) {
                 return promoTranslations[raw].desc[currentLang];

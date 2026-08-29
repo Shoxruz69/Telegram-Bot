@@ -57,6 +57,8 @@ class Category(db.Model):
     __tablename__ = 'categories'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(100))
+    name_ru = db.Column(db.String(100))
+    name_en = db.Column(db.String(100))
     menus = db.relationship('Menu', backref='category', lazy=True)
 
     def __repr__(self):
@@ -67,7 +69,11 @@ class Menu(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     category_id = db.Column(db.Integer, db.ForeignKey('categories.id'))
     name = db.Column(db.String(100))
+    name_ru = db.Column(db.String(100))
+    name_en = db.Column(db.String(100))
     description = db.Column(db.Text)
+    description_ru = db.Column(db.Text)
+    description_en = db.Column(db.Text)
     price = db.Column(db.Integer)
     old_price = db.Column(db.Integer, default=0) # Eski narx (ustidan chizilgan)
     image_url = db.Column(db.String(500))
@@ -100,7 +106,11 @@ class Promotion(db.Model):
     __tablename__ = 'promotions'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     title = db.Column(db.String(200), nullable=False)
+    title_ru = db.Column(db.String(200))
+    title_en = db.Column(db.String(200))
     description = db.Column(db.Text)
+    description_ru = db.Column(db.Text)
+    description_en = db.Column(db.Text)
     discount_percent = db.Column(db.Integer, default=0)
     end_date = db.Column(db.String(100)) # Tugash vaqti
     category_id = db.Column(db.Integer, db.ForeignKey('categories.id'), nullable=True)
@@ -167,10 +177,25 @@ with app.app_context():
         if 'daily_id' not in orders_cols:
             db.session.execute(text("ALTER TABLE orders ADD COLUMN daily_id INTEGER DEFAULT 1"))
             
+        # Categories migration
+        cat_cols = [col['name'] for col in inspector.get_columns('categories')]
+        if 'name_ru' not in cat_cols:
+            db.session.execute(text("ALTER TABLE categories ADD COLUMN name_ru VARCHAR(100)"))
+        if 'name_en' not in cat_cols:
+            db.session.execute(text("ALTER TABLE categories ADD COLUMN name_en VARCHAR(100)"))
+
         # Menu migration
         menu_cols = [col['name'] for col in inspector.get_columns('menu')]
         if 'old_price' not in menu_cols:
             db.session.execute(text("ALTER TABLE menu ADD COLUMN old_price INTEGER DEFAULT 0"))
+        if 'name_ru' not in menu_cols:
+            db.session.execute(text("ALTER TABLE menu ADD COLUMN name_ru VARCHAR(100)"))
+        if 'name_en' not in menu_cols:
+            db.session.execute(text("ALTER TABLE menu ADD COLUMN name_en VARCHAR(100)"))
+        if 'description_ru' not in menu_cols:
+            db.session.execute(text("ALTER TABLE menu ADD COLUMN description_ru TEXT"))
+        if 'description_en' not in menu_cols:
+            db.session.execute(text("ALTER TABLE menu ADD COLUMN description_en TEXT"))
 
         # Promotions migration
         promo_cols = [col['name'] for col in inspector.get_columns('promotions')]
@@ -180,6 +205,14 @@ with app.app_context():
             db.session.execute(text("ALTER TABLE promotions ADD COLUMN category_id INTEGER"))
         if 'menu_item_id' not in promo_cols:
             db.session.execute(text("ALTER TABLE promotions ADD COLUMN menu_item_id INTEGER"))
+        if 'title_ru' not in promo_cols:
+            db.session.execute(text("ALTER TABLE promotions ADD COLUMN title_ru VARCHAR(200)"))
+        if 'title_en' not in promo_cols:
+            db.session.execute(text("ALTER TABLE promotions ADD COLUMN title_en VARCHAR(200)"))
+        if 'description_ru' not in promo_cols:
+            db.session.execute(text("ALTER TABLE promotions ADD COLUMN description_ru TEXT"))
+        if 'description_en' not in promo_cols:
+            db.session.execute(text("ALTER TABLE promotions ADD COLUMN description_en TEXT"))
 
         db.session.commit()
 
@@ -284,12 +317,21 @@ def api_data():
     promotions = Promotion.query.filter_by(is_active=True).all()
     
     return jsonify({
-        'categories': [{'id': c.id, 'name': c.name} for c in categories],
+        'categories': [{
+            'id': c.id, 
+            'name': c.name,
+            'name_ru': getattr(c, 'name_ru', None) or c.name,
+            'name_en': getattr(c, 'name_en', None) or c.name
+        } for c in categories],
         'menu': [{
             'id': m.id, 
             'category_id': m.category_id, 
             'name': m.name, 
-            'description': m.description, 
+            'name_ru': getattr(m, 'name_ru', None) or m.name,
+            'name_en': getattr(m, 'name_en', None) or m.name,
+            'description': m.description or '', 
+            'description_ru': getattr(m, 'description_ru', None) or m.description or '',
+            'description_en': getattr(m, 'description_en', None) or m.description or '',
             'price': m.price, 
             'old_price': getattr(m, 'old_price', 0) or 0,
             'image_url': m.image_url
@@ -297,7 +339,11 @@ def api_data():
         'promotions': [{
             'id': p.id,
             'title': p.title,
-            'description': p.description,
+            'title_ru': getattr(p, 'title_ru', None) or p.title,
+            'title_en': getattr(p, 'title_en', None) or p.title,
+            'description': p.description or '',
+            'description_ru': getattr(p, 'description_ru', None) or p.description or '',
+            'description_en': getattr(p, 'description_en', None) or p.description or '',
             'discount_percent': p.discount_percent,
             'end_date': p.end_date,
             'category_id': p.category_id,
@@ -800,7 +846,11 @@ def api_admin_menu():
             'id': m.id,
             'category_id': m.category_id,
             'name': m.name,
+            'name_ru': getattr(m, 'name_ru', None) or m.name,
+            'name_en': getattr(m, 'name_en', None) or m.name,
             'description': m.description or '',
+            'description_ru': getattr(m, 'description_ru', None) or m.description or '',
+            'description_en': getattr(m, 'description_en', None) or m.description or '',
             'price': m.price or 0,
             'old_price': m.old_price or 0,
             'image_url': m.image_url or ''
@@ -817,10 +867,14 @@ def api_admin_menu_create():
 
     menu = Menu(
         name=name,
+        name_ru=data.get('name_ru', '').strip() or name,
+        name_en=data.get('name_en', '').strip() or name,
         category_id=int(data.get('category_id', 1)),
         price=int(data.get('price', 0)),
         old_price=int(data.get('old_price', 0)),
         description=data.get('description', ''),
+        description_ru=data.get('description_ru', '').strip() or data.get('description', ''),
+        description_en=data.get('description_en', '').strip() or data.get('description', ''),
         image_url=data.get('image_url', '')
     )
     db.session.add(menu)
@@ -834,12 +888,26 @@ def api_admin_menu_update(item_id):
     if not menu:
         return jsonify({'success': False, 'error': 'Taom topilmadi'}), 404
     data = request.get_json(force=True, silent=True) or request.form.to_dict() or {}
-    menu.name = data.get('name', menu.name)
-    menu.category_id = int(data.get('category_id', menu.category_id))
-    menu.price = int(data.get('price', menu.price))
-    menu.old_price = int(data.get('old_price', menu.old_price or 0))
-    menu.description = data.get('description', menu.description)
-    menu.image_url = data.get('image_url', menu.image_url)
+    if 'name' in data:
+        menu.name = data.get('name', menu.name)
+    if 'name_ru' in data:
+        menu.name_ru = data.get('name_ru', menu.name_ru)
+    if 'name_en' in data:
+        menu.name_en = data.get('name_en', menu.name_en)
+    if 'category_id' in data:
+        menu.category_id = int(data.get('category_id', menu.category_id))
+    if 'price' in data:
+        menu.price = int(data.get('price', menu.price))
+    if 'old_price' in data:
+        menu.old_price = int(data.get('old_price', menu.old_price or 0))
+    if 'description' in data:
+        menu.description = data.get('description', menu.description)
+    if 'description_ru' in data:
+        menu.description_ru = data.get('description_ru', menu.description_ru)
+    if 'description_en' in data:
+        menu.description_en = data.get('description_en', menu.description_en)
+    if 'image_url' in data:
+        menu.image_url = data.get('image_url', menu.image_url)
     db.session.commit()
     return jsonify({'success': True})
 
@@ -859,7 +927,12 @@ def api_admin_categories():
     categories = Category.query.all()
     return jsonify({
         'success': True,
-        'categories': [{'id': c.id, 'name': c.name} for c in categories]
+        'categories': [{
+            'id': c.id, 
+            'name': c.name,
+            'name_ru': getattr(c, 'name_ru', None) or c.name,
+            'name_en': getattr(c, 'name_en', None) or c.name
+        } for c in categories]
     })
 
 
@@ -869,7 +942,11 @@ def api_admin_category_create():
     name = data.get('name', '').strip()
     if not name:
         return jsonify({'success': False, 'error': 'Kategoriya nomi kiritilmadi'}), 400
-    cat = Category(name=name)
+    cat = Category(
+        name=name,
+        name_ru=data.get('name_ru', '').strip() or name,
+        name_en=data.get('name_en', '').strip() or name
+    )
     db.session.add(cat)
     db.session.commit()
     return jsonify({'success': True, 'id': cat.id})
@@ -882,9 +959,12 @@ def api_admin_category_update(cat_id):
         return jsonify({'success': False, 'error': 'Kategoriya topilmadi'}), 404
     data = request.get_json(force=True, silent=True) or request.form.to_dict() or {}
     name = data.get('name', '').strip()
-    if not name:
-        return jsonify({'success': False, 'error': 'Kategoriya nomi kiritilmadi'}), 400
-    cat.name = name
+    if name:
+        cat.name = name
+    if 'name_ru' in data:
+        cat.name_ru = data.get('name_ru', cat.name_ru)
+    if 'name_en' in data:
+        cat.name_en = data.get('name_en', cat.name_en)
     db.session.commit()
     return jsonify({'success': True})
 
@@ -907,7 +987,11 @@ def api_admin_promotions():
         'promotions': [{
             'id': p.id,
             'title': p.title,
+            'title_ru': getattr(p, 'title_ru', None) or p.title,
+            'title_en': getattr(p, 'title_en', None) or p.title,
             'description': p.description or '',
+            'description_ru': getattr(p, 'description_ru', None) or p.description or '',
+            'description_en': getattr(p, 'description_en', None) or p.description or '',
             'discount_percent': p.discount_percent or 0,
             'end_date': p.end_date or '',
             'category_id': p.category_id,
@@ -926,7 +1010,11 @@ def api_admin_promotion_create():
         return jsonify({'success': False, 'error': 'Aksiya sarlavhasi kiritilmadi'}), 400
     promo = Promotion(
         title=title,
+        title_ru=data.get('title_ru', '').strip() or title,
+        title_en=data.get('title_en', '').strip() or title,
         description=data.get('description', ''),
+        description_ru=data.get('description_ru', '').strip() or data.get('description', ''),
+        description_en=data.get('description_en', '').strip() or data.get('description', ''),
         discount_percent=int(data.get('discount_percent', 0)),
         end_date=data.get('end_date', ''),
         is_active=True

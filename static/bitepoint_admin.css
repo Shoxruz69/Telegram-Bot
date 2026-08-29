@@ -56,6 +56,245 @@
   --transition:         all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* ==========================================================================
+   LIGHT THEME STYLING FOR ADMIN PANEL
+   ========================================================================== */
+body.light-theme {
+  --bg-main:            #F4F5F7;
+  --bg-sidebar:         #FFFFFF;
+  --bg-card:            #FFFFFF;
+  --bg-card-alt:        #F9FAFB;
+  --bg-input:           #F3F4F6;
+  
+  --text-main:          #111827;
+  --text-muted:         #4B5563;
+  --text-light:         #6B7280;
+  
+  --border-gold:        rgba(180, 83, 9, 0.3);
+  --border-subtle:      rgba(0, 0, 0, 0.08);
+
+  --gold-primary:       #B8860B;
+  --gold-light:         #92400E;
+  --gold-dark:          #78350F;
+  --gold-glow:          rgba(184, 134, 11, 0.25);
+
+  --shadow-sm:          0 2px 8px rgba(0, 0, 0, 0.04);
+  --shadow-card:        0 4px 16px rgba(0, 0, 0, 0.06);
+  --shadow-gold:        0 4px 16px rgba(184, 134, 11, 0.2);
+  --shadow-modal:       0 20px 50px rgba(0, 0, 0, 0.15);
+
+  background-color: var(--bg-main);
+  color: var(--text-main);
+}
+
+body.light-theme .sidebar {
+  background-color: #FFFFFF;
+  border-right: 1px solid #E5E7EB;
+}
+
+body.light-theme .brand-logo {
+  border-bottom: 1px solid #E5E7EB;
+}
+
+body.light-theme .brand-name {
+  background: linear-gradient(90deg, #997A15, #B45309);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+body.light-theme .brand-sub {
+  color: #6B7280;
+  -webkit-text-fill-color: #6B7280;
+}
+
+body.light-theme .nav-item a {
+  color: #4B5563;
+}
+
+body.light-theme .nav-item a:hover {
+  background: #F3F4F6;
+  color: #111827;
+}
+
+body.light-theme .nav-item.active a {
+  background: linear-gradient(135deg, #D4AF37, #997A15);
+  color: #0A0A0B;
+  box-shadow: 0 4px 14px rgba(212, 175, 55, 0.3);
+}
+
+body.light-theme .top-header {
+  background: rgba(255, 255, 255, 0.95);
+  border-bottom: 1px solid #E5E7EB;
+}
+
+body.light-theme .page-title {
+  color: #111827;
+}
+
+body.light-theme .tab-btn {
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  color: #4B5563;
+}
+
+body.light-theme .tab-btn.active {
+  background: linear-gradient(135deg, #D4AF37, #997A15);
+  color: #0A0A0B;
+  border-color: transparent;
+}
+
+body.light-theme .tab-count {
+  background: #F3F4F6;
+  color: #111827;
+}
+
+body.light-theme .tab-btn.active .tab-count {
+  background: rgba(0, 0, 0, 0.15);
+  color: #0A0A0B;
+}
+
+body.light-theme .lang-selector {
+  background: #F3F4F6;
+  border: 1px solid #E5E7EB;
+}
+
+body.light-theme .lang-btn {
+  color: #4B5563;
+}
+
+body.light-theme .lang-btn.active {
+  background: linear-gradient(135deg, #D4AF37, #B45309);
+  color: #FFFFFF;
+}
+
+body.light-theme .theme-toggle-btn {
+  background: #FFFFFF !important;
+  color: #B45309 !important;
+  border: 1px solid #E5E7EB !important;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+
+body.light-theme .current-date {
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  color: #4B5563;
+}
+
+body.light-theme .search-box input {
+  background: #FFFFFF;
+  border: 1px solid #D1D5DB;
+  color: #111827;
+}
+
+body.light-theme .search-box svg {
+  stroke: #6B7280;
+}
+
+body.light-theme .order-card,
+body.light-theme .stat-card,
+body.light-theme .menu-card,
+body.light-theme .chart-card,
+body.light-theme .settings-box {
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+}
+
+body.light-theme .order-card-header {
+  border-bottom: 1px solid #F3F4F6;
+}
+
+body.light-theme .order-id {
+  color: #111827;
+}
+
+body.light-theme .order-time {
+  color: #6B7280;
+}
+
+body.light-theme .menu-name {
+  color: #111827;
+}
+
+body.light-theme .menu-desc {
+  color: #4B5563;
+}
+
+body.light-theme .price-current {
+  color: #B45309;
+}
+
+body.light-theme .price-old {
+  color: #9CA3AF;
+}
+
+body.light-theme .btn-card-secondary {
+  background: #F3F4F6;
+  border: 1px solid #E5E7EB;
+  color: #374151;
+}
+
+body.light-theme .btn-card-secondary:hover {
+  background: #E5E7EB;
+}
+
+body.light-theme .modal-container {
+  background: #FFFFFF;
+  border: 1px solid rgba(180, 83, 9, 0.3);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+}
+
+body.light-theme .modal-header-bar {
+  border-bottom: 1px solid #E5E7EB;
+}
+
+body.light-theme .modal-title {
+  color: #B45309;
+}
+
+body.light-theme .form-input,
+body.light-theme .form-select,
+body.light-theme .form-textarea {
+  background: #F9FAFB;
+  border: 1px solid #D1D5DB;
+  color: #111827;
+}
+
+body.light-theme .form-input:focus,
+body.light-theme .form-select:focus,
+body.light-theme .form-textarea:focus {
+  border-color: #B45309;
+  background: #FFFFFF;
+}
+
+body.light-theme .receipt-items-table th {
+  background: #F9FAFB;
+  color: #4B5563;
+}
+
+body.light-theme .receipt-items-table td {
+  border-bottom: 1px solid #F3F4F6;
+  color: #111827;
+}
+
+body.light-theme .receipt-calc-totals {
+  background: #F9FAFB;
+  border: 1px solid #E5E7EB;
+}
+
+body.light-theme .calc-total-line {
+  color: #4B5563;
+}
+
+body.light-theme .calc-total-line.grand-total span {
+  color: #B45309 !important;
+}
+
+body.light-theme .receipt-modal-inner {
+  background: #FFFFFF !important;
+  border: 1px solid #E5E7EB !important;
+}
+
 /* Reset & Base */
 *, *::before, *::after {
   box-sizing: border-box;

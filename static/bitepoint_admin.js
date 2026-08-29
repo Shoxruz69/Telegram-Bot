@@ -441,6 +441,7 @@ const i18n = {
 // Global App State
 const state = {
   lang: localStorage.getItem('bitepoint_lang') || 'uz',
+  theme: localStorage.getItem('bitepoint_theme') || 'dark',
   currentTab: 'orders',       // 'orders' | 'menu' | 'categories' | 'promotions' | 'accounting' | 'settings'
   orderStatusFilter: 'all',    // 'all' | 'process' | 'completed' | 'cancelled'
   searchQuery: '',
@@ -462,6 +463,59 @@ const state = {
 function t(key) {
   const currentDict = i18n[state.lang] || i18n.uz;
   return currentDict[key] || key;
+}
+
+// Multilingual Helper Getters
+function getDishName(dish) {
+  if (!dish) return '';
+  if (state.lang === 'ru' && dish.name_ru) return dish.name_ru;
+  if (state.lang === 'en' && dish.name_en) return dish.name_en;
+  return dish.name || '';
+}
+
+function getDishDesc(dish) {
+  if (!dish) return '';
+  if (state.lang === 'ru' && dish.description_ru) return dish.description_ru;
+  if (state.lang === 'en' && dish.description_en) return dish.description_en;
+  return dish.description || '';
+}
+
+function getCategoryName(cat) {
+  if (!cat) return '';
+  if (state.lang === 'ru' && cat.name_ru) return cat.name_ru;
+  if (state.lang === 'en' && cat.name_en) return cat.name_en;
+  return cat.name || '';
+}
+
+function getPromoTitle(promo) {
+  if (!promo) return '';
+  if (state.lang === 'ru' && promo.title_ru) return promo.title_ru;
+  if (state.lang === 'en' && promo.title_en) return promo.title_en;
+  return promo.title || '';
+}
+
+function getPromoDesc(promo) {
+  if (!promo) return '';
+  if (state.lang === 'ru' && promo.description_ru) return promo.description_ru;
+  if (state.lang === 'en' && promo.description_en) return promo.description_en;
+  return promo.description || '';
+}
+
+// Theme Handling
+function toggleAdminTheme() {
+  const newTheme = state.theme === 'dark' ? 'light' : 'dark';
+  state.theme = newTheme;
+  localStorage.setItem('bitepoint_theme', newTheme);
+  applyAdminTheme();
+}
+
+function applyAdminTheme() {
+  const isLight = state.theme === 'light';
+  document.body.classList.toggle('light-theme', isLight);
+  const btn = document.getElementById('admin-theme-btn');
+  if (btn) {
+    btn.textContent = isLight ? '☀️' : '🌙';
+  }
 }
 
 // Switch Language
@@ -623,6 +677,9 @@ function applyTranslationsToStaticElements() {
 
 // Initialize Application
 document.addEventListener('DOMContentLoaded', () => {
+  // Apply theme immediately
+  applyAdminTheme();
+
   // Set active language button
   document.querySelectorAll('.lang-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.lang === state.lang);
@@ -928,13 +985,16 @@ function renderOrdersGrid() {
               <span style="text-align: center;">${t('qty_col')}</span>
               <span style="text-align: right;">${t('price_col')}</span>
             </div>
-            ${displayItems.map(item => `
+            ${displayItems.map(item => {
+              const matched = state.menuItems.find(m => m.id === item.menu_item_id || m.name === item.name);
+              const displayName = matched ? getDishName(matched) : item.name;
+              return `
               <div class="item-row">
-                <span class="item-name" title="${item.name}">${item.name}</span>
+                <span class="item-name" title="${displayName}">${displayName}</span>
                 <span class="item-qty">${item.quantity}</span>
                 <span class="item-price">${formatPrice(item.price * item.quantity)}</span>
               </div>
-            `).join('')}
+            `;}).join('')}
             ${hasMore ? `
               <button class="more-items-btn" onclick="toggleExpandOrder(${order.id})">+${remainingCount} ${t('more_items')}</button>
             ` : ''}
@@ -1045,13 +1105,16 @@ function openOrderDetailsModal(orderId) {
 
   // Items
   if (modalItemsTable) {
-    modalItemsTable.innerHTML = (order.items || []).map(item => `
+    modalItemsTable.innerHTML = (order.items || []).map(item => {
+      const matched = state.menuItems.find(m => m.id === item.menu_item_id || m.name === item.name);
+      const displayName = matched ? getDishName(matched) : item.name;
+      return `
       <tr>
-        <td style="font-weight: 600;">${item.name}</td>
+        <td style="font-weight: 600;">${displayName}</td>
         <td style="text-align: center; color: var(--text-muted);">${item.quantity}x</td>
         <td style="text-align: right; font-weight: 700;">${formatPrice(item.price * item.quantity)}</td>
       </tr>
-    `).join('');
+    `;}).join('');
   }
 
   if (modalSubtotal) modalSubtotal.textContent = formatPrice(order.total_amount);
@@ -1168,8 +1231,12 @@ function renderMenuGridFiltered(catId) {
     items = items.filter(i => i.category_id === catId);
   }
   if (state.searchQuery) {
-    const q = state.searchQuery;
-    items = items.filter(i => (i.name || '').toLowerCase().includes(q) || (i.description || '').toLowerCase().includes(q));
+    const q = state.searchQuery.toLowerCase();
+    items = items.filter(i => 
+      (getDishName(i) || '').toLowerCase().includes(q) || 
+      (getDishDesc(i) || '').toLowerCase().includes(q) ||
+      (i.name || '').toLowerCase().includes(q)
+    );
   }
 
   if (items.length === 0) {
@@ -1183,16 +1250,19 @@ function renderMenuGridFiltered(catId) {
 
   container.innerHTML = items.map(dish => {
     const cat = state.categories.find(c => c.id === dish.category_id);
+    const dName = getDishName(dish);
+    const dDesc = getDishDesc(dish);
+    const cName = cat ? getCategoryName(cat) : 'Umumiy';
     return `
       <div class="menu-card">
         <div class="menu-img-wrap">
-          <img src="${dish.image_url || 'https://via.placeholder.com/300x200?text=No+Photo'}" alt="${dish.name}" onerror="this.src='https://via.placeholder.com/300x200?text=Food'">
-          <span class="menu-category-tag">${cat ? cat.name : 'Umumiy'}</span>
+          <img src="${dish.image_url || 'https://via.placeholder.com/300x200?text=No+Photo'}" alt="${dName}" onerror="this.src='https://via.placeholder.com/300x200?text=Food'">
+          <span class="menu-category-tag">${cName}</span>
         </div>
         <div class="menu-body">
           <div>
-            <h4 class="menu-name">${dish.name}</h4>
-            <p class="menu-desc">${dish.description || ''}</p>
+            <h4 class="menu-name">${dName}</h4>
+            <p class="menu-desc">${dDesc || ''}</p>
           </div>
           <div>
             <div class="menu-prices-row">
@@ -1219,7 +1289,7 @@ function openDishModal(dishId = null) {
 
   // Populate categories dropdown
   if (catSelect) {
-    catSelect.innerHTML = state.categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    catSelect.innerHTML = state.categories.map(c => `<option value="${c.id}">${getCategoryName(c)}</option>`).join('');
   }
 
   if (dishId) {
@@ -1227,10 +1297,18 @@ function openDishModal(dishId = null) {
     if (!dish) return;
     title.textContent = t('edit_dish_modal_title');
     document.getElementById('dish-id').value = dish.id;
-    document.getElementById('dish-name').value = dish.name;
+    document.getElementById('dish-name').value = dish.name || '';
+    const nameRuEl = document.getElementById('dish-name-ru');
+    if (nameRuEl) nameRuEl.value = dish.name_ru || '';
+    const nameEnEl = document.getElementById('dish-name-en');
+    if (nameEnEl) nameEnEl.value = dish.name_en || '';
     document.getElementById('dish-price').value = dish.price;
     document.getElementById('dish-old-price').value = dish.old_price || '';
     document.getElementById('dish-description').value = dish.description || '';
+    const descRuEl = document.getElementById('dish-description-ru');
+    if (descRuEl) descRuEl.value = dish.description_ru || '';
+    const descEnEl = document.getElementById('dish-description-en');
+    if (descEnEl) descEnEl.value = dish.description_en || '';
     document.getElementById('dish-image-url').value = dish.image_url || '';
     if (catSelect) catSelect.value = dish.category_id;
   } else {
@@ -1251,13 +1329,28 @@ async function saveDish(e) {
   e.preventDefault();
   const id = document.getElementById('dish-id').value;
   const name = document.getElementById('dish-name').value.trim();
+  const name_ru = document.getElementById('dish-name-ru') ? document.getElementById('dish-name-ru').value.trim() : '';
+  const name_en = document.getElementById('dish-name-en') ? document.getElementById('dish-name-en').value.trim() : '';
   const price = parseInt(document.getElementById('dish-price').value, 10) || 0;
   const old_price = parseInt(document.getElementById('dish-old-price').value, 10) || 0;
   const category_id = parseInt(document.getElementById('dish-category-select').value, 10) || 1;
   const description = document.getElementById('dish-description').value.trim();
+  const description_ru = document.getElementById('dish-description-ru') ? document.getElementById('dish-description-ru').value.trim() : '';
+  const description_en = document.getElementById('dish-description-en') ? document.getElementById('dish-description-en').value.trim() : '';
   const image_url = document.getElementById('dish-image-url').value.trim();
 
-  const payload = { name, price, old_price, category_id, description, image_url };
+  const payload = { 
+    name, 
+    name_ru: name_ru || name, 
+    name_en: name_en || name, 
+    price, 
+    old_price, 
+    category_id, 
+    description, 
+    description_ru: description_ru || description, 
+    description_en: description_en || description, 
+    image_url 
+  };
   const endpoint = id ? `/api/admin/menu/${id}/update` : '/api/admin/menu/create';
 
   try {
@@ -1331,17 +1424,18 @@ function renderCategoriesView() {
 
   container.innerHTML = state.categories.map(cat => {
     const count = state.menuItems.filter(m => m.category_id === cat.id).length;
+    const catDisplayName = getCategoryName(cat);
     return `
       <div class="stat-card" style="justify-content: space-between;">
         <div style="display: flex; align-items: center; gap: 14px;">
           <div class="stat-icon yellow">📁</div>
           <div>
-            <h4 style="font-size: 16px; font-weight: 700;">${cat.name}</h4>
+            <h4 style="font-size: 16px; font-weight: 700;">${catDisplayName}</h4>
             <span style="font-size: 12px; color: var(--text-muted);">${count} ${t('cat_dishes_count')}</span>
           </div>
         </div>
         <div style="display: flex; gap: 8px;">
-          <button class="btn-card-secondary" style="padding: 6px 12px;" onclick="openCategoryModal(${cat.id}, '${cat.name.replace(/'/g, "\\'")}')">✏️</button>
+          <button class="btn-card-secondary" style="padding: 6px 12px;" onclick="openCategoryModal(${cat.id})">✏️</button>
           <button class="btn-card-secondary" style="padding: 6px 12px; color: #DC2626;" onclick="deleteCategory(${cat.id})">🗑️</button>
         </div>
       </div>
@@ -1349,20 +1443,27 @@ function renderCategoriesView() {
   }).join('');
 }
 
-function openCategoryModal(catId = null, catName = '') {
+function openCategoryModal(catId = null) {
   const modal = document.getElementById('category-modal-overlay');
   const title = document.getElementById('category-modal-title');
   const idInput = document.getElementById('category-id');
   const nameInput = document.getElementById('category-name-input');
+  const nameRuInput = document.getElementById('category-name-ru-input');
+  const nameEnInput = document.getElementById('category-name-en-input');
 
   if (catId) {
+    const cat = state.categories.find(c => c.id === catId);
     title.textContent = t('edit_cat_modal_title');
     idInput.value = catId;
-    nameInput.value = catName;
+    nameInput.value = cat ? (cat.name || '') : '';
+    if (nameRuInput) nameRuInput.value = cat ? (cat.name_ru || '') : '';
+    if (nameEnInput) nameEnInput.value = cat ? (cat.name_en || '') : '';
   } else {
     title.textContent = t('add_cat_modal_title');
     idInput.value = '';
     nameInput.value = '';
+    if (nameRuInput) nameRuInput.value = '';
+    if (nameEnInput) nameEnInput.value = '';
   }
 
   if (modal) modal.classList.add('active');
@@ -1378,10 +1479,12 @@ async function saveCategoryForm(e) {
   e.preventDefault();
   const id = document.getElementById('category-id').value;
   const name = document.getElementById('category-name-input').value.trim();
+  const name_ru = document.getElementById('category-name-ru-input') ? document.getElementById('category-name-ru-input').value.trim() : '';
+  const name_en = document.getElementById('category-name-en-input') ? document.getElementById('category-name-en-input').value.trim() : '';
 
   if (!name) return;
 
-  const payload = { name };
+  const payload = { name, name_ru: name_ru || name, name_en: name_en || name };
   const endpoint = id ? `/api/admin/category/${id}/update` : '/api/admin/category/create';
 
   try {
@@ -1450,28 +1553,32 @@ function renderPromotionsView() {
     return;
   }
 
-  container.innerHTML = state.promotions.map(p => `
-    <div class="stat-card" style="flex-direction: column; align-items: stretch; gap: 14px;">
-      <div style="display: flex; justify-content: space-between; align-items: center;">
-        <span class="status-pill ${p.is_active ? 'ready' : 'cancelled'}">
-          <span class="dot"></span>
-          <span>${p.is_active ? t('active_promo') : t('inactive_promo')}</span>
-        </span>
-        <span style="font-size: 16px; font-weight: 800; color: #D97706;">-${p.discount_percent}%</span>
+  container.innerHTML = state.promotions.map(p => {
+    const pTitle = getPromoTitle(p);
+    const pDesc = getPromoDesc(p);
+    return `
+      <div class="stat-card" style="flex-direction: column; align-items: stretch; gap: 14px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span class="status-pill ${p.is_active ? 'ready' : 'cancelled'}">
+            <span class="dot"></span>
+            <span>${p.is_active ? t('active_promo') : t('inactive_promo')}</span>
+          </span>
+          <span style="font-size: 16px; font-weight: 800; color: #D97706;">-${p.discount_percent}%</span>
+        </div>
+        <div>
+          <h4 style="font-size: 16px; font-weight: 700; margin-bottom: 4px;">${pTitle}</h4>
+          <p style="font-size: 13px; color: var(--text-muted);">${pDesc || ''}</p>
+          <div style="font-size: 11px; color: var(--text-light); margin-top: 6px;">${t('end_date_lbl')} ${p.end_date || t('not_specified')}</div>
+        </div>
+        <div style="display: flex; gap: 8px; border-top: 1px solid var(--border-subtle); padding-top: 10px;">
+          <button class="btn-card-secondary" style="flex: 1;" onclick="togglePromoStatus(${p.id})">
+            ${p.is_active ? t('turn_off') : t('turn_on')}
+          </button>
+          <button class="btn-card-secondary" style="color: #DC2626;" onclick="deletePromo(${p.id})">🗑️</button>
+        </div>
       </div>
-      <div>
-        <h4 style="font-size: 16px; font-weight: 700; margin-bottom: 4px;">${p.title}</h4>
-        <p style="font-size: 13px; color: var(--text-muted);">${p.description || ''}</p>
-        <div style="font-size: 11px; color: var(--text-light); margin-top: 6px;">${t('end_date_lbl')} ${p.end_date || t('not_specified')}</div>
-      </div>
-      <div style="display: flex; gap: 8px; border-top: 1px solid var(--border-light); padding-top: 10px;">
-        <button class="btn-card-secondary" style="flex: 1;" onclick="togglePromoStatus(${p.id})">
-          ${p.is_active ? t('turn_off') : t('turn_on')}
-        </button>
-        <button class="btn-card-secondary" style="color: #DC2626;" onclick="deletePromo(${p.id})">🗑️</button>
-      </div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 }
 
 function openPromotionModal() {
@@ -1487,7 +1594,11 @@ function closePromotionModal() {
 async function savePromotion(e) {
   e.preventDefault();
   const title = document.getElementById('promo-title').value.trim();
+  const title_ru = document.getElementById('promo-title-ru') ? document.getElementById('promo-title-ru').value.trim() : '';
+  const title_en = document.getElementById('promo-title-en') ? document.getElementById('promo-title-en').value.trim() : '';
   const description = document.getElementById('promo-desc').value.trim();
+  const description_ru = document.getElementById('promo-desc-ru') ? document.getElementById('promo-desc-ru').value.trim() : '';
+  const description_en = document.getElementById('promo-desc-en') ? document.getElementById('promo-desc-en').value.trim() : '';
   const discount_percent = parseInt(document.getElementById('promo-discount').value, 10) || 0;
   const end_date = document.getElementById('promo-end-date').value;
 
@@ -1495,7 +1606,16 @@ async function savePromotion(e) {
     const res = await fetch('/api/admin/promotion/create', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, description, discount_percent, end_date })
+      body: JSON.stringify({ 
+        title, 
+        title_ru: title_ru || title, 
+        title_en: title_en || title, 
+        description, 
+        description_ru: description_ru || description, 
+        description_en: description_en || description, 
+        discount_percent, 
+        end_date 
+      })
     });
     const data = await res.json();
     if (data.success) {

@@ -22,7 +22,9 @@ async def init_db():
         await db.execute('''
             CREATE TABLE IF NOT EXISTS categories (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT
+                name TEXT,
+                name_ru TEXT,
+                name_en TEXT
             )
         ''')
         await db.execute('''
@@ -30,10 +32,35 @@ async def init_db():
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 category_id INTEGER,
                 name TEXT,
+                name_ru TEXT,
+                name_en TEXT,
                 description TEXT,
+                description_ru TEXT,
+                description_en TEXT,
                 price INTEGER,
+                old_price INTEGER DEFAULT 0,
                 image_url TEXT,
                 FOREIGN KEY (category_id) REFERENCES categories (id)
+            )
+        ''')
+        await db.execute('''
+            CREATE TABLE IF NOT EXISTS promotions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                title_ru TEXT,
+                title_en TEXT,
+                description TEXT,
+                description_ru TEXT,
+                description_en TEXT,
+                discount_percent INTEGER DEFAULT 0,
+                end_date TEXT,
+                category_id INTEGER,
+                menu_item_id INTEGER,
+                image_url TEXT,
+                is_active BOOLEAN DEFAULT 1,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (category_id) REFERENCES categories (id),
+                FOREIGN KEY (menu_item_id) REFERENCES menu (id)
             )
         ''')
         await db.execute('''
