@@ -1369,10 +1369,19 @@ def api_admin_category_create():
     name = data.get('name', '').strip()
     if not name:
         return jsonify({'success': False, 'error': 'Kategoriya nomi kiritilmadi'}), 400
+
+    name_ru = data.get('name_ru', '').strip()
+    if not name_ru or name_ru == name:
+        name_ru = translate_text(name, 'ru') or name
+
+    name_en = data.get('name_en', '').strip()
+    if not name_en or name_en == name:
+        name_en = translate_text(name, 'en') or name
+
     cat = Category(
         name=name,
-        name_ru=data.get('name_ru', '').strip() or name,
-        name_en=data.get('name_en', '').strip() or name
+        name_ru=name_ru,
+        name_en=name_en
     )
     db.session.add(cat)
     db.session.commit()
@@ -1388,10 +1397,16 @@ def api_admin_category_update(cat_id):
     name = data.get('name', '').strip()
     if name:
         cat.name = name
-    if 'name_ru' in data:
-        cat.name_ru = data.get('name_ru', cat.name_ru)
-    if 'name_en' in data:
-        cat.name_en = data.get('name_en', cat.name_en)
+        if not data.get('name_ru'):
+            cat.name_ru = translate_text(name, 'ru') or name
+        if not data.get('name_en'):
+            cat.name_en = translate_text(name, 'en') or name
+
+    if 'name_ru' in data and data.get('name_ru', '').strip():
+        cat.name_ru = data.get('name_ru').strip()
+    if 'name_en' in data and data.get('name_en', '').strip():
+        cat.name_en = data.get('name_en').strip()
+
     db.session.commit()
     return jsonify({'success': True})
 

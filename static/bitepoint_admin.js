@@ -1636,6 +1636,34 @@ function closeCategoryModal() {
   if (modal) modal.classList.remove('active');
 }
 
+async function autoTranslateCategory(isExplicit = false) {
+  const name = document.getElementById('category-name-input') ? document.getElementById('category-name-input').value.trim() : '';
+  if (!name) {
+    if (isExplicit) showToast("Kategoriya nomini kiriting!", "error");
+    return;
+  }
+  const nameRuEl = document.getElementById('category-name-ru-input');
+  const nameEnEl = document.getElementById('category-name-en-input');
+  if (nameRuEl && nameEnEl && (isExplicit || !nameRuEl.value || !nameEnEl.value)) {
+    if (isExplicit) showToast("Tarjima qilinmoqda... ⏳", "info");
+    try {
+      const res = await fetch('/api/admin/translate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: name })
+      });
+      const data = await res.json();
+      if (data.success && data.translations) {
+        if (isExplicit || !nameRuEl.value) nameRuEl.value = data.translations.ru || name;
+        if (isExplicit || !nameEnEl.value) nameEnEl.value = data.translations.en || name;
+        if (isExplicit) showToast("Avtomatik tarjima qilindi! ✓", "success");
+      }
+    } catch (err) {
+      console.error("Auto translate category error:", err);
+    }
+  }
+}
+
 async function saveCategoryForm(e) {
   e.preventDefault();
   const id = document.getElementById('category-id').value;
@@ -1645,7 +1673,7 @@ async function saveCategoryForm(e) {
 
   if (!name) return;
 
-  const payload = { name, name_ru: name_ru || name, name_en: name_en || name };
+  const payload = { name, name_ru: name_ru || '', name_en: name_en || '' };
   const endpoint = id ? `/api/admin/category/${id}/update` : '/api/admin/category/create';
 
   try {

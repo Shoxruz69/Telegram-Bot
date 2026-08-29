@@ -400,8 +400,11 @@
       <form onsubmit="saveCategoryForm(event)" style="padding: 24px;">
         <input type="hidden" id="category-id">
         <div class="form-group">
-          <label class="form-label" id="lbl-cat-name-uz">Kategoriya Nomi (UZ 🇺🇿)</label>
-          <input type="text" id="category-name-input" class="form-input" required placeholder="Masalan: Fast Food">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+            <label class="form-label" id="lbl-cat-name-uz" style="margin-bottom: 0;">Kategoriya Nomi (UZ 🇺🇿)</label>
+            <button type="button" class="btn-card-secondary" style="padding: 2px 8px; font-size: 11px; border-radius: 6px;" onclick="autoTranslateCategory(true)">✨ Avto-tarjima</button>
+          </div>
+          <input type="text" id="category-name-input" class="form-input" required placeholder="Masalan: Fast Food" onblur="autoTranslateCategory(false)">
         </div>
         <div class="form-group">
           <label class="form-label" id="lbl-cat-name-ru">Название (RU 🇷🇺)</label>
