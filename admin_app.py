@@ -419,6 +419,9 @@ def broadcast_to_users(text, photo_url_or_path=None, parse_mode='HTML'):
                             )
                             if r.status_code == 200:
                                 sent_count += 1
+                                print(f"[Broadcast OK] chat_id={chat_id} ga rasm bilan yetkazildi")
+                            else:
+                                print(f"[Broadcast fail] chat_id={chat_id} status={r.status_code} res={r.text[:120]}")
                         else:
                             local_photo = photo_url_or_path
                             if not os.path.isabs(local_photo):
@@ -440,6 +443,9 @@ def broadcast_to_users(text, photo_url_or_path=None, parse_mode='HTML'):
                                     )
                                     if r.status_code == 200:
                                         sent_count += 1
+                                        print(f"[Broadcast OK] chat_id={chat_id} ga fayl bilan yetkazildi")
+                                    else:
+                                        print(f"[Broadcast fail] chat_id={chat_id} status={r.status_code} res={r.text[:120]}")
                             else:
                                 payload = {
                                     'chat_id': chat_id,
@@ -455,6 +461,9 @@ def broadcast_to_users(text, photo_url_or_path=None, parse_mode='HTML'):
                                 )
                                 if r.status_code == 200:
                                     sent_count += 1
+                                    print(f"[Broadcast OK] chat_id={chat_id} ga yetkazildi")
+                                else:
+                                    print(f"[Broadcast fail] chat_id={chat_id} status={r.status_code} res={r.text[:120]}")
                     else:
                         payload = {
                             'chat_id': chat_id,
@@ -470,6 +479,9 @@ def broadcast_to_users(text, photo_url_or_path=None, parse_mode='HTML'):
                         )
                         if r.status_code == 200:
                             sent_count += 1
+                            print(f"[Broadcast OK] chat_id={chat_id} ga yetkazildi")
+                        else:
+                            print(f"[Broadcast fail] chat_id={chat_id} status={r.status_code} res={r.text[:120]}")
                 except Exception as e:
                     print(f"[Broadcast to user {chat_id} error]: {e}")
 

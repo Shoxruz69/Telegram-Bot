@@ -1,7 +1,8 @@
+import os
 import aiosqlite
 from contextlib import asynccontextmanager
 
-DB_NAME = 'database/restaurant.db'
+DB_NAME = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'restaurant.db')
 @asynccontextmanager
 async def get_db():
     async with aiosqlite.connect(DB_NAME, timeout=30.0) as db:
