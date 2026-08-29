@@ -24,6 +24,11 @@
             --border-gold:  rgba(212, 175, 55, 0.25);
             --border-subtle:rgba(255, 255, 255, 0.08);
 
+            --promo-bg:     linear-gradient(135deg, rgba(212, 175, 55, 0.18), rgba(239, 68, 68, 0.22));
+            --promo-border: rgba(212, 175, 55, 0.35);
+            --promo-title:  #F3E5AB;
+            --promo-desc:   #D1D5DB;
+
             --radius:       16px;
             --radius-full:  9999px;
             --transition:   all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
@@ -39,8 +44,14 @@
 
             --text-light:   #111827;
             --text-muted:   #4B5563;
-            --border-gold:  rgba(184, 134, 11, 0.35);
+            --border-gold:  rgba(180, 83, 9, 0.25);
             --border-subtle:rgba(0, 0, 0, 0.08);
+
+            --promo-bg:     linear-gradient(135deg, rgba(245, 158, 11, 0.14), rgba(239, 68, 68, 0.10));
+            --promo-border: rgba(217, 119, 6, 0.4);
+            --promo-title:  #92400E;
+            --promo-desc:   #374151;
+
             background-color: var(--black);
             color: var(--text-light);
         }
@@ -79,7 +90,8 @@
         }
 
         body.light-theme .header {
-            background: rgba(255, 255, 255, 0.95);
+            background: rgba(255, 255, 255, 0.96);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
         }
 
         .header-brand {
@@ -114,6 +126,12 @@
             line-height: 1.2;
         }
 
+        body.light-theme .header h3 {
+            background: linear-gradient(90deg, #997A15, #B45309);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
         .header-sub {
             font-size: 10px;
             color: var(--text-muted);
@@ -144,6 +162,12 @@
             transition: var(--transition);
         }
 
+        body.light-theme .theme-toggle-btn {
+            background: #FFFFFF;
+            color: #B45309;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
         .theme-toggle-btn:active {
             transform: scale(0.92);
         }
@@ -155,6 +179,10 @@
             border-radius: var(--radius-full);
             padding: 2px;
             gap: 2px;
+        }
+
+        body.light-theme .mini-lang-selector {
+            background: #F3F4F6;
         }
 
         .mini-lang-btn {
@@ -173,6 +201,57 @@
             background: linear-gradient(135deg, var(--gold), var(--gold-dark));
             color: #0A0A0B;
             box-shadow: 0 2px 6px var(--gold-glow);
+        }
+
+        body.light-theme .mini-lang-btn.active {
+            background: linear-gradient(135deg, #D4AF37, #B45309);
+            color: #FFFFFF;
+            box-shadow: 0 2px 6px rgba(180, 83, 9, 0.3);
+        }
+
+        /* ── PROMOTIONS BANNER ── */
+        .promo-banner-card {
+            margin: 8px 16px;
+            padding: 11px 14px;
+            background: var(--promo-bg);
+            border: 1px solid var(--promo-border);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            transition: var(--transition);
+        }
+
+        .promo-banner-left {
+            flex: 1;
+            padding-right: 10px;
+        }
+
+        .promo-banner-title {
+            color: var(--promo-title);
+            font-weight: 700;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .promo-badge {
+            background: #EF4444;
+            color: #FFFFFF;
+            font-size: 9.5px;
+            font-weight: 800;
+            padding: 2px 6px;
+            border-radius: 4px;
+            letter-spacing: 0.5px;
+        }
+
+        .promo-banner-desc {
+            color: var(--promo-desc);
+            font-size: 11.5px;
+            margin-top: 3px;
+            line-height: 1.35;
         }
 
         /* ── CATEGORIES ── */
@@ -198,12 +277,25 @@
             transition: var(--transition);
             box-shadow: 0 2px 6px rgba(0,0,0,0.2);
         }
+
+        body.light-theme .tab {
+            background: #FFFFFF;
+            color: #374151;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+        }
+
         .tab.active {
             background: linear-gradient(135deg, var(--gold), var(--gold-dark));
             color: #0A0A0B;
             border-color: transparent;
             box-shadow: 0 4px 14px var(--gold-glow);
             transform: translateY(-1px);
+        }
+
+        body.light-theme .tab.active {
+            background: linear-gradient(135deg, #D4AF37, #B45309);
+            color: #FFFFFF;
+            box-shadow: 0 4px 14px rgba(180, 83, 9, 0.35);
         }
 
         /* ── MENU GRID ── */
@@ -225,10 +317,22 @@
             transition: transform 0.2s, box-shadow 0.2s;
             position: relative;
         }
+
+        body.light-theme .menu-item {
+            background: #FFFFFF;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+            border-color: rgba(180, 83, 9, 0.2);
+        }
+
         .menu-item:active { transform: scale(0.97); }
         .menu-item.in-cart {
             border-color: var(--gold);
             box-shadow: 0 0 16px var(--gold-glow);
+        }
+
+        body.light-theme .menu-item.in-cart {
+            border-color: #B45309;
+            box-shadow: 0 0 16px rgba(180, 83, 9, 0.25);
         }
 
         .img-container {
@@ -238,6 +342,10 @@
             position: relative;
             background-color: #24221A;
         }
+        body.light-theme .img-container {
+            background-color: #F3F4F6;
+        }
+
         .img-container img {
             width: 100%;
             height: 100%;
@@ -261,14 +369,22 @@
             line-height: 1.3;
         }
 
+        body.light-theme .item-name {
+            color: #111827;
+        }
+
         .item-desc {
             font-size: 11px;
             color: var(--text-muted);
-            line-height: 1.3;
+            line-height: 1.35;
             display: -webkit-box;
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
+        }
+
+        body.light-theme .item-desc {
+            color: #4B5563;
         }
 
         .price-row {
@@ -282,6 +398,10 @@
             font-size: 13.5px;
             font-weight: 800;
             color: var(--gold);
+        }
+
+        body.light-theme .item-price {
+            color: #B45309;
         }
 
         .add-btn {
@@ -299,6 +419,13 @@
             cursor: pointer;
             box-shadow: 0 2px 8px var(--gold-glow);
         }
+
+        body.light-theme .add-btn {
+            background: linear-gradient(135deg, #D4AF37, #B45309);
+            color: #FFFFFF;
+            box-shadow: 0 2px 8px rgba(180, 83, 9, 0.3);
+        }
+
         .add-btn:active { transform: scale(0.9); }
 
         .qty-controls {
@@ -310,6 +437,11 @@
             border-radius: var(--radius-full);
             padding: 2px 4px;
         }
+
+        body.light-theme .qty-controls {
+            background: #F3F4F6;
+        }
+
         .menu-item.in-cart .add-btn { display: none; }
         .menu-item.in-cart .qty-controls { display: flex; }
 
@@ -328,12 +460,21 @@
             cursor: pointer;
         }
 
+        body.light-theme .qty-btn {
+            background: #FFFFFF;
+            color: #B45309;
+        }
+
         .qty-val {
             font-size: 13px;
             font-weight: 800;
             color: var(--text-light);
             min-width: 16px;
             text-align: center;
+        }
+
+        body.light-theme .qty-val {
+            color: #111827;
         }
 
         /* ── BOTTOM BAR ── */
@@ -353,6 +494,12 @@
             z-index: 90;
             box-shadow: 0 -4px 20px rgba(0,0,0,0.5);
         }
+
+        body.light-theme .bottom-bar {
+            background: #FFFFFF;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+        }
+
         .bottom-bar.visible { transform: translateY(0); }
 
         .cart-info {
@@ -370,6 +517,10 @@
             color: var(--gold);
         }
 
+        body.light-theme .cart-total {
+            color: #B45309;
+        }
+
         .checkout-btn {
             padding: 10px 22px;
             background: linear-gradient(135deg, var(--gold), var(--gold-dark));
@@ -380,6 +531,12 @@
             font-weight: 800;
             cursor: pointer;
             box-shadow: 0 4px 15px var(--gold-glow);
+        }
+
+        body.light-theme .checkout-btn {
+            background: linear-gradient(135deg, #D4AF37, #B45309);
+            color: #FFFFFF;
+            box-shadow: 0 4px 15px rgba(180, 83, 9, 0.3);
         }
 
         /* ── MODAL ── */
@@ -414,6 +571,12 @@
             transform: translateY(100%);
             transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         }
+
+        body.light-theme .modal-content {
+            background: #FFFFFF;
+            color: #111827;
+        }
+
         .modal-overlay.active .modal-content {
             transform: translateY(0);
         }
@@ -440,6 +603,10 @@
             color: var(--gold);
         }
 
+        body.light-theme .modal-header h3 {
+            color: #997A15;
+        }
+
         .close-btn {
             background: none;
             border: none;
@@ -463,9 +630,14 @@
             padding-bottom: 8px;
             border-bottom: 1px solid var(--border-subtle);
         }
-        .cart-list-item-name { font-weight: 600; flex: 1; }
+        .cart-list-item-name { font-weight: 600; flex: 1; color: var(--text-light); }
+        body.light-theme .cart-list-item-name { color: #111827; }
+
         .cart-list-item-qty { color: var(--gold); font-weight: 700; margin: 0 12px; }
-        .cart-list-item-price { font-weight: 700; }
+        body.light-theme .cart-list-item-qty { color: #B45309; }
+
+        .cart-list-item-price { font-weight: 700; color: var(--text-light); }
+        body.light-theme .cart-list-item-price { color: #111827; }
 
         /* Payment selector */
         .payment-method {
@@ -477,6 +649,10 @@
             color: var(--gold);
             margin-bottom: 8px;
         }
+        body.light-theme .payment-method p {
+            color: #997A15;
+        }
+
         .payment-options {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -490,14 +666,25 @@
             text-align: center;
             font-size: 13px;
             font-weight: 700;
+            color: var(--text-light);
             cursor: pointer;
             transition: var(--transition);
         }
+        body.light-theme .pay-opt {
+            background: #F3F4F6;
+            color: #374151;
+        }
+
         .pay-opt.active {
             background: linear-gradient(135deg, var(--gold), var(--gold-dark));
             color: #0A0A0B;
             border-color: transparent;
             box-shadow: 0 2px 10px var(--gold-glow);
+        }
+        body.light-theme .pay-opt.active {
+            background: linear-gradient(135deg, #D4AF37, #B45309);
+            color: #FFFFFF;
+            box-shadow: 0 2px 10px rgba(180, 83, 9, 0.3);
         }
 
         /* Form inputs */
@@ -517,13 +704,18 @@
             font-size: 13px;
             outline: none;
         }
+        body.light-theme .form-input {
+            background: #F9FAFB;
+            color: #111827;
+            border-color: #D1D5DB;
+        }
         .form-input:focus {
             border-color: var(--gold);
             box-shadow: 0 0 10px var(--gold-glow);
         }
 
         .loc-btn {
-            padding: 10px;
+            padding: 11px 14px;
             border-radius: 12px;
             border: 1px dashed var(--border-gold);
             background: var(--card-hover);
@@ -532,12 +724,27 @@
             font-size: 12.5px;
             cursor: pointer;
             transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
         }
+        body.light-theme .loc-btn {
+            background: #F3F4F6;
+            color: #997A15;
+            border-color: #B8860B;
+        }
+
         .loc-btn.done {
             border-style: solid;
             background: rgba(16, 185, 129, 0.15);
             border-color: #10B981;
             color: #10B981;
+        }
+        body.light-theme .loc-btn.done {
+            background: #ECFDF5;
+            border-color: #10B981;
+            color: #047857;
         }
 
         .card-details {
@@ -547,11 +754,19 @@
             padding: 12px;
             margin-top: 6px;
         }
+        body.light-theme .card-details {
+            background: #F9FAFB;
+        }
+
         .card-details p {
             font-size: 11.5px;
             color: var(--text-muted);
             margin-bottom: 6px;
         }
+        body.light-theme .card-details p {
+            color: #4B5563;
+        }
+
         .card-box {
             background: var(--card-dark);
             border: 1px solid var(--border-gold);
@@ -559,7 +774,12 @@
             padding: 8px;
             text-align: center;
         }
+        body.light-theme .card-box {
+            background: #FFFFFF;
+        }
+
         .card-box strong { font-size: 15px; color: var(--gold); letter-spacing: 1px; }
+        body.light-theme .card-box strong { color: #B45309; }
 
         .final-checkout-btn {
             width: 100%;
@@ -574,6 +794,11 @@
             cursor: pointer;
             font-family: inherit;
             box-shadow: 0 4px 18px var(--gold-glow);
+        }
+        body.light-theme .final-checkout-btn {
+            background: linear-gradient(135deg, #D4AF37, #B45309);
+            color: #FFFFFF;
+            box-shadow: 0 4px 18px rgba(180, 83, 9, 0.35);
         }
         .final-checkout-btn:disabled { opacity: 0.6; }
     </style>
@@ -654,10 +879,10 @@
             <div class="checkout-form">
                 <input type="tel" id="form-phone" placeholder="Telefon raqam (+998901234567)" class="form-input">
                 <input type="text" id="form-address" placeholder="Manzil (Tuman, ko'cha, uy...)" class="form-input">
-                <button type="button" class="loc-btn" id="loc-btn" onclick="getLocation()">
+                <button type="button" class="loc-btn" id="loc-btn" onclick="getLocation(false)">
                     📍 Lokatsiyani aniqlash
                 </button>
-                <small id="loc-status" style="display:block;margin-top:4px;color:var(--text-muted);"></small>
+                <small id="loc-status" style="display:block;margin-top:2px;font-size:11px;color:var(--text-muted);text-align:center;"></small>
 
                 <div id="card-details" class="card-details">
                     <p id="lbl-card-transfer">Karta raqamiga pul o'tkazing:</p>
@@ -679,13 +904,15 @@
     <script>
         const tg = window.Telegram ? window.Telegram.WebApp : null;
         if (tg) {
-            tg.expand();
-            try { tg.ready(); } catch(e) {}
-            tg.MainButton.hide();
+            try {
+                tg.expand();
+                tg.ready();
+                tg.MainButton.hide();
+            } catch(e) {}
         }
 
         // ==========================================
-        // MULTI-LANGUAGE & THEME SETUP
+        // MULTI-LANGUAGE DICTIONARY & HELPERS
         // ==========================================
         const appI18n = {
             uz: {
@@ -765,12 +992,389 @@
             }
         };
 
+        // Category Translations
+        const categoryTranslations = {
+            "Fast Food": { uz: "Fast Food", ru: "Фастфуд", en: "Fast Food" },
+            "Ichimliklar": { uz: "Ichimliklar", ru: "Напитки", en: "Drinks" },
+            "Shirinliklar": { uz: "Shirinliklar", ru: "Десерты", en: "Desserts" },
+            "Combo Set": { uz: "Combo Set", ru: "Комбо сеты", en: "Combo Sets" },
+            "Kofe": { uz: "Kofe", ru: "Кофе", en: "Coffee" },
+            "Pitsalar": { uz: "Pitsalar", ru: "Пиццы", en: "Pizzas" },
+            "Burgerlar": { uz: "Burgerlar", ru: "Бургеры", en: "Burgers" },
+            "Salatlar": { uz: "Salatlar", ru: "Салаты", en: "Salads" }
+        };
+
+        // Dishes and Food Descriptions Translations
+        const menuTranslations = {
+            "Gamburger": {
+                name: { uz: "Gamburger", ru: "Гамбургер", en: "Hamburger" },
+                desc: {
+                    uz: "Katta va mazali ikki qavatli mol go'shti gamburgeri, pishloq va yangi sabzavotlar bilan.",
+                    ru: "Большой и сочный бургер из двух слоев говядины с сыром и свежими овощами.",
+                    en: "Delicious double beef patty burger with cheese and fresh vegetables."
+                }
+            },
+            "Pepperoni Pitsa": {
+                name: { uz: "Pepperoni Pitsa", ru: "Пицца Пепперони", en: "Pepperoni Pizza" },
+                desc: {
+                    uz: "Sifatli mozzarella pishlog'i va italyancha pepperoni kolbasasidan tayyorlangan pitsa.",
+                    ru: "Пицца с качественным сыром моцарелла и итальянской колбасой пепперони.",
+                    en: "Classic pizza with quality mozzarella cheese and Italian pepperoni."
+                }
+            },
+            "Cheeseburger": {
+                name: { uz: "Cheeseburger", ru: "Чизбургер", en: "Cheeseburger" },
+                desc: {
+                    uz: "Sersuv mol go'shti kotleti, erigan cheddar pishlog'i va maxsus burger sousi.",
+                    ru: "Сочная говяжья котлета, плавленый сыр чеддер и фирменный соус для бургера.",
+                    en: "Juicy beef patty, melted cheddar cheese, and signature burger sauce."
+                }
+            },
+            "Tovuqli Lavash": {
+                name: { uz: "Tovuqli Lavash", ru: "Куриный лаваш", en: "Chicken Lavash" },
+                desc: {
+                    uz: "Yumshoq tovuq go'shti, qarsillama chips, bodring va sarimsoqli sous.",
+                    ru: "Нежное куриное филе, хрустящие чипсы, свежие огурцы и чесночный соус.",
+                    en: "Tender chicken, crispy chips, fresh cucumber, and garlic sauce."
+                }
+            },
+            "Klassik Hot-Dog": {
+                name: { uz: "Klassik Hot-Dog", ru: "Классический Хот-дог", en: "Classic Hot Dog" },
+                desc: {
+                    uz: "Qizdirilgan yumshoq bulochka, sersuv sosiska va xantal hamda ketchup bilan.",
+                    ru: "Теплая мягкая булочка, сочная сосиска с горчицей и кетчупом.",
+                    en: "Warm soft bun, juicy sausage with mustard and ketchup."
+                }
+            },
+            "Go'shtli Donar": {
+                name: { uz: "Go'shtli Donar", ru: "Мясной Донар", en: "Meat Donar" },
+                desc: {
+                    uz: "Yumshoq pishirilgan mol go'shti bo'laklari, sabzavotlar va ziravorlar.",
+                    ru: "Нежные кусочки запеченной говядины со свежими овощами и специями.",
+                    en: "Tender cooked beef slices with fresh vegetables and spices."
+                }
+            },
+            "Tovuqli Naggets (8 ta)": {
+                name: { uz: "Tovuqli Naggets (8 ta)", ru: "Куриные Наггетсы (8 шт)", en: "Chicken Nuggets (8 pcs)" },
+                desc: {
+                    uz: "Qarsillama oltinrang tovuq fileni bo'laklari va pishloqli sous.",
+                    ru: "Хрустящие золотистые кусочки куриного филе с сырным соусом.",
+                    en: "Crispy golden chicken breast nuggets with cheese sauce."
+                }
+            },
+            "Klab Sendvich": {
+                name: { uz: "Klab Sendvich", ru: "Клаб Сэндвич", en: "Club Sandwich" },
+                desc: {
+                    uz: "Tost noni, kurka fileni, cheddar pishlog'i, tuxum va kartoshka fri.",
+                    ru: "Тостовый хлеб, филе индейки, сыр чеддер, яйцо и картофель фри.",
+                    en: "Toasted bread, turkey fillet, cheddar cheese, egg, and french fries."
+                }
+            },
+            "Kartoshka Fri (Katta)": {
+                name: { uz: "Kartoshka Fri (Katta)", ru: "Картофель фри (Большой)", en: "French Fries (Large)" },
+                desc: {
+                    uz: "Qarsillama va issiq oltinrang kartoshka fri va tomat ketchup.",
+                    ru: "Горячий хрустящий золотистый картофель фри с томатным кетчупом.",
+                    en: "Hot and crispy golden french fries with tomato ketchup."
+                }
+            },
+            "Barbekyu Burger": {
+                name: { uz: "Barbekyu Burger", ru: "Барбекю Бургер", en: "BBQ Burger" },
+                desc: {
+                    uz: "Dudlangan barbekyu sousi, qarsillama piyoz halqalari va mol go'shti kotleti.",
+                    ru: "Копченый соус барбекю, хрустящие луковые кольца и говяжья котлета.",
+                    en: "Smoky BBQ sauce, crispy onion rings, and beef patty."
+                }
+            },
+            "Coca-Cola (0.5L)": {
+                name: { uz: "Coca-Cola (0.5L)", ru: "Coca-Cola (0.5л)", en: "Coca-Cola (0.5L)" },
+                desc: {
+                    uz: "Muzdek tetiklashtiruvchi salqin kola ichimligi.",
+                    ru: "Ледяной освежающий прохладительный напиток.",
+                    en: "Ice-cold refreshing carbonated soft drink."
+                }
+            },
+            "Fanta Apelsin (0.5L)": {
+                name: { uz: "Fanta Apelsin (0.5L)", ru: "Фанта Апельсин (0.5л)", en: "Fanta Orange (0.5L)" },
+                desc: {
+                    uz: "Yorqin va shinavanda apelsinli gazlangan ichimlik.",
+                    ru: "Яркий и бодрящий апельсиновый газированный напиток.",
+                    en: "Bright and refreshing orange flavored soda."
+                }
+            },
+            "Sprite (0.5L)": {
+                name: { uz: "Sprite (0.5L)", ru: "Спрайт (0.5л)", en: "Sprite (0.5L)" },
+                desc: {
+                    uz: "Laym va limon ta'mli salqinlashtiruvchi ichimlik.",
+                    ru: "Освежающий напиток со вкусом лайма и лимона.",
+                    en: "Crisp and refreshing lime and lemon soda."
+                }
+            },
+            "Klassik Moxito (0.5L)": {
+                name: { uz: "Klassik Moxito (0.5L)", ru: "Классический Мохито (0.5л)", en: "Classic Mojito (0.5L)" },
+                desc: {
+                    uz: "Yalpiz, laym va muzli tabiiy salqin mexnat ichimligi.",
+                    ru: "Натуральный прохладительный напиток с мятой, лаймом и льдом.",
+                    en: "Natural refreshing drink with fresh mint, lime, and ice."
+                }
+            },
+            "Kapuchino Kofe": {
+                name: { uz: "Kapuchino Kofe", ru: "Кофе Капучино", en: "Cappuccino Coffee" },
+                desc: {
+                    uz: "Xushbo'y arabika espresso va yumshoq sut ko'pigi.",
+                    ru: "Ароматный эспрессо из арабики с нежной молочной пенкой.",
+                    en: "Aromatic arabica espresso with velvety milk foam."
+                }
+            },
+            "Latte Kofe": {
+                name: { uz: "Latte Kofe", ru: "Кофе Латте", en: "Latte Coffee" },
+                desc: {
+                    uz: "Mayin va silliq sutli espresso kofesi.",
+                    ru: "Нежный сливочный кофе эспрессо с мягким молоком.",
+                    en: "Smooth and mild espresso with steamed milk."
+                }
+            },
+            "Apelsin Sharbati": {
+                name: { uz: "Apelsin Sharbati", ru: "Апельсиновый сок", en: "Orange Juice" },
+                desc: {
+                    uz: "100% tabiiy va yangi siqilgan apelsin sharbati.",
+                    ru: "100% натуральный свежевыжатый апельсиновый сок.",
+                    en: "100% fresh natural squeezed orange juice."
+                }
+            },
+            "Muzli Choy (Limonli)": {
+                name: { uz: "Muzli Choy (Limonli)", ru: "Холодный чай (Лимонный)", en: "Iced Tea (Lemon)" },
+                desc: {
+                    uz: "Yalpiz va limon bo'laklari bilan tayyorlangan salqin muzli choy.",
+                    ru: "Освежающий холодный чай с кусочками лимона и мятой.",
+                    en: "Chilled iced tea prepared with lemon slices and mint."
+                }
+            },
+            "Qora Choy (Choynak)": {
+                name: { uz: "Qora Choy (Choynak)", ru: "Черный чай (Чайник)", en: "Black Tea (Pot)" },
+                desc: {
+                    uz: "Oliy navli tog' qora choyi.",
+                    ru: "Высокосортный горный черный листовой чай.",
+                    en: "Premium mountain black leaf tea."
+                }
+            },
+            "Ko'k Choy (Choynak)": {
+                name: { uz: "Ko'k Choy (Choynak)", ru: "Зеленый чай (Чайник)", en: "Green Tea (Pot)" },
+                desc: {
+                    uz: "Yalpizli tetiklashtiruvchi ko'k choy.",
+                    ru: "Освежающий зеленый листовой чай с мятой.",
+                    en: "Refreshing green tea with fresh mint."
+                }
+            },
+            "Vanilli Muzqaymoq": {
+                name: { uz: "Vanilli Muzqaymoq", ru: "Ванильное мороженое", en: "Vanilla Ice Cream" },
+                desc: {
+                    uz: "Qulupnay va shokolad toppingli qaymoqli vanil muzqaymog'i.",
+                    ru: "Нежное сливочно-ванильное мороженое с клубничным и шоколадным топпингом.",
+                    en: "Creamy vanilla ice cream with strawberry and chocolate toppings."
+                }
+            },
+            "Nyu-York Chizkeyk": {
+                name: { uz: "Nyu-York Chizkeyk", ru: "Чизкейк Нью-Йорк", en: "New York Cheesecake" },
+                desc: {
+                    uz: "Mayin pishloqli va rezavor meva sousli klassik desert.",
+                    ru: "Классический десерт из нежного творожного сыра с ягодным соусом.",
+                    en: "Classic dessert with creamy cheese filling and wild berry sauce."
+                }
+            },
+            "Tiramisu Deserti": {
+                name: { uz: "Tiramisu Deserti", ru: "Десерт Тирамису", en: "Tiramisu Dessert" },
+                desc: {
+                    uz: "Italiyacha kofe va maskarpone pishloqli mayin desert.",
+                    ru: "Изысканный итальянский десерт с кофе и сыром маскарпоне.",
+                    en: "Classic Italian dessert with coffee aroma and mascarpone cheese."
+                }
+            },
+            "Shokoladli Fondan": {
+                name: { uz: "Shokoladli Fondan", ru: "Шоколадный фондан", en: "Chocolate Fondant" },
+                desc: {
+                    uz: "Ichidan issiq erigan shokolad oqib chiquvchi pishiriq va vanil muzqaymoq.",
+                    ru: "Теплый десерт с жидким шоколадным центром и шариком ванильного мороженого.",
+                    en: "Warm cake with a molten chocolate center and vanilla ice cream."
+                }
+            },
+            "Shokoladli Donut": {
+                name: { uz: "Shokoladli Donut", ru: "Шоколадный пончик", en: "Chocolate Donut" },
+                desc: {
+                    uz: "Shokoladli glazur va rangli sepmalar bilan bezatilgan ponchik.",
+                    ru: "Пышный пончик с шоколадной глазурью и цветной посыпкой.",
+                    en: "Soft donut topped with rich chocolate glaze and sprinkles."
+                }
+            },
+            "San-Sebastian Chizkeyk": {
+                name: { uz: "San-Sebastian Chizkeyk", ru: "Чизкейк Сан-Себастьян", en: "San Sebastian Cheesecake" },
+                desc: {
+                    uz: "Ust qismi oltinrang kuygan uslubdagi mayin ispan pishloqli torti.",
+                    ru: "Нежнейший испанский обожженный чизкейк с кремовой текстурой.",
+                    en: "Creamy Basque burnt cheesecake with a rich caramel note."
+                }
+            },
+            "Belgiya Vaflisi": {
+                name: { uz: "Belgiya Vaflisi", ru: "Бельгийские вафли", en: "Belgian Waffle" },
+                desc: {
+                    uz: "Banan, nutella va vanil muzqaymoq sharigi bilan belgiya vaflisi.",
+                    ru: "Хрустящие вафли с бананом, нутеллой и шариком ванильного мороженого.",
+                    en: "Crispy waffle served with fresh banana, Nutella, and vanilla ice cream."
+                }
+            },
+            "Asalli Medovik": {
+                name: { uz: "Asalli Medovik", ru: "Медовик медовый", en: "Honey Medovik Cake" },
+                desc: {
+                    uz: "Tabiiy asal va qaymoqli kremdan ko'p qavatli yumshoq tort.",
+                    ru: "Нежнейший многослойный торт из натурального меда и сливочного крема.",
+                    en: "Multi-layered tender cake made with natural honey and cream."
+                }
+            },
+            "Turk Pahlavasi": {
+                name: { uz: "Turk Pahlavasi", ru: "Турецкая пахлава", en: "Turkish Baklava" },
+                desc: {
+                    uz: "Yong'oqli va asal qiyomli sharqona ko'p qavatli pahlava.",
+                    ru: "Восточная многослойная пахлава с грецкими орехами и медовым сиропом.",
+                    en: "Layered oriental pastry filled with chopped nuts and honey syrup."
+                }
+            },
+            "Mevali Tart": {
+                name: { uz: "Mevali Tart", ru: "Фруктовый тарт", en: "Fruit Tart" },
+                desc: {
+                    uz: "Yangi rezavor mevalar va vanilli krem bilan tayyorlangan pishiriq.",
+                    ru: "Песочная корзиночка с ванильным кремом и свежими ягодами.",
+                    en: "Crisp tart shell filled with vanilla cream and fresh berries."
+                }
+            },
+            "Combo Fast & Cold": {
+                name: { uz: "Combo Fast & Cold", ru: "Комбо Fast & Cold", en: "Combo Fast & Cold" },
+                desc: {
+                    uz: "Gamburger + Kartoshka fri + Coca-Cola 0.5L + ketchup va pishloqli sous.",
+                    ru: "Гамбургер + Картофель фри + Coca-Cola 0.5л + кетчуп и сырный соус.",
+                    en: "Hamburger + French fries + Coca-Cola 0.5L + ketchup and cheese sauce."
+                }
+            },
+            "Combo Pizza Family": {
+                name: { uz: "Combo Pizza Family", ru: "Комбо Pizza Family", en: "Combo Pizza Family" },
+                desc: {
+                    uz: "Pepperoni Pitsa (katta) + 2 ta Coca-Cola 0.5L + Tovuqli Naggets (8 ta).",
+                    ru: "Пицца Пепперони (большая) + 2 шт Coca-Cola 0.5л + Куриные наггетсы (8 шт).",
+                    en: "Pepperoni Pizza (large) + 2x Coca-Cola 0.5L + Chicken Nuggets (8 pcs)."
+                }
+            },
+            "Combo Cheesy Burger": {
+                name: { uz: "Combo Cheesy Burger", ru: "Комбо Cheesy Burger", en: "Combo Cheesy Burger" },
+                desc: {
+                    uz: "Cheeseburger + Kartoshka fri (katta) + Klassik Moxito salqin ichimligi.",
+                    ru: "Чизбургер + Картофель фри (большой) + Классический Мохито 0.5л.",
+                    en: "Cheeseburger + French fries (large) + Classic Mojito 0.5L."
+                }
+            },
+            "Combo Lavash Set": {
+                name: { uz: "Combo Lavash Set", ru: "Комбо Лаваш Сет", en: "Combo Lavash Set" },
+                desc: {
+                    uz: "Tovuqli Lavash + Kartoshka fri + Fanta Apelsin 0.5L.",
+                    ru: "Куриный лаваш + Картофель фри + Фанта Апельсин 0.5л.",
+                    en: "Chicken Lavash + French fries + Fanta Orange 0.5L."
+                }
+            },
+            "Combo Sweet & Coffee": {
+                name: { uz: "Combo Sweet & Coffee", ru: "Комбо Sweet & Coffee", en: "Combo Sweet & Coffee" },
+                desc: {
+                    uz: "Kapuchino Kofe + Nyu-York Chizkeyk + 2 ta shokoladli donut.",
+                    ru: "Кофе Капучино + Чизкейк Нью-Йорк + 2 шт шоколадных пончика.",
+                    en: "Cappuccino Coffee + New York Cheesecake + 2x chocolate donuts."
+                }
+            },
+            "Lavash": {
+                name: { uz: "Lavash", ru: "Лаваш", en: "Lavash" },
+                desc: {
+                    uz: "Mol go'shtidan lavash",
+                    ru: "Лаваш из нежной говядины с овощами",
+                    en: "Lavash with tender beef and vegetables"
+                }
+            },
+            "Medovik": {
+                name: { uz: "Medovik", ru: "Медовик", en: "Medovik" },
+                desc: {
+                    uz: "Asalli tort",
+                    ru: "Нежный медовый торт",
+                    en: "Tender honey cake"
+                }
+            },
+            "Coca Cola 1L": {
+                name: { uz: "Coca Cola 1L", ru: "Coca Cola 1л", en: "Coca Cola 1L" },
+                desc: {
+                    uz: "Muzdek kola",
+                    ru: "Ледяная освежающая кола",
+                    en: "Ice-cold refreshing cola"
+                }
+            }
+        };
+
+        // Promotion Translations
+        const promoTranslations = {
+            "Yozgi Super Chegirma": {
+                title: { uz: "Yozgi Super Chegirma", ru: "Летняя супер скидка", en: "Summer Super Discount" },
+                desc: { uz: "Fast Food taomlariga 15% chegirma!", ru: "Скидка 15% на весь Фастфуд!", en: "15% discount on all Fast Food items!" }
+            },
+            "Salqin Ichimliklar Chegirmasi": {
+                title: { uz: "Salqin Ichimliklar Chegirmasi", ru: "Скидка на напитки", en: "Cool Drinks Discount" },
+                desc: { uz: "Barcha salqin ichimliklarga 20% chegirma!", ru: "Скидка 20% на все прохладительные напитки!", en: "20% discount on all cold drinks!" }
+            }
+        };
+
         let currentLang = localStorage.getItem('webapp_lang') || 'uz';
         let currentTheme = localStorage.getItem('webapp_theme') || 'dark';
 
         function t(key) {
             const dict = appI18n[currentLang] || appI18n.uz;
             return dict[key] || key;
+        }
+
+        function getCategoryName(category) {
+            if (!category) return '';
+            const raw = category.name || '';
+            if (categoryTranslations[raw] && categoryTranslations[raw][currentLang]) {
+                return categoryTranslations[raw][currentLang];
+            }
+            return raw;
+        }
+
+        function getItemName(item) {
+            if (!item) return '';
+            const raw = item.name || '';
+            if (menuTranslations[raw] && menuTranslations[raw].name && menuTranslations[raw].name[currentLang]) {
+                return menuTranslations[raw].name[currentLang];
+            }
+            return raw;
+        }
+
+        function getItemDesc(item) {
+            if (!item) return '';
+            const raw = item.name || '';
+            if (menuTranslations[raw] && menuTranslations[raw].desc && menuTranslations[raw].desc[currentLang]) {
+                return menuTranslations[raw].desc[currentLang];
+            }
+            return item.description || '';
+        }
+
+        function getPromoTitle(promo) {
+            if (!promo) return '';
+            const raw = promo.title || '';
+            if (promoTranslations[raw] && promoTranslations[raw].title && promoTranslations[raw].title[currentLang]) {
+                return promoTranslations[raw].title[currentLang];
+            }
+            return raw;
+        }
+
+        function getPromoDesc(promo) {
+            if (!promo) return '';
+            const raw = promo.title || '';
+            if (promoTranslations[raw] && promoTranslations[raw].desc && promoTranslations[raw].desc[currentLang]) {
+                return promoTranslations[raw].desc[currentLang];
+            }
+            return promo.description || '';
         }
 
         function setAppLang(lang) {
@@ -784,7 +1388,11 @@
             });
 
             applyAppTranslations();
+            renderPromoBanner(cachedPromotions);
             renderCategories(cachedCategories);
+            if (activeCategoryId) {
+                renderMenu(activeCategoryId);
+            }
             updateCart();
         }
 
@@ -828,7 +1436,15 @@
             if (addrInput) addrInput.placeholder = t('address_placeholder');
 
             const locBtn = document.getElementById('loc-btn');
-            if (locBtn && !userLat) locBtn.textContent = t('loc_btn');
+            if (locBtn) {
+                if (userLat && userLon) {
+                    locBtn.textContent = t('loc_done');
+                    locBtn.classList.add('done');
+                } else {
+                    locBtn.textContent = t('loc_btn');
+                    locBtn.classList.remove('done');
+                }
+            }
 
             document.querySelectorAll('.currency-unit').forEach(el => el.textContent = t('currency'));
         }
@@ -838,6 +1454,7 @@
 
         let allItems = [];
         let cachedCategories = [];
+        let cachedPromotions = [];
         let cart = {};
         let globalSettings = {};
         let userLat = null;
@@ -879,20 +1496,108 @@
 
             let html = '';
             promotions.forEach(p => {
+                const trTitle = getPromoTitle(p);
+                const trDesc = getPromoDesc(p);
                 html += `
-                    <div style="margin: 8px 16px; padding: 10px 14px; background: linear-gradient(135deg, rgba(212, 175, 55, 0.18), rgba(239, 68, 68, 0.22)); border: 1px solid var(--border-gold); border-radius: 14px; display: flex; align-items: center; justify-content: space-between;">
-                        <div style="flex:1;">
-                            <div style="color: var(--gold-light); font-weight: 700; font-size: 13px; display: flex; align-items: center; gap: 6px;">
-                                <span style="background:#EF4444; color:#ffffff; font-size:9.5px; font-weight:bold; padding:2px 6px; border-radius:4px;">PROMO</span>
-                                🎁 ${p.title} ${p.discount_percent ? '(' + p.discount_percent + '%)' : ''}
+                    <div class="promo-banner-card">
+                        <div class="promo-banner-left">
+                            <div class="promo-banner-title">
+                                <span class="promo-badge">PROMO</span>
+                                🎁 ${trTitle} ${p.discount_percent ? '(' + p.discount_percent + '%)' : ''}
                             </div>
-                            <div style="color: var(--text-muted); font-size: 11px; margin-top: 2px;">${p.description || ''}</div>
+                            <div class="promo-banner-desc">${trDesc || ''}</div>
                         </div>
-                        <span style="font-size: 22px;">🔥</span>
+                        <span style="font-size: 24px; flex-shrink:0;">🔥</span>
                     </div>
                 `;
             });
             container.innerHTML = html;
+        }
+
+        // ==========================================
+        // SEAMLESS LAG-FREE LOCATION SYSTEM
+        // ==========================================
+        function setCapturedLocation(lat, lon) {
+            userLat = lat;
+            userLon = lon;
+            const btn = document.getElementById('loc-btn');
+            const status = document.getElementById('loc-status');
+            if (btn) {
+                btn.innerText = t('loc_done');
+                btn.classList.add('done');
+            }
+            if (status) {
+                status.innerText = `${userLat.toFixed(5)}, ${userLon.toFixed(5)}`;
+            }
+
+            const addrInput = document.getElementById('form-address');
+            if (addrInput && (!addrInput.value || addrInput.value.startsWith('GPS:'))) {
+                addrInput.value = `GPS: ${userLat.toFixed(5)}, ${userLon.toFixed(5)}`;
+            }
+        }
+
+        function autoFetchLocation() {
+            // 1. Telegram WebApp LocationManager (Telegram 7.0+)
+            if (tg && tg.LocationManager) {
+                try {
+                    tg.LocationManager.init(() => {
+                        if (tg.LocationManager.isLocationAvailable) {
+                            tg.LocationManager.getLocation((loc) => {
+                                if (loc && loc.latitude && loc.longitude) {
+                                    setCapturedLocation(loc.latitude, loc.longitude);
+                                }
+                            });
+                        }
+                    });
+                } catch(e) {
+                    console.log("TG LocationManager note:", e);
+                }
+            }
+
+            // 2. Browser Geolocation (silent, fast, non-blocking)
+            if (!userLat && navigator.geolocation) {
+                try {
+                    navigator.geolocation.getCurrentPosition(
+                        (pos) => {
+                            setCapturedLocation(pos.coords.latitude, pos.coords.longitude);
+                        },
+                        (err) => {
+                            console.log("Background geo:", err.message);
+                        },
+                        { enableHighAccuracy: false, timeout: 3500, maximumAge: 300000 }
+                    );
+                } catch(e) {}
+            }
+        }
+
+        function getLocation(isSilent = false) {
+            if (userLat && userLon) {
+                setCapturedLocation(userLat, userLon);
+                return;
+            }
+
+            const btn = document.getElementById('loc-btn');
+            if (!isSilent && btn) {
+                btn.innerText = '⏳ ...';
+            }
+
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        setCapturedLocation(pos.coords.latitude, pos.coords.longitude);
+                    },
+                    (err) => {
+                        if (!isSilent && btn) {
+                            btn.innerText = t('loc_btn');
+                        }
+                    },
+                    { enableHighAccuracy: false, timeout: 3500, maximumAge: 300000 }
+                );
+            } else {
+                if (!isSilent && btn) {
+                    btn.innerText = t('loc_btn');
+                }
+            }
         }
 
         async function init() {
@@ -906,11 +1611,12 @@
                 const res = await fetch('/api/data');
                 const data = await res.json();
 
-                allItems = applyPromotions(data.menu || [], data.promotions || []);
+                cachedPromotions = data.promotions || [];
+                allItems = applyPromotions(data.menu || [], cachedPromotions);
                 cachedCategories = data.categories || [];
                 globalSettings = data.settings || {};
 
-                renderPromoBanner(data.promotions);
+                renderPromoBanner(cachedPromotions);
 
                 document.getElementById('card-num-text').innerText = globalSettings.card_number || '8600 0000 0000 0000';
                 document.getElementById('card-name-text').innerText = globalSettings.card_name || 'Cafe Express';
@@ -922,7 +1628,8 @@
                     document.getElementById('form-phone').value = savedPhone;
                 }
 
-                getLocation(true);
+                // Automatic background location detection without UI freeze
+                autoFetchLocation();
             } catch (e) {
                 console.error("Error loading data", e);
             }
@@ -951,7 +1658,7 @@
                 const div = document.createElement('div');
                 const isSelected = activeCategoryId === c.id || (!activeCategoryId && !hasPromoItems && index === 0);
                 div.className = `tab ${isSelected ? 'active' : ''}`;
-                div.innerText = c.name;
+                div.innerText = getCategoryName(c);
                 div.onclick = () => {
                     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
                     div.classList.add('active');
@@ -995,6 +1702,8 @@
 
             filtered.forEach(item => {
                 const inCart = cart[item.id] ? cart[item.id].qty : 0;
+                const trName = getItemName(item);
+                const trDesc = getItemDesc(item);
 
                 const div = document.createElement('div');
                 div.className = `menu-item ${inCart > 0 ? 'in-cart' : ''}`;
@@ -1023,12 +1732,12 @@
                 div.innerHTML = `
                     <div class="img-container">
                         ${badgeHtml}
-                        <img src="${imgUrl}" alt="${item.name}" loading="lazy" onerror="this.src='https://placehold.co/300x200/18181b/D4AF37?text=Food'">
+                        <img src="${imgUrl}" alt="${trName}" loading="lazy" onerror="this.src='https://placehold.co/300x200/18181b/D4AF37?text=Food'">
                     </div>
                     <div class="item-info">
                         <div>
-                            <h4 class="item-name">${item.name}</h4>
-                            <p class="item-desc">${item.description || ''}</p>
+                            <h4 class="item-name">${trName}</h4>
+                            <p class="item-desc">${trDesc || ''}</p>
                         </div>
                         <div class="price-row">
                             ${priceHtml}
@@ -1107,6 +1816,12 @@
                     closeModal();
                 }
             }
+
+            // Refresh modal list if open
+            const cartModal = document.getElementById('cart-modal');
+            if (cartModal && cartModal.classList.contains('active')) {
+                renderModalCartList();
+            }
         }
 
         let selectedPayment = 'Karta';
@@ -1121,72 +1836,38 @@
             if (cardDet) cardDet.style.display = (method === 'Karta') ? 'block' : 'none';
         }
 
-        function openModal() {
+        function renderModalCartList() {
             const list = document.getElementById('modal-cart-list');
             if (!list) return;
             let html = '';
             const curr = t('currency');
             for (let id in cart) {
                 const c = cart[id];
+                const trName = getItemName(c.item);
                 html += `
                     <div class="cart-list-item">
-                        <div class="cart-list-item-name">${c.item.name}</div>
+                        <div class="cart-list-item-name">${trName}</div>
                         <div class="cart-list-item-qty">${c.qty} x</div>
                         <div class="cart-list-item-price">${(c.item.price * c.qty).toLocaleString()} ${curr}</div>
                     </div>
                 `;
             }
             list.innerHTML = html;
+        }
+
+        function openModal() {
+            renderModalCartList();
             const cartModal = document.getElementById('cart-modal');
             if (cartModal) cartModal.classList.add('active');
 
             if (!userLat || !userLon) {
-                getLocation(false);
+                autoFetchLocation();
             }
         }
 
         function closeModal() {
             const cartModal = document.getElementById('cart-modal');
             if (cartModal) cartModal.classList.remove('active');
-        }
-
-        function getLocation(isSilent = false) {
-            const btn = document.getElementById('loc-btn');
-            const status = document.getElementById('loc-status');
-
-            if (!isSilent && btn) {
-                btn.innerText = '⏳ ...';
-            }
-
-            if (!navigator.geolocation) {
-                if (!isSilent && btn) {
-                    btn.innerText = t('loc_btn');
-                }
-                return;
-            }
-
-            navigator.geolocation.getCurrentPosition(
-                (pos) => {
-                    userLat = pos.coords.latitude;
-                    userLon = pos.coords.longitude;
-                    if (btn) {
-                        btn.innerText = t('loc_done');
-                        btn.classList.add('done');
-                    }
-                    if (status) status.innerText = `${userLat.toFixed(5)}, ${userLon.toFixed(5)}`;
-
-                    const addrInput = document.getElementById('form-address');
-                    if (addrInput && !addrInput.value) {
-                        addrInput.value = `GPS: ${userLat.toFixed(5)}, ${userLon.toFixed(5)}`;
-                    }
-                },
-                (err) => {
-                    if (!isSilent && btn) {
-                        btn.innerText = t('loc_btn');
-                    }
-                },
-                { enableHighAccuracy: false, timeout: 5000, maximumAge: 60000 }
-            );
         }
 
         function getTelegramUserId() {
