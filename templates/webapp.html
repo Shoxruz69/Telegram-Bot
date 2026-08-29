@@ -1006,7 +1006,8 @@
                 promocode_placeholder: "🎟️ Promokod (masalan: 696JF)",
                 apply_promo: "Qo'llash",
                 promo_applied: "chegirma",
-                promo_invalid: "Promokod mavjud emas yoki muddati tugagan"
+                promo_invalid: "Promokod mavjud emas yoki muddati tugagan",
+                kcal_unit: "kkal"
             },
             ru: {
                 header_sub: "Быстрая доставка",
@@ -1035,7 +1036,8 @@
                 promocode_placeholder: "🎟️ Промокод (например: 696JF)",
                 apply_promo: "Применить",
                 promo_applied: "скидка",
-                promo_invalid: "Промокод не существует или неактивен"
+                promo_invalid: "Промокод не существует или неактивен",
+                kcal_unit: "ккал"
             },
             en: {
                 header_sub: "Fast Delivery",
@@ -1064,7 +1066,8 @@
                 promocode_placeholder: "🎟️ Promo Code (e.g. 696JF)",
                 apply_promo: "Apply",
                 promo_applied: "discount",
-                promo_invalid: "Promo code does not exist or is expired"
+                promo_invalid: "Promo code does not exist or expired",
+                kcal_unit: "kcal"
             }
         };
 
@@ -1911,6 +1914,12 @@
                     </div>
                 ` : '';
 
+                const calHtml = item.calories && item.calories > 0 ? `
+                    <div style="position:absolute; top:8px; right:8px; background:rgba(0,0,0,0.65); backdrop-filter:blur(4px); color:#F59E0B; font-size:10px; font-weight:700; padding:2px 7px; border-radius:6px; z-index:2; border:1px solid rgba(245,158,11,0.35);">
+                        🔥 ${item.calories} ${t('kcal_unit')}
+                    </div>
+                ` : '';
+
                 const priceHtml = isPromo ? `
                     <span class="item-price">
                         ${item.price.toLocaleString()}
@@ -1923,6 +1932,7 @@
                 div.innerHTML = `
                     <div class="img-container">
                         ${badgeHtml}
+                        ${calHtml}
                         <img src="${imgUrl}" alt="${trName}" loading="lazy" onerror="this.src='https://placehold.co/300x200/18181b/D4AF37?text=Food'">
                     </div>
                     <div class="item-info">

@@ -39,6 +39,7 @@ async def init_db():
                 description_en TEXT,
                 price INTEGER,
                 old_price INTEGER DEFAULT 0,
+                calories INTEGER DEFAULT 0,
                 image_url TEXT,
                 FOREIGN KEY (category_id) REFERENCES categories (id)
             )

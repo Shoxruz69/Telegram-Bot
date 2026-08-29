@@ -1324,6 +1324,7 @@ function renderMenuGridFiltered(catId) {
             <p class="menu-desc">${dDesc || ''}</p>
           </div>
           <div>
+            ${dish.calories && dish.calories > 0 ? `<div style="margin-bottom: 6px;"><span style="display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 700; color: #F59E0B; background: rgba(245, 158, 11, 0.12); padding: 2px 7px; border-radius: 6px;">🔥 ${dish.calories} kkal</span></div>` : ''}
             <div class="menu-prices-row">
               <span class="price-current">${formatPrice(dish.price)}</span>
               ${dish.old_price && dish.old_price > 0 ? `<span class="price-old">${formatPrice(dish.old_price)}</span>` : ''}
@@ -1337,6 +1338,101 @@ function renderMenuGridFiltered(catId) {
       </div>
     `;
   }).join('');
+}
+
+// Auto-Translation Functions
+async function autoTranslateDishName() {
+  const name = document.getElementById('dish-name') ? document.getElementById('dish-name').value.trim() : '';
+  if (!name) return;
+  const nameRuEl = document.getElementById('dish-name-ru');
+  const nameEnEl = document.getElementById('dish-name-en');
+  if (nameRuEl && nameEnEl && (!nameRuEl.value || !nameEnEl.value)) {
+    try {
+      const res = await fetch('/api/admin/translate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: name })
+      });
+      const data = await res.json();
+      if (data.success && data.translations) {
+        if (!nameRuEl.value && data.translations.ru) nameRuEl.value = data.translations.ru;
+        if (!nameEnEl.value && data.translations.en) nameEnEl.value = data.translations.en;
+      }
+    } catch (err) {
+      console.error("Auto translate name error:", err);
+    }
+  }
+}
+
+async function autoTranslateDishDesc() {
+  const desc = document.getElementById('dish-description') ? document.getElementById('dish-description').value.trim() : '';
+  if (!desc) return;
+  const descRuEl = document.getElementById('dish-description-ru');
+  const descEnEl = document.getElementById('dish-description-en');
+  if (descRuEl && descEnEl && (!descRuEl.value || !descEnEl.value)) {
+    try {
+      const res = await fetch('/api/admin/translate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: desc })
+      });
+      const data = await res.json();
+      if (data.success && data.translations) {
+        if (!descRuEl.value && data.translations.ru) descRuEl.value = data.translations.ru;
+        if (!descEnEl.value && data.translations.en) descEnEl.value = data.translations.en;
+      }
+    } catch (err) {
+      console.error("Auto translate desc error:", err);
+    }
+  }
+}
+
+async function autoTranslateDish() {
+  const name = document.getElementById('dish-name') ? document.getElementById('dish-name').value.trim() : '';
+  const desc = document.getElementById('dish-description') ? document.getElementById('dish-description').value.trim() : '';
+  const nameRuEl = document.getElementById('dish-name-ru');
+  const nameEnEl = document.getElementById('dish-name-en');
+  const descRuEl = document.getElementById('dish-description-ru');
+  const descEnEl = document.getElementById('dish-description-en');
+
+  if (!name && !desc) {
+    showToast("Taom nomini kiriting!", "error");
+    return;
+  }
+
+  showToast("Tarjima qilinmoqda... ⏳", "info");
+
+  if (name && nameRuEl && nameEnEl) {
+    try {
+      const res = await fetch('/api/admin/translate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: name })
+      });
+      const data = await res.json();
+      if (data.success && data.translations) {
+        nameRuEl.value = data.translations.ru || name;
+        nameEnEl.value = data.translations.en || name;
+      }
+    } catch (e) {}
+  }
+
+  if (desc && descRuEl && descEnEl) {
+    try {
+      const res = await fetch('/api/admin/translate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: desc })
+      });
+      const data = await res.json();
+      if (data.success && data.translations) {
+        descRuEl.value = data.translations.ru || desc;
+        descEnEl.value = data.translations.en || desc;
+      }
+    } catch (e) {}
+  }
+
+  showToast("Avtomatik tarjima qilindi! ✓", "success");
 }
 
 // Dish Create / Edit Modal
@@ -1363,6 +1459,8 @@ function openDishModal(dishId = null) {
     if (nameEnEl) nameEnEl.value = dish.name_en || '';
     document.getElementById('dish-price').value = dish.price;
     document.getElementById('dish-old-price').value = dish.old_price || '';
+    const calEl = document.getElementById('dish-calories');
+    if (calEl) calEl.value = dish.calories || '';
     document.getElementById('dish-description').value = dish.description || '';
     const descRuEl = document.getElementById('dish-description-ru');
     if (descRuEl) descRuEl.value = dish.description_ru || '';
@@ -1374,6 +1472,8 @@ function openDishModal(dishId = null) {
     title.textContent = t('add_dish_modal_title');
     form.reset();
     document.getElementById('dish-id').value = '';
+    const calEl = document.getElementById('dish-calories');
+    if (calEl) calEl.value = '';
   }
 
   if (modal) modal.classList.add('active');
@@ -1392,6 +1492,7 @@ async function saveDish(e) {
   const name_en = document.getElementById('dish-name-en') ? document.getElementById('dish-name-en').value.trim() : '';
   const price = parseInt(document.getElementById('dish-price').value, 10) || 0;
   const old_price = parseInt(document.getElementById('dish-old-price').value, 10) || 0;
+  const calories = document.getElementById('dish-calories') ? (parseInt(document.getElementById('dish-calories').value, 10) || 0) : 0;
   const category_id = parseInt(document.getElementById('dish-category-select').value, 10) || 1;
   const description = document.getElementById('dish-description').value.trim();
   const description_ru = document.getElementById('dish-description-ru') ? document.getElementById('dish-description-ru').value.trim() : '';
@@ -1404,6 +1505,7 @@ async function saveDish(e) {
     name_en: name_en || name, 
     price, 
     old_price, 
+    calories,
     category_id, 
     description, 
     description_ru: description_ru || description, 

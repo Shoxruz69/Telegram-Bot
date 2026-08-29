@@ -76,6 +76,7 @@ class Menu(db.Model):
     description_en = db.Column(db.Text)
     price = db.Column(db.Integer)
     old_price = db.Column(db.Integer, default=0) # Eski narx (ustidan chizilgan)
+    calories = db.Column(db.Integer, default=0) # Kaloriya (kkal)
     image_url = db.Column(db.String(500))
 
     def __repr__(self):
@@ -206,6 +207,8 @@ with app.app_context():
         menu_cols = [col['name'] for col in inspector.get_columns('menu')]
         if 'old_price' not in menu_cols:
             db.session.execute(text("ALTER TABLE menu ADD COLUMN old_price INTEGER DEFAULT 0"))
+        if 'calories' not in menu_cols:
+            db.session.execute(text("ALTER TABLE menu ADD COLUMN calories INTEGER DEFAULT 0"))
         if 'name_ru' not in menu_cols:
             db.session.execute(text("ALTER TABLE menu ADD COLUMN name_ru VARCHAR(100)"))
         if 'name_en' not in menu_cols:
@@ -397,6 +400,72 @@ def broadcast_to_users(text, photo_url_or_path=None, parse_mode='HTML'):
     threading.Thread(target=send_broadcast_worker, daemon=True).start()
 
 
+def translate_text(text, target_lang):
+    """
+    O'zbekcha matnni avtomatik ravishda rus (ru) yoki ingliz (en) tiliga tarjima qiladi.
+    """
+    if not text or not str(text).strip():
+        return ""
+    text_str = str(text).strip()
+    # 1. Clients5 Google Translate API (Juda tez va ishonchli)
+    try:
+        url = f"https://clients5.google.com/translate_a/t?client=dict-chrome-ex&sl=uz&tl={target_lang}&q={requests.utils.quote(text_str)}"
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+        res = requests.get(url, headers=headers, timeout=5)
+        res.encoding = 'utf-8'
+        if res.status_code == 200:
+            data = res.json()
+            if isinstance(data, list) and len(data) > 0 and data[0]:
+                return str(data[0]).strip()
+            elif isinstance(data, str) and data.strip():
+                return data.strip()
+    except Exception as e:
+        pass
+
+    # 2. Google GTX Translate Fallback
+    try:
+        url = "https://translate.googleapis.com/translate_a/single"
+        params = {
+            'client': 'gtx',
+            'sl': 'uz',
+            'tl': target_lang,
+            'dt': 't',
+            'q': text_str
+        }
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+        res = requests.get(url, params=params, headers=headers, timeout=5)
+        res.encoding = 'utf-8'
+        if res.status_code == 200:
+            data = res.json()
+            if data and isinstance(data, list) and len(data) > 0 and isinstance(data[0], list):
+                translated = "".join([segment[0] for segment in data[0] if segment and len(segment) > 0 and segment[0]])
+                if translated.strip():
+                    return translated.strip()
+    except Exception as e:
+        pass
+
+    return text_str
+
+
+@app.route('/api/admin/translate', methods=['POST'])
+def api_admin_translate():
+    data = request.get_json(force=True, silent=True) or request.form.to_dict() or {}
+    text = (data.get('text') or '').strip()
+    if not text:
+        return jsonify({'success': False, 'error': 'Matn kiritilmadi'}), 400
+
+    ru_trans = translate_text(text, 'ru')
+    en_trans = translate_text(text, 'en')
+
+    return jsonify({
+        'success': True,
+        'translations': {
+            'ru': ru_trans,
+            'en': en_trans
+        }
+    })
+
+
 # --- WebApp API ---
 @app.route('/webapp')
 def webapp():
@@ -475,6 +544,7 @@ def api_data():
             'description_en': getattr(m, 'description_en', None) or m.description or '',
             'price': m.price, 
             'old_price': getattr(m, 'old_price', 0) or 0,
+            'calories': getattr(m, 'calories', 0) or 0,
             'image_url': m.image_url
         } for m in menus],
         'promotions': [{
@@ -1013,6 +1083,7 @@ def api_admin_menu():
             'description_en': getattr(m, 'description_en', None) or m.description or '',
             'price': m.price or 0,
             'old_price': m.old_price or 0,
+            'calories': getattr(m, 'calories', 0) or 0,
             'image_url': m.image_url or ''
         } for m in menus]
     })
@@ -1025,16 +1096,40 @@ def api_admin_menu_create():
     if not name:
         return jsonify({'success': False, 'error': 'Taom nomi kiritilmadi'}), 400
 
+    # Avtomatik tarjima (agar kiritilmagan bo'lsa)
+    name_ru = data.get('name_ru', '').strip()
+    if not name_ru or name_ru == name:
+        name_ru = translate_text(name, 'ru') or name
+
+    name_en = data.get('name_en', '').strip()
+    if not name_en or name_en == name:
+        name_en = translate_text(name, 'en') or name
+
+    description = data.get('description', '').strip()
+    description_ru = data.get('description_ru', '').strip()
+    if description and (not description_ru or description_ru == description):
+        description_ru = translate_text(description, 'ru') or description
+
+    description_en = data.get('description_en', '').strip()
+    if description and (not description_en or description_en == description):
+        description_en = translate_text(description, 'en') or description
+
+    try:
+        calories = int(data.get('calories', 0) or 0)
+    except:
+        calories = 0
+
     menu = Menu(
         name=name,
-        name_ru=data.get('name_ru', '').strip() or name,
-        name_en=data.get('name_en', '').strip() or name,
+        name_ru=name_ru,
+        name_en=name_en,
         category_id=int(data.get('category_id', 1)),
         price=int(data.get('price', 0)),
         old_price=int(data.get('old_price', 0)),
-        description=data.get('description', ''),
-        description_ru=data.get('description_ru', '').strip() or data.get('description', ''),
-        description_en=data.get('description_en', '').strip() or data.get('description', ''),
+        calories=calories,
+        description=description,
+        description_ru=description_ru,
+        description_en=description_en,
         image_url=data.get('image_url', '')
     )
     db.session.add(menu)
@@ -1045,10 +1140,12 @@ def api_admin_menu_create():
         desc_clean = (menu.description or '').strip()
         desc_line = f"📝 {desc_clean}\n" if desc_clean else ""
         formatted_price = f"{menu.price:,}".replace(',', ' ')
+        cal_line = f"🔥 Kaloriya: <b>{menu.calories} kkal</b>\n" if menu.calories > 0 else ""
         ad_text = (
             f"✨ <b>BIZDA YANGI TAOM!</b>\n\n"
             f"🍽️ <b>{menu.name}</b>\n"
             f"💰 Narxi: <b>{formatted_price} so'm</b>\n"
+            f"{cal_line}"
             f"{desc_line}\n"
             f"😋 Hoziroq Mini App ga kiring va tatib ko'ring! 🚀"
         )
@@ -1066,24 +1163,43 @@ def api_admin_menu_update(item_id):
     if not menu:
         return jsonify({'success': False, 'error': 'Taom topilmadi'}), 404
     data = request.get_json(force=True, silent=True) or request.form.to_dict() or {}
+    
     if 'name' in data:
-        menu.name = data.get('name', menu.name)
-    if 'name_ru' in data:
-        menu.name_ru = data.get('name_ru', menu.name_ru)
-    if 'name_en' in data:
-        menu.name_en = data.get('name_en', menu.name_en)
+        menu.name = data.get('name', menu.name).strip()
+        if not data.get('name_ru'):
+            menu.name_ru = translate_text(menu.name, 'ru') or menu.name
+        if not data.get('name_en'):
+            menu.name_en = translate_text(menu.name, 'en') or menu.name
+
+    if 'name_ru' in data and data.get('name_ru', '').strip():
+        menu.name_ru = data.get('name_ru').strip()
+    if 'name_en' in data and data.get('name_en', '').strip():
+        menu.name_en = data.get('name_en').strip()
+
     if 'category_id' in data:
         menu.category_id = int(data.get('category_id', menu.category_id))
     if 'price' in data:
         menu.price = int(data.get('price', menu.price))
     if 'old_price' in data:
         menu.old_price = int(data.get('old_price', menu.old_price or 0))
+    if 'calories' in data:
+        try:
+            menu.calories = int(data.get('calories', 0) or 0)
+        except:
+            pass
+
     if 'description' in data:
         menu.description = data.get('description', menu.description)
-    if 'description_ru' in data:
-        menu.description_ru = data.get('description_ru', menu.description_ru)
-    if 'description_en' in data:
-        menu.description_en = data.get('description_en', menu.description_en)
+        if not data.get('description_ru'):
+            menu.description_ru = translate_text(menu.description, 'ru') or menu.description
+        if not data.get('description_en'):
+            menu.description_en = translate_text(menu.description, 'en') or menu.description
+
+    if 'description_ru' in data and data.get('description_ru', '').strip():
+        menu.description_ru = data.get('description_ru').strip()
+    if 'description_en' in data and data.get('description_en', '').strip():
+        menu.description_en = data.get('description_en').strip()
+
     if 'image_url' in data:
         menu.image_url = data.get('image_url', menu.image_url)
     db.session.commit()

@@ -432,8 +432,11 @@
         
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
           <div class="form-group">
-            <label class="form-label">Taom Nomi (UZ 🇺🇿)</label>
-            <input type="text" id="dish-name" class="form-input" required placeholder="Masalan: Gamburger">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <label class="form-label" style="margin-bottom: 0;">Taom Nomi (UZ 🇺🇿)</label>
+              <button type="button" class="btn-card-secondary" style="padding: 2px 8px; font-size: 11px; border-radius: 6px;" onclick="autoTranslateDish()">✨ Avto-tarjima</button>
+            </div>
+            <input type="text" id="dish-name" class="form-input" required placeholder="Masalan: Gamburger" onblur="autoTranslateDishName()">
           </div>
           <div class="form-group">
             <label class="form-label">Kategoriya</label>
@@ -452,20 +455,24 @@
           </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
           <div class="form-group">
             <label class="form-label">Sotuv Narxi (so'm)</label>
             <input type="number" id="dish-price" class="form-input" required placeholder="35000">
           </div>
           <div class="form-group">
-            <label class="form-label">Eski Narxi (Aksiya uchun)</label>
+            <label class="form-label">Eski Narxi</label>
             <input type="number" id="dish-old-price" class="form-input" placeholder="0">
+          </div>
+          <div class="form-group">
+            <label class="form-label">🔥 Kaloriya (kkal)</label>
+            <input type="number" id="dish-calories" class="form-input" min="0" placeholder="450">
           </div>
         </div>
 
         <div class="form-group">
           <label class="form-label">Tavsif (UZ 🇺🇿)</label>
-          <textarea id="dish-description" class="form-textarea" placeholder="Taom haqida ma'lumot..."></textarea>
+          <textarea id="dish-description" class="form-textarea" placeholder="Taom haqida ma'lumot..." onblur="autoTranslateDishDesc()"></textarea>
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
