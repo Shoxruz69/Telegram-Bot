@@ -1025,14 +1025,10 @@ function renderOrdersGrid() {
             <span class="total-amount">${formatPrice(order.total_amount)}</span>
           </div>
           <div class="card-actions-row">
-            <button class="btn-card-secondary" onclick="openOrderDetailsModal(${order.id})">${t('see_details')}</button>
+            <button class="btn-card-secondary" style="flex: 1;" onclick="openOrderDetailsModal(${order.id})">${t('see_details')}</button>
             ${order.status === 'Kutilmoqda' ? `
-              <button class="btn-card-primary" onclick="quickUpdateStatus(${order.id}, 'Tasdiqlandi')">${t('pay_bills')}</button>
-            ` : order.status === 'Tasdiqlandi' ? `
-              <button class="btn-card-primary" style="background-color: #10B981; color: #FFFFFF;" onclick="quickUpdateStatus(${order.id}, 'Tugatildi')">${t('complete_order')}</button>
-            ` : `
-              <button class="btn-card-secondary" onclick="openOrderDetailsModal(${order.id})">${t('view_btn')}</button>
-            `}
+              <button class="btn-card-primary" style="flex: 1;" onclick="quickUpdateStatus(${order.id}, 'Tasdiqlandi')">${t('pay_bills')}</button>
+            ` : ''}
           </div>
         </div>
       </div>
@@ -1125,13 +1121,34 @@ function openOrderDetailsModal(orderId) {
     if (order.receipt_image) {
       modalReceiptBox.style.display = 'block';
       modalReceiptBox.innerHTML = `
-        <div style="background: rgba(212, 175, 55, 0.15); border: 1px solid var(--border-gold); padding: 12px; border-radius: 10px; display: flex; align-items: center; justify-content: space-between;">
-          <span style="font-size: 13px; font-weight: 700; color: var(--gold-light);">${t('modal_card_receipt_alert')}</span>
-          <button style="padding: 6px 14px; background: linear-gradient(135deg, var(--gold-primary), var(--gold-dark)); color: #0A0A0B; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;" onclick="openReceiptModal('/static/uploads/receipts/${order.receipt_image}')">${t('modal_view_receipt')}</button>
+        <div style="background: rgba(255, 192, 67, 0.15); border: 1px solid var(--border-gold); padding: 12px; border-radius: 10px; display: flex; align-items: center; justify-content: space-between;">
+          <span style="font-size: 13px; font-weight: 700; color: var(--gold-dark);">${t('modal_card_receipt_alert')}</span>
+          <button style="padding: 6px 14px; background: #FFC043; color: #1E293B; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;" onclick="openReceiptModal('/static/uploads/receipts/${order.receipt_image}')">${t('modal_view_receipt')}</button>
         </div>
       `;
     } else {
       modalReceiptBox.style.display = 'none';
+    }
+  }
+
+  // Action buttons visibility in modal
+  const btnPayNow = document.getElementById('modal-btn-pay-now');
+  const btnCancel = document.getElementById('modal-btn-cancel-order');
+  
+  if (btnPayNow) {
+    // If order is already confirmed / completed / cancelled, HIDE Tasdiqlash button
+    if (order.status !== 'Kutilmoqda') {
+      btnPayNow.style.display = 'none';
+    } else {
+      btnPayNow.style.display = 'flex';
+    }
+  }
+
+  if (btnCancel) {
+    if (order.status === 'Bekor qilindi') {
+      btnCancel.style.display = 'none';
+    } else {
+      btnCancel.style.display = 'flex';
     }
   }
 
