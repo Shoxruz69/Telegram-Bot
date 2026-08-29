@@ -125,6 +125,18 @@ class Promotion(db.Model):
     def __repr__(self):
         return f"Aksiya: {self.title}"
 
+class PromoCode(db.Model):
+    __tablename__ = 'promocodes'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    code = db.Column(db.String(50), unique=True, nullable=False)
+    discount_percent = db.Column(db.Integer, nullable=False, default=0)
+    is_active = db.Column(db.Boolean, default=True)
+    times_used = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+
+    def __repr__(self):
+        return f"Promokod: {self.code} (-{self.discount_percent}%)"
+
 class OrderItem(db.Model):
     """Buyurtma tarkibidagi har bir mahsulot"""
     __tablename__ = 'order_items'
@@ -148,6 +160,7 @@ class Order(db.Model):
     receipt_image = db.Column(db.String(500))
     total_amount = db.Column(db.Integer)
     address = db.Column(db.String(500))
+    promocode = db.Column(db.String(50), nullable=True)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
     
     user = db.relationship('User', backref='orders')
@@ -176,6 +189,8 @@ with app.app_context():
         orders_cols = [col['name'] for col in inspector.get_columns('orders')]
         if 'daily_id' not in orders_cols:
             db.session.execute(text("ALTER TABLE orders ADD COLUMN daily_id INTEGER DEFAULT 1"))
+        if 'promocode' not in orders_cols:
+            db.session.execute(text("ALTER TABLE orders ADD COLUMN promocode VARCHAR(50)"))
             
         # Categories migration
         cat_cols = [col['name'] for col in inspector.get_columns('categories')]
@@ -215,6 +230,14 @@ with app.app_context():
             db.session.execute(text("ALTER TABLE promotions ADD COLUMN description_en TEXT"))
 
         db.session.commit()
+
+        # Seed initial sample promo code if table is empty
+        try:
+            if PromoCode.query.count() == 0:
+                db.session.add(PromoCode(code='696JF', discount_percent=3, is_active=True))
+                db.session.commit()
+        except Exception as pe:
+            print("[Promo seed error]:", pe)
 
         # Existing buyurtmalarga order_reset_hours sozlamasiga ko'ra daily_id berish
         def recalculate_daily_ids():
@@ -540,6 +563,18 @@ def api_checkout():
             else:
                 next_daily_id = (getattr(last_order, 'daily_id', None) or last_order.id) + 1
 
+        # Promokodni hisoblash
+        promocode_str = str(data.get('promocode', '')).strip().upper()
+        applied_promo = None
+        promo_discount_amount = 0
+        if promocode_str:
+            promo_obj = PromoCode.query.filter_by(code=promocode_str, is_active=True).first()
+            if promo_obj and promo_obj.discount_percent > 0:
+                applied_promo = promo_obj
+                promo_discount_amount = round(total_amount * (promo_obj.discount_percent / 100.0))
+                total_amount = max(0, total_amount - promo_discount_amount)
+                promo_obj.times_used = (promo_obj.times_used or 0) + 1
+
         # Buyurtmani DB ga saqlash
         new_order = Order(
             daily_id=next_daily_id,
@@ -548,7 +583,8 @@ def api_checkout():
             payment_method=payment_method,
             receipt_image=receipt_filename,
             total_amount=total_amount,
-            address=address
+            address=address,
+            promocode=applied_promo.code if applied_promo else None
         )
         db.session.add(new_order)
         db.session.flush()
@@ -567,11 +603,13 @@ def api_checkout():
         order_no = new_order.daily_id or order_id
 
         # Admin va mijozga FONDA xabar yuborish (UI ni kuttiradigan narsa yo'q)
+        promo_line = f"🎟️ Promokod: {applied_promo.code} (-{applied_promo.discount_percent}% / -{promo_discount_amount:,} so'm)\n" if applied_promo else ""
         order_text = (
             f"🆕 YANGI BUYURTMA #{order_no}!\n\n"
             f"👤 Mijoz: {phone}\n"
             f"📍 Manzil: {address}\n"
-            f"💳 To'lov: {payment_method}\n\n"
+            f"💳 To'lov: {payment_method}\n"
+            f"{promo_line}"
             f"🛒 Tarkib:\n{order_text_items}"
             f"💰 Jami: {total_amount:,} so'm\n"
         )
@@ -815,6 +853,7 @@ def api_admin_orders():
             'receipt_image': o.receipt_image,
             'total_amount': o.total_amount or 0,
             'address': o.address or 'N/A',
+            'promocode': getattr(o, 'promocode', None) or '',
             'created_date': date_str,
             'created_time': time_str,
             'items': items_list
@@ -1054,6 +1093,86 @@ def api_admin_promotion_delete(promo_id):
     db.session.delete(promo)
     db.session.commit()
     return jsonify({'success': True})
+
+
+# --- Promocode API Endpoints ---
+
+@app.route('/api/admin/promocodes')
+def api_admin_promocodes():
+    promos = PromoCode.query.order_by(PromoCode.id.desc()).all()
+    return jsonify({
+        'success': True,
+        'promocodes': [{
+            'id': p.id,
+            'code': p.code,
+            'discount_percent': p.discount_percent,
+            'is_active': bool(p.is_active),
+            'times_used': p.times_used or 0,
+            'created_at': p.created_at.strftime('%Y-%m-%d %H:%M') if p.created_at else ''
+        } for p in promos]
+    })
+
+
+@app.route('/api/admin/promocode/create', methods=['POST'])
+def api_admin_promocode_create():
+    data = request.get_json(force=True, silent=True) or request.form.to_dict() or {}
+    code = (data.get('code') or '').strip().upper()
+    try:
+        discount_percent = int(data.get('discount_percent', 0))
+    except:
+        discount_percent = 0
+
+    if not code:
+        return jsonify({'success': False, 'error': 'Promokod kodi kiritilishi shart!'}), 400
+    if discount_percent <= 0 or discount_percent > 100:
+        return jsonify({'success': False, 'error': 'Chegirma foizi 1% dan 100% gacha bo\'lishi kerak!'}), 400
+
+    existing = PromoCode.query.filter_by(code=code).first()
+    if existing:
+        return jsonify({'success': False, 'error': f"'{code}' nomli promokod allaqachon mavjud!"}), 400
+
+    promo = PromoCode(code=code, discount_percent=discount_percent, is_active=True)
+    db.session.add(promo)
+    db.session.commit()
+    return jsonify({'success': True, 'id': promo.id, 'promocode': {'id': promo.id, 'code': promo.code, 'discount_percent': promo.discount_percent}})
+
+
+@app.route('/api/admin/promocode/<int:promo_id>/toggle', methods=['POST'])
+def api_admin_promocode_toggle(promo_id):
+    promo = PromoCode.query.get(promo_id)
+    if not promo:
+        return jsonify({'success': False, 'error': 'Promokod topilmadi'}), 404
+    promo.is_active = not bool(promo.is_active)
+    db.session.commit()
+    return jsonify({'success': True, 'is_active': promo.is_active})
+
+
+@app.route('/api/admin/promocode/<int:promo_id>/delete', methods=['POST'])
+def api_admin_promocode_delete(promo_id):
+    promo = PromoCode.query.get(promo_id)
+    if not promo:
+        return jsonify({'success': False, 'error': 'Promokod topilmadi'}), 404
+    db.session.delete(promo)
+    db.session.commit()
+    return jsonify({'success': True})
+
+
+@app.route('/api/validate_promocode', methods=['POST'])
+def api_validate_promocode():
+    data = request.get_json(force=True, silent=True) or request.form.to_dict() or {}
+    code = (data.get('code') or '').strip().upper()
+    if not code:
+        return jsonify({'success': False, 'error': 'Promokod kiritilmadi'}), 400
+
+    promo = PromoCode.query.filter_by(code=code, is_active=True).first()
+    if not promo:
+        return jsonify({'success': False, 'error': 'Promokod mavjud emas yoki muddati tugagan!'})
+
+    return jsonify({
+        'success': True,
+        'code': promo.code,
+        'discount_percent': promo.discount_percent
+    })
 
 
 @app.route('/api/admin/settings')

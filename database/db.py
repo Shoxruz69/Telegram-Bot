@@ -109,6 +109,16 @@ async def init_db():
                 order_reset_hours INTEGER DEFAULT 24
             )
         ''')
+        await db.execute('''
+            CREATE TABLE IF NOT EXISTS promocodes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                code TEXT UNIQUE NOT NULL,
+                discount_percent INTEGER NOT NULL DEFAULT 0,
+                is_active BOOLEAN DEFAULT 1,
+                times_used INTEGER DEFAULT 0,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
         await db.commit()
         
         # Populate some dummy categories and menu if empty

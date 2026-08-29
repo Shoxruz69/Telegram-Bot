@@ -829,6 +829,28 @@
             color: #1E293B;
             box-shadow: 0 4px 18px rgba(255, 192, 67, 0.35);
         }
+
+        .btn-apply-promo {
+            padding: 10px 16px;
+            background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+            color: #0A0A0B;
+            border: none;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 800;
+            cursor: pointer;
+            white-space: nowrap;
+            box-shadow: 0 2px 8px var(--gold-glow);
+            transition: var(--transition);
+        }
+        body.light-theme .btn-apply-promo {
+            background: #FFC043;
+            color: #1E293B;
+            box-shadow: 0 2px 8px rgba(255, 192, 67, 0.35);
+        }
+        .btn-apply-promo:active {
+            transform: scale(0.95);
+        }
         .final-checkout-btn:disabled { opacity: 0.6; }
         .final-checkout-btn:disabled { opacity: 0.6; }
     </style>
@@ -914,6 +936,18 @@
                 </button>
                 <small id="loc-status" style="display:block;margin-top:2px;font-size:11px;color:var(--text-muted);text-align:center;"></small>
 
+                <!-- Promokod Input Row -->
+                <div class="promocode-box" style="display: flex; flex-direction: column; gap: 6px; margin-top: 6px;">
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="form-promocode" placeholder="🎟️ Promokod (masalan: 696JF)" class="form-input" style="text-transform: uppercase; font-weight: 700; letter-spacing: 1px; flex: 1;">
+                        <button type="button" class="btn-apply-promo" id="btn-apply-promo" onclick="applyPromoCode()">Qo'llash</button>
+                    </div>
+                    <div id="promo-applied-badge" style="display: none; align-items: center; justify-content: space-between; background: rgba(16, 185, 129, 0.15); border: 1px solid #10B981; border-radius: 10px; padding: 8px 12px; font-size: 12.5px; color: #10B981; font-weight: 700;">
+                        <span id="promo-badge-text">✓ 696JF (-3%)</span>
+                        <span style="cursor: pointer; font-size: 14px; padding: 2px 6px;" onclick="removePromoCode()">✕</span>
+                    </div>
+                </div>
+
                 <div id="card-details" class="card-details">
                     <p id="lbl-card-transfer">Karta raqamiga pul o'tkazing:</p>
                     <div class="card-box">
@@ -968,7 +1002,11 @@
                 currency: "so'm",
                 fill_phone: "Iltimos, telefon raqamingizni kiriting!",
                 fill_address: "Iltimos, manzilingizni kiriting!",
-                upload_receipt: "Iltimos, to'lov chekini (screenshot) yuklang!"
+                upload_receipt: "Iltimos, to'lov chekini (screenshot) yuklang!",
+                promocode_placeholder: "🎟️ Promokod (masalan: 696JF)",
+                apply_promo: "Qo'llash",
+                promo_applied: "chegirma",
+                promo_invalid: "Promokod mavjud emas yoki muddati tugagan"
             },
             ru: {
                 header_sub: "Быстрая доставка",
@@ -993,7 +1031,11 @@
                 currency: "сум",
                 fill_phone: "Пожалуйста, введите номер телефона!",
                 fill_address: "Пожалуйста, укажите ваш адрес!",
-                upload_receipt: "Пожалуйста, прикрепите чек оплаты!"
+                upload_receipt: "Пожалуйста, прикрепите чек оплаты!",
+                promocode_placeholder: "🎟️ Промокод (например: 696JF)",
+                apply_promo: "Применить",
+                promo_applied: "скидка",
+                promo_invalid: "Промокод не существует или неактивен"
             },
             en: {
                 header_sub: "Fast Delivery",
@@ -1018,7 +1060,11 @@
                 currency: "UZS",
                 fill_phone: "Please enter your phone number!",
                 fill_address: "Please enter your delivery address!",
-                upload_receipt: "Please upload the payment receipt!"
+                upload_receipt: "Please upload the payment receipt!",
+                promocode_placeholder: "🎟️ Promo Code (e.g. 696JF)",
+                apply_promo: "Apply",
+                promo_applied: "discount",
+                promo_invalid: "Promo code does not exist or is expired"
             }
         };
 
@@ -1480,6 +1526,12 @@
             const addrInput = document.getElementById('form-address');
             if (addrInput) addrInput.placeholder = t('address_placeholder');
 
+            const promoInput = document.getElementById('form-promocode');
+            if (promoInput) promoInput.placeholder = t('promocode_placeholder');
+
+            const promoBtn = document.getElementById('btn-apply-promo');
+            if (promoBtn) promoBtn.innerText = t('apply_promo');
+
             const locBtn = document.getElementById('loc-btn');
             if (locBtn) {
                 if (userLat && userLon) {
@@ -1501,6 +1553,7 @@
         let cachedCategories = [];
         let cachedPromotions = [];
         let cart = {};
+        let appliedPromo = null; // { code: '696JF', discount_percent: 3 }
         let globalSettings = {};
         let userLat = null;
         let userLon = null;
@@ -1936,6 +1989,12 @@
                 count += cart[id].qty;
             }
 
+            let discountedTotal = total;
+            if (appliedPromo && appliedPromo.discount_percent > 0) {
+                let promoDiscount = Math.round(total * (appliedPromo.discount_percent / 100.0));
+                discountedTotal = Math.max(0, total - promoDiscount);
+            }
+
             const countEl = document.getElementById('cart-count');
             if (countEl) countEl.innerText = count;
 
@@ -1943,7 +2002,7 @@
             if (totalEl) totalEl.innerText = total.toLocaleString();
 
             const modalTotalEl = document.getElementById('modal-total');
-            if (modalTotalEl) modalTotalEl.innerText = total.toLocaleString();
+            if (modalTotalEl) modalTotalEl.innerText = discountedTotal.toLocaleString();
 
             const bottomBar = document.getElementById('bottom-bar');
             if (bottomBar) {
@@ -1960,6 +2019,56 @@
             if (cartModal && cartModal.classList.contains('active')) {
                 renderModalCartList();
             }
+        }
+
+        async function applyPromoCode() {
+            const input = document.getElementById('form-promocode');
+            const code = (input ? input.value : '').trim().toUpperCase();
+            if (!code) return;
+
+            const btn = document.getElementById('btn-apply-promo');
+            if (btn) btn.innerText = '⏳ ...';
+
+            try {
+                const res = await fetch('/api/validate_promocode', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    appliedPromo = { code: data.code, discount_percent: data.discount_percent };
+                    const badge = document.getElementById('promo-applied-badge');
+                    const badgeText = document.getElementById('promo-badge-text');
+                    if (badge && badgeText) {
+                        badgeText.innerText = `✓ ${data.code} (-${data.discount_percent}% ${t('promo_applied')})`;
+                        badge.style.display = 'flex';
+                    }
+                    if (input) input.style.display = 'none';
+                    if (btn) btn.style.display = 'none';
+                    updateCart();
+                } else {
+                    alert(data.error || t('promo_invalid'));
+                }
+            } catch(e) {
+                alert(t('promo_invalid'));
+            } finally {
+                if (btn) btn.innerText = t('apply_promo');
+            }
+        }
+
+        function removePromoCode() {
+            appliedPromo = null;
+            const badge = document.getElementById('promo-applied-badge');
+            const input = document.getElementById('form-promocode');
+            const btn = document.getElementById('btn-apply-promo');
+            if (badge) badge.style.display = 'none';
+            if (input) {
+                input.style.display = 'block';
+                input.value = '';
+            }
+            if (btn) btn.style.display = 'block';
+            updateCart();
         }
 
         let selectedPayment = 'Karta';
@@ -2123,6 +2232,7 @@
                         address: address,
                         payment_method: selectedPayment,
                         items: orderItems,
+                        promocode: appliedPromo ? appliedPromo.code : '',
                         latitude: userLat || 0,
                         longitude: userLon || 0,
                         receipt_base64: receiptBase64
@@ -2132,6 +2242,7 @@
                 const data = await response.json();
                 if (data.success) {
                     cart = {};
+                    removePromoCode();
                     updateCart();
                     closeModal();
 

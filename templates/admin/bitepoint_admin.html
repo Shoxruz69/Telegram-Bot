@@ -199,10 +199,23 @@
           </div>
         </div>
 
-        <!-- ================= PROMOTIONS VIEW ================= -->
+        <!-- ================= PROMOTIONS & PROMO CODES VIEW ================= -->
         <div id="view-promotions" class="view-panel" style="display: none;">
+          <div style="display: flex; gap: 10px; margin-bottom: 20px; align-items: center; justify-content: space-between;">
+            <div class="filter-tabs">
+              <button class="tab-btn active" id="subtab-promos" onclick="switchPromoSubTab('promos')">
+                <span id="subtab-promos-text">🏷️ Aksiyalar</span>
+              </button>
+              <button class="tab-btn" id="subtab-promocodes" onclick="switchPromoSubTab('promocodes')">
+                <span id="subtab-promocodes-text">🎟️ Promokodlar</span>
+              </button>
+            </div>
+          </div>
           <div id="promotions-grid-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px;">
             <!-- Promotions Cards -->
+          </div>
+          <div id="promocodes-grid-container" style="display: none; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;">
+            <!-- Promocodes Cards -->
           </div>
         </div>
 
@@ -531,7 +544,33 @@
         </div>
 
         <button type="submit" class="btn-primary" style="width: 100%; justify-content: center; margin-top: 12px;">
-          💾 Aksiyani Saqlash
+          <span id="btn-save-promo-text">💾 Aksiyani Saqlash</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       PROMOCODE ADD/EDIT MODAL
+       ==================================================================== -->
+  <div class="modal-overlay" id="promocode-modal-overlay">
+    <div class="modal-container" style="max-width: 440px;">
+      <div class="modal-header-bar">
+        <h3 class="modal-title" id="promocode-modal-title">🎟️ Yangi Promokod</h3>
+        <button class="btn-close-modal" onclick="closePromoCodeModal()">✕</button>
+      </div>
+      <form onsubmit="savePromoCodeForm(event)" style="padding: 16px 20px;">
+        <input type="hidden" id="promocode-id">
+        <div class="form-group">
+          <label class="form-label" id="lbl-promocode-code">Promokod Kodi (Masalan: 696JF)</label>
+          <input type="text" id="promocode-code-input" class="form-input" required placeholder="696JF" style="text-transform: uppercase; font-weight: 700; letter-spacing: 1px;">
+        </div>
+        <div class="form-group">
+          <label class="form-label" id="lbl-promocode-discount">Chegirma Foizi (%)</label>
+          <input type="number" id="promocode-discount-input" class="form-input" min="1" max="100" required placeholder="3" value="3">
+        </div>
+        <button type="submit" class="btn-primary" style="width: 100%; justify-content: center; margin-top: 14px;">
+          <span id="btn-save-promocode-text">💾 Promokodni Saqlash</span>
         </button>
       </form>
     </div>

@@ -112,6 +112,14 @@ const i18n = {
     promo_discount_lbl: "Chegirma Foizi (%)",
     promo_end_date_lbl: "Tugash Sanasi va Vaqti",
     promo_desc_lbl: "Aksiya Shartlari / Tavsifi",
+    promocodes: "Promokodlar",
+    add_promocode: "Yangi Promokod",
+    promocode_lbl: "Promokod Kodi",
+    promocode_discount_lbl: "Chegirma Foizi (%)",
+    times_used_suffix: "marta ishlatildi",
+    promocode_saved: "Promokod muvaffaqiyatli saqlandi!",
+    promocode_deleted: "Promokod o'chirildi!",
+    no_promocodes_found: "Hozircha promokodlar yo'q",
 
     // Accounting & Stats
     accounting_title: "Kassa & Hisobot",
@@ -256,6 +264,14 @@ const i18n = {
     promo_discount_lbl: "Процент скидки (%)",
     promo_end_date_lbl: "Дата и время окончания",
     promo_desc_lbl: "Условия акции / Описание",
+    promocodes: "Промокоды",
+    add_promocode: "Новый промокод",
+    promocode_lbl: "Код промокода",
+    promocode_discount_lbl: "Процент скидки (%)",
+    times_used_suffix: "раз использован",
+    promocode_saved: "Промокод успешно сохранен!",
+    promocode_deleted: "Промокод удален!",
+    no_promocodes_found: "Пока нет промокодов",
 
     // Accounting & Stats
     accounting_title: "Касса и отчеты",
@@ -400,6 +416,14 @@ const i18n = {
     promo_discount_lbl: "Discount Percentage (%)",
     promo_end_date_lbl: "End Date and Time",
     promo_desc_lbl: "Terms & Conditions",
+    promocodes: "Promo Codes",
+    add_promocode: "New Promo Code",
+    promocode_lbl: "Promo Code",
+    promocode_discount_lbl: "Discount Percentage (%)",
+    times_used_suffix: "times used",
+    promocode_saved: "Promo code saved successfully!",
+    promocode_deleted: "Promo code deleted!",
+    no_promocodes_found: "No promo codes yet",
 
     // Accounting & Stats
     accounting_title: "Accounting & Reports",
@@ -443,12 +467,14 @@ const state = {
   lang: localStorage.getItem('bitepoint_lang') || 'uz',
   theme: localStorage.getItem('bitepoint_theme') || 'dark',
   currentTab: 'orders',       // 'orders' | 'menu' | 'categories' | 'promotions' | 'accounting' | 'settings'
+  promoSubTab: 'promos',      // 'promos' | 'promocodes'
   orderStatusFilter: 'all',    // 'all' | 'process' | 'completed' | 'cancelled'
   searchQuery: '',
   orders: [],
   categories: [],
   menuItems: [],
   promotions: [],
+  promocodes: [],
   settings: {},
   stats: {},
   selectedOrder: null,
@@ -756,9 +782,7 @@ function switchTab(tab) {
     titleEl.textContent = t('discounts_title');
     filterTabs.style.display = 'none';
     actionBtn.style.display = 'flex';
-    actionBtn.innerHTML = `<span>➕</span> <span>${t('add_discount')}</span>`;
-    actionBtn.onclick = () => openPromotionModal();
-    fetchPromotions();
+    switchPromoSubTab(state.promoSubTab || 'promos');
   } else if (tab === 'accounting') {
     titleEl.textContent = t('accounting_title');
     filterTabs.style.display = 'none';
@@ -1000,11 +1024,16 @@ function renderOrdersGrid() {
             ` : ''}
           </div>
 
-          <!-- Badges (Payment & Address) -->
+          <!-- Badges (Payment & Address & Promocode) -->
           <div class="card-badges-row" style="margin-top: 10px;">
             <span class="card-info-tag">
               <span>💳</span> <span>${paymentText}</span>
             </span>
+            ${order.promocode ? `
+              <span class="card-info-tag" style="background: rgba(16, 185, 129, 0.15); border-color: #10B981; color: #10B981; font-weight: 700;">
+                <span>🎟️</span> <span>${order.promocode}</span>
+              </span>
+            ` : ''}
             ${order.receipt_image ? `
               <span class="card-info-tag receipt-attached" onclick="openReceiptModal('/static/uploads/receipts/${order.receipt_image}')">
                 <span>📎</span> <span>${t('receipt_attached')}</span>
@@ -1093,7 +1122,8 @@ function openOrderDetailsModal(orderId) {
   }
   if (modalCustomerName) modalCustomerName.textContent = order.user_phone || 'Mijoz';
   if (modalCustomerPhone) modalCustomerPhone.innerHTML = `<a href="tel:${order.user_phone}" style="color: inherit; text-decoration: none;">📞 ${order.user_phone || 'N/A'}</a>`;
-  if (modalOrderType) modalOrderType.textContent = `${t('order')} #${order.id} (${order.payment_method === 'Karta' ? t('card') : t('cash')})`;
+  const promoStr = order.promocode ? ` • 🎟️ ${order.promocode}` : '';
+  if (modalOrderType) modalOrderType.textContent = `${t('order')} #${order.id} (${order.payment_method === 'Karta' ? t('card') : t('cash')})${promoStr}`;
   if (modalAddress) {
     modalAddress.innerHTML = `📍 <strong>${t('address_lbl')}</strong> ${order.address || t('not_specified')} ` +
       (order.latitude && order.longitude ? `<a href="https://maps.google.com/?q=${order.latitude},${order.longitude}" target="_blank" style="color: #0284C7; margin-left: 8px;">${t('view_map')}</a>` : '');
@@ -1654,21 +1684,166 @@ async function togglePromoStatus(id) {
       fetchPromotions();
     }
   } catch (err) {
+    showToast("Error deleting promo", "error");
+  }
+}
+
+// Sub-Tab Switcher for Discounts View (Aksiyalar vs Promokodlar)
+function switchPromoSubTab(subTab) {
+  state.promoSubTab = subTab;
+  const btnPromos = document.getElementById('subtab-promos');
+  const btnPromocodes = document.getElementById('subtab-promocodes');
+  const gridPromos = document.getElementById('promotions-grid-container');
+  const gridPromocodes = document.getElementById('promocodes-grid-container');
+  const actionBtn = document.getElementById('header-action-btn');
+
+  if (btnPromos) btnPromos.classList.toggle('active', subTab === 'promos');
+  if (btnPromocodes) btnPromocodes.classList.toggle('active', subTab === 'promocodes');
+
+  if (subTab === 'promos') {
+    if (gridPromos) gridPromos.style.display = 'grid';
+    if (gridPromocodes) gridPromocodes.style.display = 'none';
+    if (actionBtn) {
+      actionBtn.innerHTML = `<span>➕</span> <span>${t('add_discount')}</span>`;
+      actionBtn.onclick = () => openPromotionModal();
+    }
+    fetchPromotions();
+  } else {
+    if (gridPromos) gridPromos.style.display = 'none';
+    if (gridPromocodes) gridPromocodes.style.display = 'grid';
+    if (actionBtn) {
+      actionBtn.innerHTML = `<span>➕</span> <span>${t('add_promocode')}</span>`;
+      actionBtn.onclick = () => openPromoCodeModal();
+    }
+    fetchPromoCodes();
+  }
+}
+
+// Promocodes CRUD
+async function fetchPromoCodes() {
+  try {
+    const res = await fetch('/api/admin/promocodes');
+    const data = await res.json();
+    if (data.success) {
+      state.promocodes = data.promocodes || [];
+      renderPromoCodesView();
+    }
+  } catch (err) {
+    console.error("Error fetching promocodes:", err);
+  }
+}
+
+function renderPromoCodesView() {
+  const container = document.getElementById('promocodes-grid-container');
+  if (!container) return;
+
+  if (state.promocodes.length === 0) {
+    container.innerHTML = `
+      <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-muted);">
+        <p>${t('no_promocodes_found')}</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = state.promocodes.map(p => {
+    return `
+      <div class="stat-card" style="flex-direction: column; align-items: stretch; gap: 14px; position: relative;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span class="status-pill ${p.is_active ? 'ready' : 'cancelled'}">
+            <span class="dot"></span>
+            <span>${p.is_active ? t('active_promo') : t('inactive_promo')}</span>
+          </span>
+          <span style="font-size: 18px; font-weight: 800; color: #10B981;">-${p.discount_percent}%</span>
+        </div>
+        <div>
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+            <span style="font-size: 20px;">🎟️</span>
+            <span style="font-size: 20px; font-weight: 800; font-family: monospace; letter-spacing: 1.5px; color: var(--gold);">${p.code}</span>
+          </div>
+          <div style="font-size: 12px; color: var(--text-muted);">
+            📊 ${p.times_used} ${t('times_used_suffix')}
+          </div>
+        </div>
+        <div style="display: flex; gap: 8px; border-top: 1px solid var(--border-subtle); padding-top: 10px;">
+          <button class="btn-card-secondary" style="flex: 1;" onclick="togglePromoCodeStatus(${p.id})">
+            ${p.is_active ? t('turn_off') : t('turn_on')}
+          </button>
+          <button class="btn-card-secondary" style="color: #DC2626;" onclick="deletePromoCode(${p.id})">🗑️</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function openPromoCodeModal() {
+  const modal = document.getElementById('promocode-modal-overlay');
+  const codeInput = document.getElementById('promocode-code-input');
+  const discInput = document.getElementById('promocode-discount-input');
+  if (codeInput) codeInput.value = '';
+  if (discInput) discInput.value = '3';
+  if (modal) modal.classList.add('active');
+  setTimeout(() => codeInput && codeInput.focus(), 100);
+}
+
+function closePromoCodeModal() {
+  const modal = document.getElementById('promocode-modal-overlay');
+  if (modal) modal.classList.remove('active');
+}
+
+async function savePromoCodeForm(e) {
+  e.preventDefault();
+  const code = document.getElementById('promocode-code-input').value.trim().toUpperCase();
+  const discount_percent = parseInt(document.getElementById('promocode-discount-input').value, 10) || 0;
+
+  if (!code) {
+    showToast("Promokod kodini kiriting!", "error");
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/admin/promocode/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, discount_percent })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast(t('promocode_saved'), "success");
+      closePromoCodeModal();
+      fetchPromoCodes();
+    } else {
+      showToast(data.error || "Error", "error");
+    }
+  } catch (err) {
+    showToast("Server connection error", "error");
+  }
+}
+
+async function togglePromoCodeStatus(id) {
+  try {
+    const res = await fetch(`/api/admin/promocode/${id}/toggle`, { method: 'POST' });
+    const data = await res.json();
+    if (data.success) {
+      showToast(t('order_status_updated'), "success");
+      fetchPromoCodes();
+    }
+  } catch (err) {
     showToast("Error", "error");
   }
 }
 
-async function deletePromo(id) {
-  if (!confirm("Delete promo?")) return;
+async function deletePromoCode(id) {
+  if (!confirm(t('promocode_deleted') + "?")) return;
   try {
-    const res = await fetch(`/api/admin/promotion/${id}/delete`, { method: 'POST' });
+    const res = await fetch(`/api/admin/promocode/${id}/delete`, { method: 'POST' });
     const data = await res.json();
     if (data.success) {
-      showToast("Deleted", "success");
-      fetchPromotions();
+      showToast(t('promocode_deleted'), "success");
+      fetchPromoCodes();
     }
   } catch (err) {
-    showToast("Error", "error");
+    showToast("Error deleting promocode", "error");
   }
 }
 
