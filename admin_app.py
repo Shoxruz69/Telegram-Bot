@@ -316,6 +316,17 @@ def api_data():
     setting = Setting.query.first()
     promotions = Promotion.query.filter_by(is_active=True).all()
     
+    user_id = request.args.get('user_id')
+    user_data = None
+    if user_id and str(user_id).isdigit():
+        u = User.query.get(int(user_id))
+        if u:
+            user_data = {
+                'phone': u.phone or '',
+                'latitude': u.latitude or 0,
+                'longitude': u.longitude or 0
+            }
+
     return jsonify({
         'categories': [{
             'id': c.id, 
@@ -353,7 +364,8 @@ def api_data():
         'settings': {
             'card_number': setting.card_number if setting else "8600 0000 0000 0000",
             'card_name': setting.card_name if setting else "Ism Familiya"
-        }
+        },
+        'user': user_data
     })
 
 @app.route('/api/checkout', methods=['POST'])

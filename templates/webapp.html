@@ -1620,52 +1620,43 @@
         }
 
         function autoFetchLocation() {
-            // Check cached location first
+            // 1. Check cached location first (immediate 0ms setup)
             const cachedLat = localStorage.getItem('user_lat');
             const cachedLon = localStorage.getItem('user_lon');
             if (cachedLat && cachedLon && !userLat) {
                 setCapturedLocation(parseFloat(cachedLat), parseFloat(cachedLon));
             }
 
-            // 1. Telegram WebApp LocationManager (Telegram 7.0+)
-            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.LocationManager) {
+            // 2. Silent permission check (NEVER shows permission popup on startup)
+            if (navigator.permissions && navigator.permissions.query) {
                 try {
-                    const lm = window.Telegram.WebApp.LocationManager;
-                    if (!lm.isInited) {
-                        lm.init(() => {
-                            if (lm.isLocationAvailable) {
-                                lm.getLocation((loc) => {
-                                    if (loc && loc.latitude && loc.longitude) {
-                                        setCapturedLocation(loc.latitude, loc.longitude);
-                                    }
-                                });
-                            }
-                        });
-                    } else if (lm.isLocationAvailable) {
-                        lm.getLocation((loc) => {
-                            if (loc && loc.latitude && loc.longitude) {
-                                setCapturedLocation(loc.latitude, loc.longitude);
-                            }
-                        });
-                    }
-                } catch(e) {
-                    console.log("TG LocationManager note:", e);
-                }
+                    navigator.permissions.query({ name: 'geolocation' }).then(res => {
+                        if (res.state === 'granted') {
+                            navigator.geolocation.getCurrentPosition(
+                                (pos) => setCapturedLocation(pos.coords.latitude, pos.coords.longitude),
+                                (err) => {},
+                                { enableHighAccuracy: false, timeout: 4000, maximumAge: 300000 }
+                            );
+                        }
+                    }).catch(() => {});
+                } catch(e) {}
             }
 
-            // 2. Browser Geolocation (silent, non-blocking, fast timeout)
-            if (navigator.geolocation) {
-                try {
-                    navigator.geolocation.getCurrentPosition(
-                        (pos) => {
-                            setCapturedLocation(pos.coords.latitude, pos.coords.longitude);
-                        },
-                        (err) => {
-                            console.log("Silent geo note:", err.message);
-                        },
-                        { enableHighAccuracy: false, timeout: 5000, maximumAge: 60000 }
-                    );
-                } catch(e) {}
+            // 3. Fast Zero-Permission IP Geolocation fallback (Instant background discovery)
+            if (!userLat) {
+                fetch('https://ipwho.is/').then(r => r.json()).then(d => {
+                    if (d && d.success && d.latitude && d.longitude && !userLat) {
+                        userLat = d.latitude;
+                        userLon = d.longitude;
+                        const city = d.city || d.region || 'Toshkent';
+                        const addrInput = document.getElementById('form-address');
+                        if (addrInput && !addrInput.value) {
+                            addrInput.value = `${city}`;
+                        }
+                        const status = document.getElementById('loc-status');
+                        if (status) status.innerText = `${userLat.toFixed(4)}, ${userLon.toFixed(4)} (${city})`;
+                    }
+                }).catch(() => {});
             }
         }
 
@@ -1680,7 +1671,7 @@
                 btn.innerText = '📍 ' + (currentLang === 'ru' ? 'Определяем...' : (currentLang === 'en' ? 'Detecting...' : 'Aniqlanmoqda...'));
             }
 
-            // Try Telegram LocationManager first
+            // Active request with Telegram LocationManager
             if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.LocationManager) {
                 try {
                     const lm = window.Telegram.WebApp.LocationManager;
@@ -1697,6 +1688,7 @@
                 } catch(e) {}
             }
 
+            // Active request with Browser Geolocation
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
                     (pos) => {
@@ -1731,7 +1723,8 @@
                     addrInput.value = savedAddr;
                 }
 
-                const res = await fetch('/api/data');
+                const tgUid = getTelegramUserId();
+                const res = await fetch(`/api/data?user_id=${encodeURIComponent(tgUid)}`);
                 const data = await res.json();
 
                 cachedPromotions = data.promotions || [];
@@ -1746,12 +1739,20 @@
 
                 renderCategories(cachedCategories);
 
+                // Auto-fill user from backend or localStorage
                 const savedPhone = localStorage.getItem('user_phone');
                 if (savedPhone) {
                     document.getElementById('form-phone').value = savedPhone;
+                } else if (data.user && data.user.phone) {
+                    document.getElementById('form-phone').value = data.user.phone;
+                    localStorage.setItem('user_phone', data.user.phone);
                 }
 
-                // Automatic background location detection without UI freeze
+                if (data.user && data.user.latitude && data.user.longitude && !userLat) {
+                    setCapturedLocation(data.user.latitude, data.user.longitude);
+                }
+
+                // Automatic background location detection without UI freeze and without permission popups
                 autoFetchLocation();
             } catch (e) {
                 console.error("Error loading data", e);
