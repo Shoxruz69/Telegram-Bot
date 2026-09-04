@@ -4,7 +4,7 @@ import logging
 from aiogram import Router, Bot
 from aiogram.filters import CommandStart, Command
 from aiogram.types import Message, FSInputFile
-from database.db import add_user, get_user, get_tenant_by_bot_token
+from database.db import add_user, get_user, get_tenant_by_bot_token, get_welcome_settings
 from keyboards.reply import get_webapp_keyboard
 
 router = Router()
@@ -58,33 +58,52 @@ async def cmd_start(message: Message, bot: Bot, tenant: dict = None):
     else:
         greeting_header = f"{html.escape(name_clean)} botiga"
 
-    welcome_text = (
-        f"☕ <b>{greeting_header} xush kelibsiz, {user_name}!</b>\n\n"
-        f"🚀 <b>Fast & Fresh Delivery</b> — Mazali taomlar, pissa, burger va ichimliklarni tez fursatda yetkazib beramiz!\n\n"
-        f"📋 <b>Bot Buyruqlari:</b>\n"
-        f"🔹 /start — Botni qayta ishga tushirish va menyuni ochish\n"
-        f"🔹 /menu — Barcha taomlar va ichimliklar menyusi\n"
-        f"🔹 /help — Yordam va bog'lanish ma'lumotlari\n\n"
-        f"👇 Quyidagi tugma orqali menyuni ochib buyurtma berishingiz mumkin:"
-    )
+    # Admin tomonidan kiritilgan maxsus xabar va rasm bormi?
+    welcome_msg_custom, welcome_img_custom = await get_welcome_settings(tenant_id)
+
+    if welcome_msg_custom and welcome_msg_custom.strip():
+        custom_txt = welcome_msg_custom.strip()
+        custom_txt = custom_txt.replace('{ism}', user_name).replace('{name}', user_name)
+        custom_txt = custom_txt.replace('{oshxona}', html.escape(tenant_name)).replace('{cafe}', html.escape(tenant_name))
+        welcome_text = custom_txt
+    else:
+        welcome_text = (
+            f"☕ <b>{greeting_header} xush kelibsiz, {user_name}!</b>\n\n"
+            f"🚀 <b>Fast & Fresh Delivery</b> — Mazali taomlar, pissa, burger va ichimliklarni tez fursatda yetkazib beramiz!\n\n"
+            f"📋 <b>Bot Buyruqlari:</b>\n"
+            f"🔹 /start — Botni qayta ishga tushirish va menyuni ochish\n"
+            f"🔹 /menu — Barcha taomlar va ichimliklar menyusi\n"
+            f"🔹 /help — Yordam va bog'lanish ma'lumotlari\n\n"
+            f"👇 Quyidagi tugma orqali menyuni ochib buyurtma berishingiz mumkin:"
+        )
 
     kb = get_webapp_keyboard(message.from_user.id, tenant_slug=tenant_slug)
 
-    # Avval logotip bilan yuborishga urinib ko'ramiz
+    # Rasm: admin yuklagan maxsus rasm yoki standart logo
+    photo_target = None
+    if welcome_img_custom and welcome_img_custom.strip():
+        img_val = welcome_img_custom.strip()
+        if img_val.startswith('http://') or img_val.startswith('https://'):
+            photo_target = img_val
+        else:
+            clean_local = img_val.lstrip('/')
+            if os.path.exists(clean_local):
+                photo_target = FSInputFile(clean_local)
+    elif os.path.exists("static/cafe_logo.png"):
+        photo_target = FSInputFile("static/cafe_logo.png")
+
     photo_sent = False
-    logo_path = "static/cafe_logo.png"
-    if os.path.exists(logo_path):
+    if photo_target:
         try:
-            photo = FSInputFile(logo_path)
             await message.answer_photo(
-                photo=photo, 
+                photo=photo_target, 
                 caption=welcome_text, 
                 parse_mode="HTML", 
                 reply_markup=kb
             )
             photo_sent = True
         except Exception as pe:
-            logging.warning(f"Logo yuborishda ogohlantirish: {pe}")
+            logging.warning(f"Rasm yuborishda ogohlantirish: {pe}")
 
     if not photo_sent:
         try:
@@ -95,7 +114,6 @@ async def cmd_start(message: Message, bot: Bot, tenant: dict = None):
             )
         except Exception as me:
             logging.error(f"Xabar yuborishda xatolik: {me}")
-            # Eng sodda fallback (parse_mode siz)
             await message.answer(
                 f"{tenant_name} botiga xush kelibsiz!\n\nMenyuni ko'rish uchun pastdagi Menyu tugmasini bosing:",
                 reply_markup=kb

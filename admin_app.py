@@ -151,6 +151,8 @@ class Setting(db.Model):
     work_time_start = db.Column(db.String(10), default="09:00")
     work_time_end = db.Column(db.String(10), default="22:00")
     order_reset_hours = db.Column(db.Integer, default=24) # 24: Har 24 soatda 1-dan boshlanadi, 12: Har 12 soatda, 0: Reset o'chirilgan
+    welcome_message = db.Column(db.Text) # Start xabari matni
+    welcome_image = db.Column(db.String(500)) # Start xabari rasmi
 
     def __repr__(self):
         return f"Karta: {self.card_number} ({self.card_name})"
@@ -249,6 +251,10 @@ with app.app_context():
             db.session.execute(text("ALTER TABLE settings ADD COLUMN work_time_end VARCHAR(10) DEFAULT '22:00'"))
         if 'order_reset_hours' not in settings_cols:
             db.session.execute(text("ALTER TABLE settings ADD COLUMN order_reset_hours INTEGER DEFAULT 24"))
+        if 'welcome_message' not in settings_cols:
+            db.session.execute(text("ALTER TABLE settings ADD COLUMN welcome_message TEXT"))
+        if 'welcome_image' not in settings_cols:
+            db.session.execute(text("ALTER TABLE settings ADD COLUMN welcome_image VARCHAR(500)"))
 
         # Orders migration
         orders_cols = [col['name'] for col in inspector.get_columns('orders')]
@@ -2269,7 +2275,9 @@ def api_admin_get_settings():
             'card_number': setting.card_number or '',
             'card_name': setting.card_name or '',
             'work_time_start': getattr(setting, 'work_time_start', '09:00') or '09:00',
-            'work_time_end': getattr(setting, 'work_time_end', '22:00') or '22:00'
+            'work_time_end': getattr(setting, 'work_time_end', '22:00') or '22:00',
+            'welcome_message': getattr(setting, 'welcome_message', '') or '',
+            'welcome_image': getattr(setting, 'welcome_image', '') or ''
         }
     })
 
@@ -2287,6 +2295,10 @@ def api_admin_update_settings():
     setting.card_name = data.get('card_name', setting.card_name)
     setting.work_time_start = data.get('work_time_start', getattr(setting, 'work_time_start', '09:00'))
     setting.work_time_end = data.get('work_time_end', getattr(setting, 'work_time_end', '22:00'))
+    if 'welcome_message' in data:
+        setting.welcome_message = data.get('welcome_message')
+    if 'welcome_image' in data:
+        setting.welcome_image = data.get('welcome_image')
     db.session.commit()
     return jsonify({'success': True})
 

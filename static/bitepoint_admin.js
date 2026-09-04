@@ -842,6 +842,11 @@ function switchTab(tab) {
     filterTabs.style.display = 'none';
     actionBtn.style.display = 'none';
     fetchSettings();
+  } else if (tab === 'bot_settings') {
+    titleEl.textContent = 'Bot Xabarlari (Start)';
+    filterTabs.style.display = 'none';
+    actionBtn.style.display = 'none';
+    fetchBotSettings();
   }
 }
 
@@ -2195,5 +2200,130 @@ async function saveSettings(e) {
     }
   } catch (err) {
     showToast("Server connection error", "error");
+  }
+}
+
+// ==========================================================================
+// BOT SETTINGS & START MESSAGE MANAGEMENT
+// ==========================================================================
+
+async function fetchBotSettings() {
+  try {
+    const res = await fetch('/api/admin/settings');
+    const data = await res.json();
+    if (data.success && data.settings) {
+      state.settings = data.settings;
+      const welcomeTextEl = document.getElementById('bot-welcome-text');
+      const imgUrlEl = document.getElementById('bot-image-url');
+
+      if (welcomeTextEl) welcomeTextEl.value = data.settings.welcome_message || '';
+      if (imgUrlEl) imgUrlEl.value = data.settings.welcome_image || '';
+
+      updateBotPreview();
+    }
+  } catch (err) {
+    console.error("Error fetching bot settings:", err);
+  }
+}
+
+function updateBotPreview() {
+  const textInput = document.getElementById('bot-welcome-text');
+  const urlInput = document.getElementById('bot-image-url');
+  const previewImg = document.getElementById('preview-bot-image');
+  const previewTxt = document.getElementById('preview-bot-text');
+
+  if (!previewImg || !previewTxt) return;
+
+  const currentCafeName = (state.tenant && state.tenant.name) || 'Cafe Express';
+
+  // Update Preview Image
+  const imgVal = urlInput ? urlInput.value.trim() : '';
+  if (imgVal) {
+    previewImg.src = imgVal;
+  } else {
+    previewImg.src = '/static/cafe_logo.png';
+  }
+
+  // Update Preview Text
+  const rawText = textInput ? textInput.value.trim() : '';
+  if (rawText) {
+    let replaced = rawText
+      .replace(/\{ism\}/gi, 'Shohrux')
+      .replace(/\{name\}/gi, 'Shohrux')
+      .replace(/\{oshxona\}/gi, currentCafeName)
+      .replace(/\{cafe\}/gi, currentCafeName);
+    previewTxt.innerText = replaced;
+  } else {
+    previewTxt.innerHTML = `☕ <b>${currentCafeName} botiga xush kelibsiz, Shohrux!</b>\n\n🚀 <b>Fast & Fresh Delivery</b> — Mazali taomlar, pissa, burger va ichimliklarni tez fursatda yetkazib beramiz!\n\n👇 Quyidagi tugma orqali menyuni ochib buyurtma berishingiz mumkin:`;
+  }
+}
+
+function insertBotTag(tag) {
+  const textarea = document.getElementById('bot-welcome-text');
+  if (!textarea) return;
+
+  const start = textarea.selectionStart || 0;
+  const end = textarea.selectionEnd || 0;
+  const text = textarea.value;
+
+  textarea.value = text.substring(0, start) + tag + text.substring(end);
+  textarea.focus();
+  textarea.selectionStart = textarea.selectionEnd = start + tag.length;
+
+  updateBotPreview();
+}
+
+async function handleBotImageUpload(input) {
+  if (!input.files || !input.files[0]) return;
+  const file = input.files[0];
+
+  const statusEl = document.getElementById('bot-upload-status');
+  if (statusEl) statusEl.textContent = "Yuklanmoqda...";
+
+  const formData = new FormData();
+  formData.append('image', file);
+
+  try {
+    const res = await fetch('/api/admin/upload_image', {
+      method: 'POST',
+      body: formData
+    });
+    const data = await res.json();
+    if (data.success && data.image_url) {
+      const urlInput = document.getElementById('bot-image-url');
+      if (urlInput) urlInput.value = data.image_url;
+      if (statusEl) statusEl.textContent = "✅ Yuklandi";
+      updateBotPreview();
+      showToast("Rasm muvaffaqiyatli yuklandi!", "success");
+    } else {
+      if (statusEl) statusEl.textContent = "❌ Xatolik";
+      showToast(data.error || "Rasm yuklashda xatolik", "error");
+    }
+  } catch (err) {
+    if (statusEl) statusEl.textContent = "❌ Xatolik";
+    showToast("Server bilan aloqa uzildi", "error");
+  }
+}
+
+async function saveBotSettings(e) {
+  if (e && e.preventDefault) e.preventDefault();
+
+  const welcome_message = document.getElementById('bot-welcome-text') ? document.getElementById('bot-welcome-text').value.trim() : '';
+  const welcome_image = document.getElementById('bot-image-url') ? document.getElementById('bot-image-url').value.trim() : '';
+
+  try {
+    const res = await fetch('/api/admin/settings/update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ welcome_message, welcome_image })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast("✅ Bot /start xabari va rasmi muvaffaqiyatli saqlandi!", "success");
+    } else {
+      showToast(data.error || "Saqlashda xatolik", "error");
+    }
+  } catch (err) {
+    showToast("Server bilan aloqa uzildi", "error");
   }
 }

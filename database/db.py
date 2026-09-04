@@ -147,7 +147,9 @@ async def init_db():
                 card_name TEXT,
                 work_time_start TEXT DEFAULT '09:00',
                 work_time_end TEXT DEFAULT '22:00',
-                order_reset_hours INTEGER DEFAULT 24
+                order_reset_hours INTEGER DEFAULT 24,
+                welcome_message TEXT,
+                welcome_image TEXT
             )
         ''')
         await db.execute('''
@@ -208,7 +210,17 @@ async def init_db():
                         await db.execute(f"UPDATE {tbl} SET tenant_id = 1 WHERE tenant_id IS NULL")
             except Exception as ex:
                 print(f"[Migration note: {tbl}]: {ex}")
-        await db.commit()
+        # 6. Settings jadvalida welcome_message va welcome_image borligini tekshirish
+        try:
+            async with db.execute("PRAGMA table_info(settings)") as cursor:
+                s_cols = [row[1] for row in await cursor.fetchall()]
+                if 'welcome_message' not in s_cols:
+                    await db.execute("ALTER TABLE settings ADD COLUMN welcome_message TEXT")
+                if 'welcome_image' not in s_cols:
+                    await db.execute("ALTER TABLE settings ADD COLUMN welcome_image TEXT")
+                await db.commit()
+        except Exception as sex:
+            print(f"[Settings migration note]: {sex}")
 
         # 5. Standart Super Admin yaratish (agar yo'q bo'lsa)
         async with db.execute("SELECT COUNT(*) FROM super_admins") as cursor:
@@ -420,3 +432,12 @@ async def create_order(user_id, payment_method, receipt_image=None, tenant_id=1)
             
         await db.commit()
         return order_id
+
+async def get_welcome_settings(tenant_id=1):
+    async with get_db() as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute('SELECT welcome_message, welcome_image FROM settings WHERE tenant_id = ? LIMIT 1', (tenant_id,)) as cursor:
+            row = await cursor.fetchone()
+            if row:
+                return row['welcome_message'], row['welcome_image']
+            return None, None
