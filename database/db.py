@@ -189,17 +189,36 @@ async def init_db():
                 await db.commit()
 
         # 6. Standart Tenant #1 yaratish (Cafe Express / Dili Cafe - mavjud .env token bilan)
+        env_token = os.getenv("BOT_TOKEN", "").strip()
+        env_admin_id = os.getenv("ADMIN_ID", "").strip()
+
         async with db.execute("SELECT COUNT(*) FROM tenants") as cursor:
             t_count = (await cursor.fetchone())[0]
             if t_count == 0:
-                env_token = os.getenv("BOT_TOKEN", "YOUR_BOT_TOKEN_HERE")
-                env_admin_id = os.getenv("ADMIN_ID", "")
+                t_token = env_token if env_token else "YOUR_BOT_TOKEN_HERE"
+                t_admin_id = env_admin_id if env_admin_id else "YOUR_ADMIN_ID_HERE"
                 default_tenant_hash = generate_password_hash("admin123")
                 await db.execute('''
                     INSERT INTO tenants (id, name, slug, bot_token, bot_username, admin_telegram_id, admin_username, admin_password_hash, is_active)
                     VALUES (1, 'Cafe Express', 'express', ?, '@CafeExpressBot', ?, 'admin', ?, 1)
-                ''', (env_token, env_admin_id, default_tenant_hash))
+                ''', (t_token, t_admin_id, default_tenant_hash))
                 await db.commit()
+            else:
+                # Agar bazada bot_token placeholder bo'lsa va env da haqiqiy token bo'lsa - avtomatik yangilash
+                if env_token and env_token != "YOUR_BOT_TOKEN_HERE":
+                    await db.execute("""
+                        UPDATE tenants 
+                        SET bot_token = ?, is_active = 1 
+                        WHERE id = 1 AND (bot_token = 'YOUR_BOT_TOKEN_HERE' OR bot_token = '' OR bot_token IS NULL)
+                    """, (env_token,))
+                    await db.commit()
+                if env_admin_id and env_admin_id != "YOUR_ADMIN_ID_HERE":
+                    await db.execute("""
+                        UPDATE tenants 
+                        SET admin_telegram_id = ? 
+                        WHERE id = 1 AND (admin_telegram_id = 'YOUR_ADMIN_ID_HERE' OR admin_telegram_id = '' OR admin_telegram_id IS NULL)
+                    """, (env_admin_id,))
+                    await db.commit()
 
         # 7. Mavjud kategoriyalar yoki menyu bo'sh bo'lsa boshlang'ich ma'lumotlar qo'shish
         async with db.execute('SELECT COUNT(*) FROM categories WHERE tenant_id = 1') as cursor:
@@ -236,11 +255,18 @@ async def get_tenant_by_slug(slug):
             return dict(row) if row else None
 
 async def get_tenant_by_bot_token(bot_token):
+    if not bot_token:
+        return None
     async with get_db() as db:
         db.row_factory = aiosqlite.Row
         async with db.execute('SELECT * FROM tenants WHERE bot_token = ?', (bot_token.strip(),)) as cursor:
             row = await cursor.fetchone()
-            return dict(row) if row else None
+            if row:
+                return dict(row)
+        # Fallback: agar topilmasa (masalan bot_token .env dan olingan bo'lsa), id=1 dagi birinchi tenantni qaytarish
+        async with db.execute('SELECT * FROM tenants WHERE id = 1') as cursor:
+            row1 = await cursor.fetchone()
+            return dict(row1) if row1 else None
 
 async def get_tenant_by_admin_username(username):
     async with get_db() as db:
@@ -259,7 +285,7 @@ async def get_super_admin(username):
 async def get_all_active_tenants():
     async with get_db() as db:
         db.row_factory = aiosqlite.Row
-        async with db.execute('SELECT * FROM tenants WHERE is_active = 1') as cursor:
+        async with db.execute("SELECT * FROM tenants WHERE is_active = 1 OR is_active = '1' OR is_active = 1.0") as cursor:
             rows = await cursor.fetchall()
             return [dict(r) for r in rows]
 

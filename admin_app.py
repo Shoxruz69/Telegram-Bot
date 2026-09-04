@@ -316,16 +316,16 @@ with app.app_context():
         except Exception as sae:
             print("[SuperAdmin seed error]:", sae)
 
-        # Seed Tenant #1 (Cafe Express) if empty
+        # Seed Tenant #1 (Cafe Express) or sync with env
         try:
+            env_token = os.getenv("BOT_TOKEN", "").strip()
+            env_admin_id = os.getenv("ADMIN_ID", "").strip()
             if Tenant.query.count() == 0:
-                env_token = os.getenv("BOT_TOKEN", "YOUR_BOT_TOKEN_HERE")
-                env_admin_id = os.getenv("ADMIN_ID", "")
                 t1 = Tenant(
                     id=1,
                     name="Cafe Express",
                     slug="express",
-                    bot_token=env_token,
+                    bot_token=env_token or "YOUR_BOT_TOKEN_HERE",
                     bot_username="@CafeExpressBot",
                     admin_telegram_id=env_admin_id,
                     admin_username="admin",
@@ -335,6 +335,17 @@ with app.app_context():
                 db.session.add(t1)
                 db.session.commit()
                 print("[Tenant 1 seeded]: Cafe Express (admin / admin123)")
+            else:
+                t1 = Tenant.query.get(1)
+                if t1:
+                    if env_token and env_token != "YOUR_BOT_TOKEN_HERE" and (not t1.bot_token or t1.bot_token == "YOUR_BOT_TOKEN_HERE"):
+                        t1.bot_token = env_token
+                        t1.is_active = True
+                        db.session.commit()
+                        print(f"[Tenant 1 token auto-synced from env]: {env_token[:8]}...")
+                    if env_admin_id and env_admin_id != "YOUR_ADMIN_ID_HERE" and (not t1.admin_telegram_id or t1.admin_telegram_id == "YOUR_ADMIN_ID_HERE"):
+                        t1.admin_telegram_id = env_admin_id
+                        db.session.commit()
         except Exception as te:
             print("[Tenant seed error]:", te)
 

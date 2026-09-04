@@ -65,8 +65,14 @@ async def keep_alive():
 running_bots = {}  # {tenant_id: {'bot': bot, 'token': token, 'task': task, 'username': username}}
 
 async def start_single_bot(tenant, dp: Dispatcher):
+    tid = tenant['id']
     token = tenant.get('bot_token', '').strip()
+    # 1-oshxona uchun .env dagi BOT_TOKEN dan foydalanish (agar DB dagi token bo'sh yoki placeholder bo'lsa)
+    if tid == 1 and (not token or token in ("YOUR_BOT_TOKEN_HERE", "")):
+        token = os.getenv("BOT_TOKEN", "").strip()
+
     if not token or token in ("YOUR_BOT_TOKEN_HERE", ""):
+        logging.warning(f"Tenant {tid} ({tenant.get('name')}) uchun BOT_TOKEN mavjud emas.")
         return
 
     try:
@@ -90,25 +96,36 @@ async def start_single_bot(tenant, dp: Dispatcher):
                 menu_button=MenuButtonWebApp(text="🍔 Menyu", web_app=WebAppInfo(url=web_app_url))
             )
             await bot.delete_webhook(drop_pending_updates=False)
-            logging.info(f"Bot @{bot_username} sozlandi. WebApp: {web_app_url}")
+            logging.info(f"Bot @{bot_username} (Tenant {tid}) sozlandi. WebApp: {web_app_url}")
         except Exception as ce:
             logging.warning(f"Komandalarni sozlashda xatolik (@{bot_username}): {ce}")
 
-        # Polling vazifasini alohida taskda boshlash
-        async def run_bot_polling(b: Bot, username: str):
+        # Har bir bot uchun to'liq mustaqil, ishonchli polling sikli (feed_update orqali)
+        async def run_bot_polling(b: Bot, username: str, t_id: int):
+            logging.info(f"🚀 Polling boshlandi: @{username} (Tenant ID: {t_id}, Oshxona: {tenant.get('name')})")
+            offset = None
+            allowed_updates = dp.resolve_used_update_types()
+
             while True:
                 try:
-                    logging.info(f"Polling boshlandi: @{username} (Oshxona: {tenant.get('name')})")
-                    await dp.start_polling(b, allowed_updates=dp.resolve_used_update_types())
+                    updates = await b.get_updates(offset=offset, timeout=15, allowed_updates=allowed_updates)
+                    for update in updates:
+                        offset = update.update_id + 1
+                        asyncio.create_task(dp.feed_update(bot=b, update=update))
                 except asyncio.CancelledError:
-                    logging.info(f"Polling to'xtatildi: @{username}")
+                    logging.info(f"🛑 Polling to'xtatildi: @{username} (Tenant ID: {t_id})")
                     break
                 except Exception as pe:
-                    logging.error(f"Polling xatosi (@{username}): {pe}. 10 soniyadan so'ng qayta ulanadi...")
-                    await asyncio.sleep(10)
+                    logging.error(f"Polling xatosi (@{username}): {pe}. 5 soniyadan so'ng qayta ulanadi...")
+                    await asyncio.sleep(5)
 
-        task = asyncio.create_task(run_bot_polling(bot, bot_username))
-        running_bots[tenant['id']] = {
+            try:
+                await b.session.close()
+            except Exception:
+                pass
+
+        task = asyncio.create_task(run_bot_polling(bot, bot_username, tid))
+        running_bots[tid] = {
             'bot': bot,
             'token': token,
             'task': task,
@@ -116,6 +133,10 @@ async def start_single_bot(tenant, dp: Dispatcher):
         }
     except Exception as e:
         logging.error(f"Botni ishga tushirishda xatolik ({tenant.get('name')}): {e}")
+        try:
+            await bot.session.close()
+        except Exception:
+            pass
 
 async def dynamic_bot_watcher(dp: Dispatcher):
     """Bazada yangi qo'shilgan, tahrirlangan yoki to'xtatilgan oshxonalarni kuzatib boradi"""
@@ -127,11 +148,16 @@ async def dynamic_bot_watcher(dp: Dispatcher):
             # 1. Yangi yoki o'zgargan tokenli botlarni ishga tushirish
             for t in active_tenants:
                 tid = t['id']
+                token = t.get('bot_token', '').strip()
+                if tid == 1 and (not token or token in ("YOUR_BOT_TOKEN_HERE", "")):
+                    token = os.getenv("BOT_TOKEN", "").strip()
+
                 if tid not in running_bots:
                     await start_single_bot(t, dp)
-                elif running_bots[tid]['token'] != t.get('bot_token', ''):
+                elif running_bots[tid]['token'] != token:
                     logging.info(f"Bot tokeni yangilandi (ID {tid}). Qayta ishga tushirilmoqda...")
                     running_bots[tid]['task'].cancel()
+                    del running_bots[tid]
                     await start_single_bot(t, dp)
 
             # 2. Bloklangan yoki o'chirilgan botlarni to'xtatish
@@ -144,7 +170,7 @@ async def dynamic_bot_watcher(dp: Dispatcher):
         except Exception as ex:
             logging.error(f"dynamic_bot_watcher error: {ex}")
 
-        await asyncio.sleep(10)
+        await asyncio.sleep(6)
 
 async def main():
     # Ma'lumotlar bazasini initsializatsiya qilish
@@ -171,11 +197,14 @@ async def main():
     dp.include_router(menu.router)
     dp.include_router(order.router)
 
+    # Dispatcher startup
+    await dp.emit_startup()
+
     # Keep-alive va Bot Watcher ni ishga tushirish
     asyncio.create_task(keep_alive())
     asyncio.create_task(dynamic_bot_watcher(dp))
 
-    logging.info("Multi-Bot Dynamic Manager ishga tushdi!")
+    logging.info("Multi-Bot Dynamic Manager to'liq ishga tushdi!")
 
     # Event loopni ushlab turish
     while True:
