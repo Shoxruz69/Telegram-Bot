@@ -62,9 +62,9 @@ async def keep_alive():
         await asyncio.sleep(150)
 
 # Multi-Bot dinamik boshqaruvi
-running_bots = {}  # {tenant_id: {'bot': bot, 'token': token, 'task': task, 'username': username}}
+running_bots = {}  # {tenant_id: {'bot': bot, 'token': token, 'task': task, 'username': username, 'tenant': tenant}}
 
-async def start_single_bot(tenant, dp: Dispatcher):
+async def start_single_bot(tenant: dict, dp: Dispatcher):
     tid = tenant['id']
     token = tenant.get('bot_token', '').strip()
     # 1-oshxona uchun .env dagi BOT_TOKEN dan foydalanish (agar DB dagi token bo'sh yoki placeholder bo'lsa)
@@ -77,6 +77,7 @@ async def start_single_bot(tenant, dp: Dispatcher):
 
     try:
         bot = Bot(token=token)
+        bot.tenant = tenant
         me = await bot.get_me()
         bot_username = me.username or "Bot"
 
@@ -96,27 +97,38 @@ async def start_single_bot(tenant, dp: Dispatcher):
                 menu_button=MenuButtonWebApp(text="🍔 Menyu", web_app=WebAppInfo(url=web_app_url))
             )
             await bot.delete_webhook(drop_pending_updates=False)
-            logging.info(f"Bot @{bot_username} (Tenant {tid}) sozlandi. WebApp: {web_app_url}")
+            logging.info(f"Bot @{bot_username} (Tenant {tid}: {tenant.get('name')}) muvaffaqiyatli sozlandi. WebApp: {web_app_url}")
         except Exception as ce:
-            logging.warning(f"Komandalarni sozlashda xatolik (@{bot_username}): {ce}")
+            logging.warning(f"Komandalarni sozlashda ogohlantirish (@{bot_username}): {ce}")
 
-        # Har bir bot uchun to'liq mustaqil, ishonchli polling sikli (feed_update orqali)
-        async def run_bot_polling(b: Bot, username: str, t_id: int):
-            logging.info(f"🚀 Polling boshlandi: @{username} (Tenant ID: {t_id}, Oshxona: {tenant.get('name')})")
+        # Har bir bot uchun to'liq mustaqil, ishonchli polling sikli
+        async def run_bot_polling(b: Bot, username: str, t_id: int, current_tenant: dict):
+            logging.info(f"🚀 Polling boshlandi: @{username} (Tenant ID: {t_id}, Oshxona: {current_tenant.get('name')})")
             offset = None
             allowed_updates = dp.resolve_used_update_types()
+
+            async def process_single_update(upd):
+                try:
+                    await dp.feed_update(bot=b, update=upd, tenant=current_tenant)
+                except Exception as ex:
+                    logging.error(f"feed_update xatosi (@{username}): {ex}", exc_info=True)
 
             while True:
                 try:
                     updates = await b.get_updates(offset=offset, timeout=15, allowed_updates=allowed_updates)
                     for update in updates:
                         offset = update.update_id + 1
-                        asyncio.create_task(dp.feed_update(bot=b, update=update))
+                        asyncio.create_task(process_single_update(update))
                 except asyncio.CancelledError:
                     logging.info(f"🛑 Polling to'xtatildi: @{username} (Tenant ID: {t_id})")
                     break
                 except Exception as pe:
                     logging.error(f"Polling xatosi (@{username}): {pe}. 5 soniyadan so'ng qayta ulanadi...")
+                    if "conflict" in str(pe).lower():
+                        try:
+                            await b.delete_webhook(drop_pending_updates=False)
+                        except Exception:
+                            pass
                     await asyncio.sleep(5)
 
             try:
@@ -124,12 +136,13 @@ async def start_single_bot(tenant, dp: Dispatcher):
             except Exception:
                 pass
 
-        task = asyncio.create_task(run_bot_polling(bot, bot_username, tid))
+        task = asyncio.create_task(run_bot_polling(bot, bot_username, tid, tenant))
         running_bots[tid] = {
             'bot': bot,
             'token': token,
             'task': task,
-            'username': bot_username
+            'username': bot_username,
+            'tenant': tenant
         }
     except Exception as e:
         logging.error(f"Botni ishga tushirishda xatolik ({tenant.get('name')}): {e}")
@@ -140,19 +153,30 @@ async def start_single_bot(tenant, dp: Dispatcher):
 
 async def dynamic_bot_watcher(dp: Dispatcher):
     """Bazada yangi qo'shilgan, tahrirlangan yoki to'xtatilgan oshxonalarni kuzatib boradi"""
+    last_known_count = -1
     while True:
         try:
             active_tenants = await get_all_active_tenants()
             active_ids = {t['id'] for t in active_tenants}
 
-            # 1. Yangi yoki o'zgargan tokenli botlarni ishga tushirish
+            if len(active_tenants) != last_known_count:
+                logging.info(f"[BotWatcher] Faol botlar soni: {len(active_tenants)} ta: {[t['name'] + ' (#' + str(t['id']) + ')' for t in active_tenants]}")
+                last_known_count = len(active_tenants)
+
+            # 1. Yangi, o'zgargan tokenli yoki to'xtab qolgan botlarni ishga tushirish
             for t in active_tenants:
                 tid = t['id']
                 token = t.get('bot_token', '').strip()
                 if tid == 1 and (not token or token in ("YOUR_BOT_TOKEN_HERE", "")):
                     token = os.getenv("BOT_TOKEN", "").strip()
 
-                if tid not in running_bots:
+                is_not_running = tid not in running_bots
+                is_task_dead = (not is_not_running) and running_bots[tid]['task'].done()
+
+                if is_not_running or is_task_dead:
+                    if is_task_dead:
+                        logging.warning(f"Bot @{running_bots[tid].get('username')} to'xtab qolgan, qaytadan ishga tushirilmoqda...")
+                        del running_bots[tid]
                     await start_single_bot(t, dp)
                 elif running_bots[tid]['token'] != token:
                     logging.info(f"Bot tokeni yangilandi (ID {tid}). Qayta ishga tushirilmoqda...")
@@ -168,9 +192,9 @@ async def dynamic_bot_watcher(dp: Dispatcher):
                 del running_bots[tid]
 
         except Exception as ex:
-            logging.error(f"dynamic_bot_watcher error: {ex}")
+            logging.error(f"dynamic_bot_watcher xatosi: {ex}")
 
-        await asyncio.sleep(6)
+        await asyncio.sleep(5)
 
 async def main():
     # Ma'lumotlar bazasini initsializatsiya qilish
@@ -184,9 +208,18 @@ async def main():
         try:
             u = getattr(event, 'from_user', None)
             bot_obj = data.get('bot')
-            if u and u.id and not u.is_bot and bot_obj:
-                tenant = await get_tenant_by_bot_token(bot_obj.token)
-                t_id = tenant['id'] if tenant else 1
+            tenant_data = data.get('tenant')
+            if u and u.id and not u.is_bot:
+                t_id = 1
+                if tenant_data and isinstance(tenant_data, dict):
+                    t_id = tenant_data.get('id', 1)
+                elif bot_obj:
+                    t = getattr(bot_obj, 'tenant', None)
+                    if t and isinstance(t, dict):
+                        t_id = t.get('id', 1)
+                    else:
+                        db_t = await get_tenant_by_bot_token(bot_obj.token)
+                        t_id = db_t['id'] if db_t else 1
                 await add_user(u.id, "", 0.0, 0.0, tenant_id=t_id)
         except Exception as ex:
             logging.warning(f"auto_register_middleware error: {ex}")

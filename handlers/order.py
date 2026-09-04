@@ -11,10 +11,12 @@ router = Router()
 
 async def finalize_order(message: Message, payment_method: str = "Aniqlanmadi", receipt_image: str = None):
     bot: Bot = message.bot
-    tenant = await get_tenant_by_bot_token(bot.token)
+    tenant = getattr(bot, 'tenant', None)
+    if not tenant:
+        tenant = await get_tenant_by_bot_token(bot.token)
     tenant_id = tenant['id'] if tenant else 1
     tenant_slug = tenant['slug'] if tenant else "express"
-    admin_id = tenant['admin_telegram_id'] if (tenant and tenant.get('admin_telegram_id')) else os.getenv("ADMIN_ID")
+    admin_id = tenant.get('admin_telegram_id') if (tenant and tenant.get('admin_telegram_id')) else os.getenv("ADMIN_ID")
 
     user_id = message.from_user.id
     cart_items = await get_cart(user_id, tenant_id=tenant_id)

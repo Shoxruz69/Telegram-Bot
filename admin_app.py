@@ -8,7 +8,7 @@ from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 from flask import Flask, render_template, jsonify, request, session, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.orm import joinedload, subqueryload
+from sqlalchemy.orm import joinedload, subqueryload, foreign
 from flask_admin.contrib.sqla import ModelView
 from flask_admin import Admin, AdminIndexView, expose
 from markupsafe import Markup
@@ -85,14 +85,16 @@ class SuperAdmin(db.Model):
 
 class User(db.Model):
     __tablename__ = 'users'
-    user_id = db.Column(db.Integer, primary_key=True)
-    tenant_id = db.Column(db.Integer, default=1)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    user_id = db.Column(db.Integer, index=True)
+    tenant_id = db.Column(db.Integer, default=1, index=True)
     phone = db.Column(db.String(50))
     latitude = db.Column(db.Float)
     longitude = db.Column(db.Float)
+    __table_args__ = (db.UniqueConstraint('user_id', 'tenant_id', name='uq_user_tenant'),)
 
     def __repr__(self):
-        return f"<User {self.phone}>"
+        return f"<User {self.phone or self.user_id}>"
 
 class Category(db.Model):
     __tablename__ = 'categories'
@@ -129,10 +131,15 @@ class Cart(db.Model):
     __tablename__ = 'cart'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     tenant_id = db.Column(db.Integer, default=1)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'))
+    user_id = db.Column(db.Integer)
     item_id = db.Column(db.Integer, db.ForeignKey('menu.id'))
     quantity = db.Column(db.Integer)
-    user = db.relationship('User', backref='cart_items')
+    user = db.relationship(
+        'User',
+        primaryjoin='and_(foreign(Cart.user_id)==User.user_id, foreign(Cart.tenant_id)==User.tenant_id)',
+        uselist=False,
+        viewonly=True
+    )
     item = db.relationship('Menu', backref='cart_entries')
 
 class Setting(db.Model):
@@ -207,7 +214,7 @@ class Order(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     tenant_id = db.Column(db.Integer, default=1)
     daily_id = db.Column(db.Integer, default=1) # Har kunlik/soatlik 1, 2, 3... tartib raqam
-    user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'))
+    user_id = db.Column(db.Integer)
     status = db.Column(db.String(50), default="Kutilmoqda")
     payment_method = db.Column(db.String(50))
     receipt_image = db.Column(db.String(500))
@@ -216,7 +223,12 @@ class Order(db.Model):
     promocode = db.Column(db.String(50), nullable=True)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
     
-    user = db.relationship('User', backref='orders')
+    user = db.relationship(
+        'User',
+        primaryjoin='and_(foreign(Order.user_id)==User.user_id, foreign(Order.tenant_id)==User.tenant_id)',
+        uselist=False,
+        viewonly=True
+    )
     items = db.relationship('OrderItem', backref='order', lazy=True, cascade='all, delete-orphan')
 
     def __repr__(self):
@@ -302,7 +314,36 @@ with app.app_context():
                     db.session.execute(text(f"UPDATE {tbl} SET tenant_id = 1 WHERE tenant_id IS NULL"))
             except Exception as tex:
                 print(f"[tenant_id migration {tbl}]:", tex)
-        
+        # Multi-tenant users jadvali migratsiyasi (user_id yagona PK bo'lmasligi kerak)
+        try:
+            u_cols = inspector.get_columns('users')
+            has_id = any(c['name'] == 'id' for c in u_cols)
+            if not has_id:
+                print("[Migration]: users jadvalini multi-tenant sxemaga yangilash...")
+                db.session.execute(text('''
+                    CREATE TABLE IF NOT EXISTS users_migrated (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id INTEGER NOT NULL,
+                        tenant_id INTEGER NOT NULL DEFAULT 1,
+                        phone TEXT,
+                        latitude REAL,
+                        longitude REAL,
+                        UNIQUE (user_id, tenant_id)
+                    )
+                '''))
+                db.session.execute(text('''
+                    INSERT OR IGNORE INTO users_migrated (user_id, tenant_id, phone, latitude, longitude)
+                    SELECT user_id, COALESCE(tenant_id, 1), phone, latitude, longitude FROM users
+                '''))
+                db.session.execute(text('DROP TABLE users'))
+                db.session.execute(text('ALTER TABLE users_migrated RENAME TO users'))
+                db.session.execute(text('CREATE INDEX IF NOT EXISTS idx_users_uid_tid ON users (user_id, tenant_id)'))
+                db.session.commit()
+                print("[Migration]: users jadvali muvaffaqiyatli yangilandi!")
+        except Exception as uex:
+            print("[users migration note]:", uex)
+            db.session.rollback()
+
         db.session.commit()
 
         # Seed SuperAdmin if empty

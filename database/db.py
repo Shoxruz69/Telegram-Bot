@@ -43,11 +43,13 @@ async def init_db():
         # 3. Asosiy jadvallar (tenant_id bilan)
         await db.execute('''
             CREATE TABLE IF NOT EXISTS users (
-                user_id INTEGER PRIMARY KEY,
-                tenant_id INTEGER DEFAULT 1,
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                tenant_id INTEGER NOT NULL DEFAULT 1,
                 phone TEXT,
                 latitude REAL,
-                longitude REAL
+                longitude REAL,
+                UNIQUE (user_id, tenant_id)
             )
         ''')
         await db.execute('''
@@ -164,7 +166,38 @@ async def init_db():
         ''')
         await db.commit()
 
-        # 4. Migratsiyalar: har bir jadvalda tenant_id borligini tekshirish
+        # 4. Migratsiyalar: users jadvalini multi-tenant qilish (user_id yagona PK bo'lmasligi kerak)
+        try:
+            async with db.execute("PRAGMA table_info(users)") as cursor:
+                cols = await cursor.fetchall()
+                # col: (cid, name, type, notnull, dflt_value, pk)
+                is_old_pk = any(col[1] == 'user_id' and col[5] == 1 for col in cols) and not any(col[1] == 'id' for col in cols)
+                if is_old_pk:
+                    print("[Migration]: users jadvali multi-tenant sxemaga yangilanmoqda...")
+                    await db.execute('''
+                        CREATE TABLE users_migrated (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            user_id INTEGER NOT NULL,
+                            tenant_id INTEGER NOT NULL DEFAULT 1,
+                            phone TEXT,
+                            latitude REAL,
+                            longitude REAL,
+                            UNIQUE (user_id, tenant_id)
+                        )
+                    ''')
+                    await db.execute('''
+                        INSERT OR IGNORE INTO users_migrated (user_id, tenant_id, phone, latitude, longitude)
+                        SELECT user_id, COALESCE(tenant_id, 1), phone, latitude, longitude FROM users
+                    ''')
+                    await db.execute('DROP TABLE users')
+                    await db.execute('ALTER TABLE users_migrated RENAME TO users')
+                    await db.execute('CREATE INDEX IF NOT EXISTS idx_users_uid_tid ON users (user_id, tenant_id)')
+                    await db.commit()
+                    print("[Migration]: users jadvali muvaffaqiyatli ko'chirildi!")
+        except Exception as uex:
+            print(f"[Users migration error]: {uex}")
+
+        # 5. Har bir jadvalda tenant_id borligini tekshirish
         tables_to_check = ['users', 'categories', 'menu', 'promotions', 'cart', 'orders', 'order_items', 'settings', 'promocodes']
         for tbl in tables_to_check:
             try:
@@ -257,16 +290,23 @@ async def get_tenant_by_slug(slug):
 async def get_tenant_by_bot_token(bot_token):
     if not bot_token:
         return None
+    token_clean = bot_token.strip()
     async with get_db() as db:
         db.row_factory = aiosqlite.Row
-        async with db.execute('SELECT * FROM tenants WHERE bot_token = ?', (bot_token.strip(),)) as cursor:
+        # 1. Exact match (bo'sh joysiz)
+        async with db.execute('SELECT * FROM tenants WHERE TRIM(bot_token) = ?', (token_clean,)) as cursor:
             row = await cursor.fetchone()
             if row:
                 return dict(row)
-        # Fallback: agar topilmasa (masalan bot_token .env dan olingan bo'lsa), id=1 dagi birinchi tenantni qaytarish
-        async with db.execute('SELECT * FROM tenants WHERE id = 1') as cursor:
-            row1 = await cursor.fetchone()
-            return dict(row1) if row1 else None
+        # 2. Token prefix bo'yicha izlash (masalan bot_id:...)
+        if ":" in token_clean:
+            bot_prefix = token_clean.split(":")[0] + ":%"
+            async with db.execute('SELECT * FROM tenants WHERE bot_token LIKE ?', (bot_prefix,)) as cursor:
+                row = await cursor.fetchone()
+                if row:
+                    return dict(row)
+        # Topilmasa None qaytarish (xato boshqa tenantga ulanmasligi uchun)
+        return None
 
 async def get_tenant_by_admin_username(username):
     async with get_db() as db:
@@ -285,7 +325,7 @@ async def get_super_admin(username):
 async def get_all_active_tenants():
     async with get_db() as db:
         db.row_factory = aiosqlite.Row
-        async with db.execute("SELECT * FROM tenants WHERE is_active = 1 OR is_active = '1' OR is_active = 1.0") as cursor:
+        async with db.execute("SELECT * FROM tenants WHERE is_active IN (1, '1', 'True', 'true', 1.0) OR is_active IS TRUE") as cursor:
             rows = await cursor.fetchall()
             return [dict(r) for r in rows]
 
@@ -308,7 +348,7 @@ async def add_user(user_id, phone, lat, lon, tenant_id=1):
                 final_lon = lon if (lon and lon != 0.0) else existing[2]
                 await db.execute('UPDATE users SET phone = ?, latitude = ?, longitude = ? WHERE user_id = ? AND tenant_id = ?', (final_phone, final_lat, final_lon, user_id, tenant_id))
             else:
-                await db.execute('INSERT INTO users (user_id, tenant_id, phone, latitude, longitude) VALUES (?, ?, ?, ?, ?)', (user_id, tenant_id, phone or '', lat or 0.0, lon or 0.0))
+                await db.execute('INSERT OR IGNORE INTO users (user_id, tenant_id, phone, latitude, longitude) VALUES (?, ?, ?, ?, ?)', (user_id, tenant_id, phone or '', lat or 0.0, lon or 0.0))
         await db.commit()
 
 async def get_user(user_id, tenant_id=1):
