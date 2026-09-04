@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Super Admin | Multi-Restaurant SaaS Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/super_admin.css">
+</head>
+<body>
+
+  <!-- App Wrapper -->
+  <div class="super-app">
+    
+    <!-- Top Header -->
+    <header class="super-header">
+      <div class="header-brand">
+        <div class="brand-crown">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"></path>
+          </svg>
+        </div>
+        <div>
+          <h1 class="header-title">SaaS Super Admin</h1>
+          <span class="header-sub">Ko'p filialli restoranlar va botlar boshqaruv markazi</span>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <div class="live-status-pill">
+          <span class="pulse-dot"></span>
+          <span>Tizim Onlayn</span>
+        </div>
+
+        <button class="btn-primary" onclick="openCreateTenantModal()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          <span>Yangi Oshxona Qo'shish</span>
+        </button>
+
+        <a href="/logout" class="btn-logout" title="Chiqish">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+          <span>Chiqish</span>
+        </a>
+      </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="super-main">
+      
+      <!-- Stats Row -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon gold">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+          </div>
+          <div class="stat-info">
+            <span class="stat-label">Jami Oshxonalar</span>
+            <span class="stat-value" id="stat-total-tenants">0</span>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon green">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"></path><path d="M12 6v6l4 2"></path></svg>
+          </div>
+          <div class="stat-info">
+            <span class="stat-label">Faol Botlar</span>
+            <span class="stat-value" id="stat-active-bots">0</span>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon blue">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
+          </div>
+          <div class="stat-info">
+            <span class="stat-label">Jami Buyurtmalar</span>
+            <span class="stat-value" id="stat-total-orders">0</span>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon purple">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+          </div>
+          <div class="stat-info">
+            <span class="stat-label">Umumiy Savdo</span>
+            <span class="stat-value" id="stat-total-revenue">0 so'm</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tenants Table Section -->
+      <section class="table-section">
+        <div class="table-header-bar">
+          <div class="table-title-group">
+            <h2 class="section-title">Ulangan Oshxonalar & Botlar</h2>
+            <span class="section-badge" id="tenants-count-badge">0 ta</span>
+          </div>
+
+          <div class="table-controls">
+            <div class="search-wrap">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              <input type="text" id="search-input" placeholder="Oshxona yoki botni qidirish..." oninput="filterTenants()">
+            </div>
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table class="tenants-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Oshxona Nomi</th>
+                <th>Telegram Bot</th>
+                <th>Admin Kirishi (Login / Parol)</th>
+                <th>Telegram ID</th>
+                <th>Buyurtmalar</th>
+                <th>Status</th>
+                <th style="text-align: right;">Amallar</th>
+              </tr>
+            </thead>
+            <tbody id="tenants-tbody">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- MODAL: Yangi Oshxona Qo'shish (Klonlash) -->
+  <div class="modal-overlay" id="create-modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div class="modal-icon-badge">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+          </div>
+          <div>
+            <h3 class="modal-title" id="modal-title-text">Yangi Oshxona Qo'shish</h3>
+            <p class="modal-subtitle">Yangi Telegram bot va mustaqil admin panel yaratish</p>
+          </div>
+        </div>
+        <button class="btn-close" onclick="closeCreateTenantModal()">&times;</button>
+      </div>
+
+      <form id="create-tenant-form" onsubmit="handleSaveTenant(event)">
+        <input type="hidden" id="edit-tenant-id" value="">
+
+        <div class="modal-body">
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label class="form-label" for="tenant-name">Oshxona / Kafe Nomi *</label>
+              <input type="text" id="tenant-name" class="form-input" placeholder="Masalan: Dili Cafe" required oninput="autoGenerateSlug(this.value)">
+            </div>
+            <div class="form-group flex-1">
+              <label class="form-label" for="tenant-slug">Tizim Identifikatori (Slug) *</label>
+              <input type="text" id="tenant-slug" class="form-input" placeholder="dilicafe" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="tenant-bot-token">
+              <span>Telegram Bot Token (@BotFather dan) *</span>
+              <a href="https://t.me/BotFather" target="_blank" class="token-helper-link">BotFather'dan olish &rarr;</a>
+            </label>
+            <div class="input-with-action">
+              <input type="text" id="tenant-bot-token" class="form-input" placeholder="7123456789:AAHxyz..." required>
+              <button type="button" class="btn-verify" onclick="verifyBotToken()">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                <span>Tekshirish</span>
+              </button>
+            </div>
+            <div id="bot-verify-result" class="verify-status-box"></div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label class="form-label" for="tenant-admin-id">Admin Telegram ID (Xabarnomalar uchun)</label>
+              <input type="text" id="tenant-admin-id" class="form-input" placeholder="123456789">
+            </div>
+          </div>
+
+          <div class="form-divider">
+            <span>Admin Paneli Kirish Ma'lumotlari</span>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label class="form-label" for="tenant-username">Admin Logini *</label>
+              <input type="text" id="tenant-username" class="form-input" placeholder="dili_admin" required>
+            </div>
+            <div class="form-group flex-1">
+              <label class="form-label" for="tenant-password">
+                <span>Admin Paroli *</span>
+                <button type="button" class="btn-text-action" onclick="generateRandomPassword()">Tasodifiy</button>
+              </label>
+              <input type="text" id="tenant-password" class="form-input" placeholder="••••••••" required>
+            </div>
+          </div>
+
+          <div class="form-group" id="clone-menu-wrap" style="margin-top: 10px;">
+            <label class="checkbox-label">
+              <input type="checkbox" id="tenant-clone-menu" checked>
+              <span>Boshlang'ich menyuni nusxalash (Cafe Express taomlar va kategoriyalari bilan ochilsin)</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" onclick="closeCreateTenantModal()">Bekor qilish</button>
+          <button type="submit" class="btn-primary" id="btn-save-tenant">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span id="save-btn-text">Saqlash & Botni Ishga Tushirish</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast notifications -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="/static/super_admin.js"></script>
+</body>
+</html>

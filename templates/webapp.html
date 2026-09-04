@@ -864,7 +864,7 @@
                 <img src="/static/cafe_logo.png" alt="Logo">
             </div>
             <div>
-                <h3>Cafe Express</h3>
+                <h3 id="app-restaurant-name">Cafe Express</h3>
                 <span class="header-sub" id="header-sub-text">Tez yetkazib berish</span>
             </div>
         </div>
@@ -966,6 +966,9 @@
     </div>
 
     <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const tenantSlug = urlParams.get('tenant') || '{{ tenant_slug }}' || '';
+
         const tg = window.Telegram ? window.Telegram.WebApp : null;
         if (tg) {
             try {
@@ -1787,8 +1790,15 @@
                 }
 
                 const tgUid = getTelegramUserId();
-                const res = await fetch(`/api/data?user_id=${encodeURIComponent(tgUid)}`);
+                const tenantQuery = tenantSlug ? `&tenant=${encodeURIComponent(tenantSlug)}` : '';
+                const res = await fetch(`/api/data?user_id=${encodeURIComponent(tgUid)}${tenantQuery}`);
                 const data = await res.json();
+
+                if (data.restaurant_name) {
+                    const rNameEl = document.getElementById('app-restaurant-name');
+                    if (rNameEl) rNameEl.innerText = data.restaurant_name;
+                    document.title = data.restaurant_name;
+                }
 
                 cachedPromotions = data.promotions || [];
                 allItems = applyPromotions(data.menu || [], cachedPromotions);
@@ -2069,7 +2079,7 @@
                 const res = await fetch('/api/validate_promocode', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ code, order_amount: total })
+                    body: JSON.stringify({ code, order_amount: total, tenant: tenantSlug })
                 });
                 const data = await res.json();
                 if (data.success) {
@@ -2265,6 +2275,7 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
+                        tenant: tenantSlug,
                         user_id: userId,
                         phone: phone,
                         address: address,

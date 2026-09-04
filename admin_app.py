@@ -6,13 +6,15 @@ import uuid
 from datetime import datetime, timezone, timedelta
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, session, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import joinedload, subqueryload
 from flask_admin.contrib.sqla import ModelView
 from flask_admin import Admin, AdminIndexView, expose
-from flask import redirect, url_for
 from markupsafe import Markup
+from werkzeug.security import generate_password_hash, check_password_hash
+from functools import wraps
+import re
 
 load_dotenv()
 
@@ -43,9 +45,48 @@ db = SQLAlchemy(app)
 
 # --- Ma'lumotlar bazasi modellari (SQLAlchemy) ---
 
+class Tenant(db.Model):
+    __tablename__ = 'tenants'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    name = db.Column(db.String(100), nullable=False)
+    slug = db.Column(db.String(50), unique=True, nullable=False)
+    bot_token = db.Column(db.String(100), unique=True, nullable=False)
+    bot_username = db.Column(db.String(100))
+    admin_telegram_id = db.Column(db.String(50))
+    admin_username = db.Column(db.String(50), unique=True, nullable=False)
+    admin_password_hash = db.Column(db.String(255), nullable=False)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+
+    def set_password(self, password):
+        self.admin_password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.admin_password_hash, password)
+
+    def __repr__(self):
+        return f"<Tenant {self.name} ({self.slug})>"
+
+class SuperAdmin(db.Model):
+    __tablename__ = 'super_admins'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    username = db.Column(db.String(50), unique=True, nullable=False)
+    password_hash = db.Column(db.String(255), nullable=False)
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+
+    def __repr__(self):
+        return f"<SuperAdmin {self.username}>"
+
 class User(db.Model):
     __tablename__ = 'users'
     user_id = db.Column(db.Integer, primary_key=True)
+    tenant_id = db.Column(db.Integer, default=1)
     phone = db.Column(db.String(50))
     latitude = db.Column(db.Float)
     longitude = db.Column(db.Float)
@@ -56,6 +97,7 @@ class User(db.Model):
 class Category(db.Model):
     __tablename__ = 'categories'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    tenant_id = db.Column(db.Integer, default=1)
     name = db.Column(db.String(100))
     name_ru = db.Column(db.String(100))
     name_en = db.Column(db.String(100))
@@ -67,6 +109,7 @@ class Category(db.Model):
 class Menu(db.Model):
     __tablename__ = 'menu'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    tenant_id = db.Column(db.Integer, default=1)
     category_id = db.Column(db.Integer, db.ForeignKey('categories.id'))
     name = db.Column(db.String(100))
     name_ru = db.Column(db.String(100))
@@ -85,6 +128,7 @@ class Menu(db.Model):
 class Cart(db.Model):
     __tablename__ = 'cart'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    tenant_id = db.Column(db.Integer, default=1)
     user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'))
     item_id = db.Column(db.Integer, db.ForeignKey('menu.id'))
     quantity = db.Column(db.Integer)
@@ -94,6 +138,7 @@ class Cart(db.Model):
 class Setting(db.Model):
     __tablename__ = 'settings'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    tenant_id = db.Column(db.Integer, default=1)
     card_number = db.Column(db.String(100))
     card_name = db.Column(db.String(100))
     work_time_start = db.Column(db.String(10), default="09:00")
@@ -106,6 +151,7 @@ class Setting(db.Model):
 class Promotion(db.Model):
     __tablename__ = 'promotions'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    tenant_id = db.Column(db.Integer, default=1)
     title = db.Column(db.String(200), nullable=False)
     title_ru = db.Column(db.String(200))
     title_en = db.Column(db.String(200))
@@ -129,7 +175,8 @@ class Promotion(db.Model):
 class PromoCode(db.Model):
     __tablename__ = 'promocodes'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    code = db.Column(db.String(50), unique=True, nullable=False)
+    tenant_id = db.Column(db.Integer, default=1)
+    code = db.Column(db.String(50), nullable=False)
     discount_percent = db.Column(db.Integer, nullable=False, default=0)
     end_date = db.Column(db.String(100), nullable=True) # Tugash vaqti masalan: '2026-12-31 23:59'
     min_order_amount = db.Column(db.Integer, default=0) # Minimal buyurtma summasi
@@ -145,6 +192,7 @@ class OrderItem(db.Model):
     """Buyurtma tarkibidagi har bir mahsulot"""
     __tablename__ = 'order_items'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    tenant_id = db.Column(db.Integer, default=1)
     order_id = db.Column(db.Integer, db.ForeignKey('orders.id'))
     menu_item_id = db.Column(db.Integer)
     name = db.Column(db.String(200))
@@ -157,6 +205,7 @@ class OrderItem(db.Model):
 class Order(db.Model):
     __tablename__ = 'orders'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    tenant_id = db.Column(db.Integer, default=1)
     daily_id = db.Column(db.Integer, default=1) # Har kunlik/soatlik 1, 2, 3... tartib raqam
     user_id = db.Column(db.Integer, db.ForeignKey('users.user_id'))
     status = db.Column(db.String(50), default="Kutilmoqda")
@@ -244,12 +293,55 @@ with app.app_context():
         if 'max_order_amount' not in promocodes_cols:
             db.session.execute(text("ALTER TABLE promocodes ADD COLUMN max_order_amount INTEGER DEFAULT 0"))
 
+        # Multi-tenant migration
+        for tbl in ['users', 'categories', 'menu', 'promotions', 'cart', 'orders', 'order_items', 'settings', 'promocodes']:
+            try:
+                tbl_cols = [col['name'] for col in inspector.get_columns(tbl)]
+                if 'tenant_id' not in tbl_cols:
+                    db.session.execute(text(f"ALTER TABLE {tbl} ADD COLUMN tenant_id INTEGER DEFAULT 1"))
+                    db.session.execute(text(f"UPDATE {tbl} SET tenant_id = 1 WHERE tenant_id IS NULL"))
+            except Exception as tex:
+                print(f"[tenant_id migration {tbl}]:", tex)
+        
         db.session.commit()
+
+        # Seed SuperAdmin if empty
+        try:
+            if SuperAdmin.query.count() == 0:
+                sa = SuperAdmin(username='superadmin')
+                sa.set_password('admin777')
+                db.session.add(sa)
+                db.session.commit()
+                print("[SuperAdmin seeded]: superadmin / admin777")
+        except Exception as sae:
+            print("[SuperAdmin seed error]:", sae)
+
+        # Seed Tenant #1 (Cafe Express) if empty
+        try:
+            if Tenant.query.count() == 0:
+                env_token = os.getenv("BOT_TOKEN", "YOUR_BOT_TOKEN_HERE")
+                env_admin_id = os.getenv("ADMIN_ID", "")
+                t1 = Tenant(
+                    id=1,
+                    name="Cafe Express",
+                    slug="express",
+                    bot_token=env_token,
+                    bot_username="@CafeExpressBot",
+                    admin_telegram_id=env_admin_id,
+                    admin_username="admin",
+                    is_active=True
+                )
+                t1.set_password("admin123")
+                db.session.add(t1)
+                db.session.commit()
+                print("[Tenant 1 seeded]: Cafe Express (admin / admin123)")
+        except Exception as te:
+            print("[Tenant seed error]:", te)
 
         # Seed initial sample promo code if table is empty
         try:
             if PromoCode.query.count() == 0:
-                db.session.add(PromoCode(code='696JF', discount_percent=3, is_active=True))
+                db.session.add(PromoCode(code='696JF', discount_percent=3, is_active=True, tenant_id=1))
                 db.session.commit()
         except Exception as pe:
             print("[Promo seed error]:", pe)
@@ -347,22 +439,29 @@ def check_promocode_validity(promo, order_amount=0):
     return True, None
 
 
-def broadcast_to_users(text, photo_url_or_path=None, parse_mode='HTML'):
+def broadcast_to_users(text, photo_url_or_path=None, parse_mode='HTML', tenant_id=None):
     """
     Bot foydalanuvchilariga (User va Order jadvalidagi barcha mijozlarga) fonda reklama xabarini yuboradi.
     """
     def send_broadcast_worker():
-        bot_token = os.getenv("BOT_TOKEN")
-        if not bot_token:
-            print("[Broadcast warning]: BOT_TOKEN sozlanmagan!")
-            return
-
         with app.app_context():
+            t_obj = None
+            if tenant_id:
+                t_obj = Tenant.query.get(tenant_id)
+            if not t_obj:
+                t_obj = Tenant.query.first()
+
+            bot_token = t_obj.bot_token if (t_obj and t_obj.bot_token) else os.getenv("BOT_TOKEN")
+            if not bot_token:
+                print("[Broadcast warning]: BOT_TOKEN sozlanmagan!")
+                return
+
+            t_id = t_obj.id if t_obj else 1
             target_ids = set()
 
             # 1. User jadvalidan barcha foydalanuvchilar
             try:
-                users = User.query.filter(User.user_id.isnot(None), User.user_id > 1000).all()
+                users = User.query.filter(User.user_id.isnot(None), User.user_id > 1000, User.tenant_id == t_id).all()
                 for u in users:
                     target_ids.add(int(u.user_id))
             except Exception as e:
@@ -370,26 +469,28 @@ def broadcast_to_users(text, photo_url_or_path=None, parse_mode='HTML'):
 
             # 2. Order jadvalidan barcha mijozlar
             try:
-                orders = Order.query.filter(Order.user_id.isnot(None), Order.user_id > 1000).all()
+                orders = Order.query.filter(Order.user_id.isnot(None), Order.user_id > 1000, Order.tenant_id == t_id).all()
                 for o in orders:
                     target_ids.add(int(o.user_id))
             except Exception as e:
                 print(f"[Broadcast orders query error]: {e}")
 
             # 3. Admin ID
-            admin_id = os.getenv("ADMIN_ID")
+            admin_id = t_obj.admin_telegram_id if (t_obj and t_obj.admin_telegram_id) else os.getenv("ADMIN_ID")
             if admin_id and str(admin_id).isdigit() and int(admin_id) > 1000:
                 target_ids.add(int(admin_id))
 
-            print(f"[Broadcast]: Jami {len(target_ids)} ta mijozga reklama yuborilmoqda: {target_ids}")
+            print(f"[Broadcast tenant={t_id}]: Jami {len(target_ids)} ta mijozga reklama yuborilmoqda: {target_ids}")
 
             # Mini App ochish tugmasi
             raw_url = os.getenv("RENDER_EXTERNAL_URL", "") or os.getenv("WEB_APP_URL", "")
             web_app_url = raw_url.strip() if raw_url else ""
             if web_app_url and not web_app_url.startswith("http"):
                 web_app_url = f"https://{web_app_url}"
-            if web_app_url and not web_app_url.endswith("/webapp"):
+            if web_app_url:
                 web_app_url = f"{web_app_url.rstrip('/')}/webapp"
+                if t_obj and t_obj.slug:
+                    web_app_url += f"?tenant={t_obj.slug}"
 
             reply_markup = None
             if web_app_url:
@@ -605,7 +706,8 @@ def api_reverse_geocode():
 # --- WebApp API ---
 @app.route('/webapp')
 def webapp():
-    return render_template('webapp.html')
+    tenant_slug = request.args.get('tenant', '').strip()
+    return render_template('webapp.html', tenant_slug=tenant_slug)
 
 @app.route('/ping', methods=['GET', 'HEAD'])
 @app.route('/health', methods=['GET', 'HEAD'])
@@ -646,10 +748,18 @@ start_self_ping()
 
 @app.route('/api/data')
 def api_data():
-    categories = Category.query.all()
-    menus = Menu.query.all()
-    setting = Setting.query.first()
-    promotions = Promotion.query.filter_by(is_active=True).all()
+    tenant_param = request.args.get('tenant', '').strip()
+    tenant_obj = None
+    if tenant_param:
+        tenant_obj = Tenant.query.filter((Tenant.slug == tenant_param.lower()) | (Tenant.id == tenant_param)).first()
+    if not tenant_obj:
+        tenant_obj = Tenant.query.first()
+
+    t_id = tenant_obj.id if tenant_obj else 1
+    categories = Category.query.filter_by(tenant_id=t_id).all()
+    menus = Menu.query.filter_by(tenant_id=t_id).all()
+    setting = Setting.query.filter_by(tenant_id=t_id).first()
+    promotions = Promotion.query.filter_by(tenant_id=t_id, is_active=True).all()
     
     user_id = request.args.get('user_id')
     user_data = None
@@ -657,9 +767,9 @@ def api_data():
         uid_int = int(user_id)
         if uid_int > 1000:
             try:
-                u = User.query.get(uid_int)
+                u = User.query.filter_by(user_id=uid_int, tenant_id=t_id).first()
                 if not u:
-                    u = User(user_id=uid_int, phone="", latitude=0.0, longitude=0.0)
+                    u = User(user_id=uid_int, tenant_id=t_id, phone="", latitude=0.0, longitude=0.0)
                     db.session.add(u)
                     db.session.commit()
                 if u:
@@ -672,6 +782,7 @@ def api_data():
                 print(f"[api_data user auto-register error]: {e}")
 
     return jsonify({
+        'restaurant_name': tenant_obj.name if tenant_obj else "Cafe Express",
         'categories': [{
             'id': c.id, 
             'name': c.name,
@@ -708,7 +819,7 @@ def api_data():
         } for p in promotions],
         'settings': {
             'card_number': setting.card_number if setting else "8600 0000 0000 0000",
-            'card_name': setting.card_name if setting else "Ism Familiya"
+            'card_name': setting.card_name if setting else (tenant_obj.name if tenant_obj else "Ism Familiya")
         },
         'user': user_data
     })
@@ -717,8 +828,27 @@ def api_data():
 def api_checkout():
     """1-qadam: Buyurtmani tezda saqlash va javob qaytarish (UI qotib qolmaydi)"""
     try:
+        data = None
+        if request.is_json:
+            data = request.get_json(silent=True)
+        if not data:
+            try:
+                data = json.loads(request.data.decode('utf-8'))
+            except:
+                data = None
+        if not data:
+            data = request.form.to_dict()
+
+        tenant_param = (data.get('tenant') if data else '') or request.args.get('tenant', '').strip()
+        tenant_obj = None
+        if tenant_param:
+            tenant_obj = Tenant.query.filter((Tenant.slug == str(tenant_param).lower()) | (Tenant.id == tenant_param)).first()
+        if not tenant_obj:
+            tenant_obj = Tenant.query.first()
+        tenant_id = tenant_obj.id if tenant_obj else 1
+
         # Ish vaqtini tekshirish
-        setting = Setting.query.first()
+        setting = Setting.query.filter_by(tenant_id=tenant_id).first()
         if setting and getattr(setting, 'work_time_start', None) and getattr(setting, 'work_time_end', None):
             start = setting.work_time_start.strip() if setting.work_time_start else ""
             end = setting.work_time_end.strip() if setting.work_time_end else ""
@@ -733,17 +863,6 @@ def api_checkout():
                     if not (current_time_str >= start or current_time_str <= end):
                         return jsonify({'success': False, 'error': f"Ish vaqti tugadi! Bizning ish vaqtimiz {start} dan {end} gacha."})
 
-        data = None
-        if request.is_json:
-            data = request.get_json(silent=True)
-        if not data:
-            try:
-                data = json.loads(request.data.decode('utf-8'))
-            except:
-                data = None
-        if not data:
-            data = request.form.to_dict()
-
         user_id = str(data.get('user_id', '')).strip()
         phone = str(data.get('phone', '')).strip()
         address = str(data.get('address', '')).strip()
@@ -754,7 +873,7 @@ def api_checkout():
 
         # Agar user_id kelmagan yoki '0' bo'lsa, DB dan ushbu telefon raqamli foydalanuvchini izlaymiz
         if (not user_id or user_id == '0') and phone:
-            found_u = User.query.filter(User.phone == phone, User.user_id != 0).first()
+            found_u = User.query.filter(User.phone == phone, User.user_id != 0, User.tenant_id == tenant_id).first()
             if found_u:
                 user_id = str(found_u.user_id)
 
@@ -773,10 +892,12 @@ def api_checkout():
         total_amount = 0
         order_items_data = []
         order_text_items = ""
-        active_promotions = Promotion.query.filter_by(is_active=True).all()
+        active_promotions = Promotion.query.filter_by(tenant_id=tenant_id, is_active=True).all()
 
         for item in items:
-            menu_item = Menu.query.get(int(item['id']))
+            menu_item = Menu.query.filter_by(id=int(item['id']), tenant_id=tenant_id).first()
+            if not menu_item:
+                menu_item = Menu.query.get(int(item['id']))
             if menu_item:
                 qty = int(item['qty'])
                 price = menu_item.price
@@ -825,9 +946,9 @@ def api_checkout():
         try:
             parsed_uid = int(user_id) if (user_id and user_id.isdigit()) else 0
             if parsed_uid > 0:
-                user_obj = User.query.get(parsed_uid)
+                user_obj = User.query.filter_by(user_id=parsed_uid, tenant_id=tenant_id).first()
                 if not user_obj:
-                    user_obj = User(user_id=parsed_uid, phone=phone, latitude=lat_val, longitude=lon_val)
+                    user_obj = User(user_id=parsed_uid, tenant_id=tenant_id, phone=phone, latitude=lat_val, longitude=lon_val)
                     db.session.add(user_obj)
                 else:
                     user_obj.phone = phone
@@ -855,13 +976,12 @@ def api_checkout():
                 print(f"[Base64 decode error]: {e}")
 
         # Setting-dan order_reset_hours ni olish (default 24 soat)
-        setting = Setting.query.first()
-        reset_hours = getattr(setting, 'order_reset_hours', 24)
+        reset_hours = getattr(setting, 'order_reset_hours', 24) if setting else 24
         if reset_hours is None:
             reset_hours = 24
 
         now_utc = datetime.utcnow()
-        last_order = Order.query.order_by(Order.id.desc()).first()
+        last_order = Order.query.filter_by(tenant_id=tenant_id).order_by(Order.id.desc()).first()
 
         if not last_order:
             next_daily_id = 1
@@ -890,7 +1010,7 @@ def api_checkout():
         applied_promo = None
         promo_discount_amount = 0
         if promocode_str:
-            promo_obj = PromoCode.query.filter_by(code=promocode_str).first()
+            promo_obj = PromoCode.query.filter_by(tenant_id=tenant_id, code=promocode_str).first()
             if promo_obj:
                 is_valid, _ = check_promocode_validity(promo_obj, total_amount)
                 if is_valid and promo_obj.discount_percent > 0:
@@ -901,6 +1021,7 @@ def api_checkout():
 
         # Buyurtmani DB ga saqlash
         new_order = Order(
+            tenant_id=tenant_id,
             daily_id=next_daily_id,
             user_id=int(user_id) if str(user_id).isdigit() else 0,
             status="Kutilmoqda",
@@ -915,6 +1036,7 @@ def api_checkout():
 
         for oi in order_items_data:
             db.session.add(OrderItem(
+                tenant_id=tenant_id,
                 order_id=new_order.id,
                 menu_item_id=oi['menu_item_id'],
                 name=oi['name'],
@@ -928,8 +1050,10 @@ def api_checkout():
 
         # Admin va mijozga FONDA xabar yuborish (UI ni kuttiradigan narsa yo'q)
         promo_line = f"🎟️ Promokod: {applied_promo.code} (-{applied_promo.discount_percent}% / -{promo_discount_amount:,} so'm)\n" if applied_promo else ""
+        restaurant_display = f"🍽️ {tenant_obj.name}\n" if tenant_obj else ""
         order_text = (
-            f"🆕 YANGI BUYURTMA #{order_no}!\n\n"
+            f"🆕 YANGI BUYURTMA #{order_no}!\n"
+            f"{restaurant_display}\n"
             f"👤 Mijoz: {phone}\n"
             f"📍 Manzil: {address}\n"
             f"💳 To'lov: {payment_method}\n"
@@ -939,10 +1063,10 @@ def api_checkout():
         )
 
         def notify_all():
-            bot_token = os.getenv("BOT_TOKEN")
-            admin_id = os.getenv("ADMIN_ID")
+            bot_token = tenant_obj.bot_token if (tenant_obj and tenant_obj.bot_token) else os.getenv("BOT_TOKEN")
+            admin_id = tenant_obj.admin_telegram_id if (tenant_obj and tenant_obj.admin_telegram_id) else os.getenv("ADMIN_ID")
             if not bot_token:
-                print("[Notify warning]: BOT_TOKEN sozlanmagan!")
+                print(f"[Notify warning]: Tenant {tenant_id} uchun BOT_TOKEN sozlanmagan!")
                 return
 
             # Admin xabari
@@ -1046,13 +1170,16 @@ def upload_receipt(order_id):
     order_total = order.total_amount
     order_phone = order.user.phone if order.user else 'N/A'
     order_address = order.address
+    tenant_id = order.tenant_id or 1
+    tenant_obj = Tenant.query.get(tenant_id) if tenant_id else Tenant.query.first()
+    bot_token = tenant_obj.bot_token if (tenant_obj and tenant_obj.bot_token) else os.getenv("BOT_TOKEN")
+    admin_id = tenant_obj.admin_telegram_id if (tenant_obj and tenant_obj.admin_telegram_id) else os.getenv("ADMIN_ID")
+
     items_text = ""
     for oi in order.items:
         items_text += f"• {oi.name} x{oi.quantity} = {oi.price * oi.quantity:,} so'm\n"
 
     def send_receipt_to_admin():
-        bot_token = os.getenv("BOT_TOKEN")
-        admin_id = os.getenv("ADMIN_ID")
         if not bot_token or not admin_id or admin_id in ("YOUR_ADMIN_ID_HERE", ""):
             return
         caption = (
@@ -1080,8 +1207,9 @@ def upload_receipt(order_id):
 
 
 # --- Bitepoint Order Notification Helper ---
-def send_telegram_order_status_update(user_id, order_id, status, payment_method, total_amount):
-    bot_token = os.getenv("BOT_TOKEN")
+def send_telegram_order_status_update(user_id, order_id, status, payment_method, total_amount, tenant_id=1):
+    tenant = Tenant.query.get(tenant_id)
+    bot_token = tenant.bot_token if (tenant and tenant.bot_token) else os.getenv("BOT_TOKEN")
     if not bot_token or not user_id:
         return
     payment = payment_method or "Naqd"
@@ -1125,22 +1253,396 @@ def send_telegram_order_status_update(user_id, order_id, status, payment_method,
     threading.Thread(target=_worker, daemon=True).start()
 
 
+# --- Auth & Session Helperlari ---
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_type' not in session:
+            return redirect(url_for('login_view', next=request.path))
+        return f(*args, **kwargs)
+    return decorated_function
+
+def super_admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if session.get('user_type') != 'super_admin':
+            return redirect('/login')
+        return f(*args, **kwargs)
+    return decorated_function
+
+def get_current_tenant():
+    if session.get('user_type') == 'super_admin' and not session.get('tenant_id'):
+        return Tenant.query.first()
+    t_id = session.get('tenant_id')
+    if t_id:
+        t = Tenant.query.get(t_id)
+        if t:
+            return t
+    return Tenant.query.first()
+
+def get_current_tenant_id():
+    t = get_current_tenant()
+    return t.id if t else 1
+
+
+# --- Auth Routes ---
+
+@app.route('/login', methods=['GET', 'POST'])
+def login_view():
+    if request.method == 'GET':
+        if session.get('user_type') == 'super_admin':
+            return redirect('/superadmin')
+        elif session.get('user_type') == 'tenant_admin':
+            return redirect('/admin')
+        return render_template('login.html')
+
+    data = request.get_json(silent=True) or request.form.to_dict() or {}
+    username = str(data.get('username', '')).strip()
+    password = str(data.get('password', '')).strip()
+
+    if not username or not password:
+        return jsonify({'success': False, 'error': 'Login va parolni kiriting!'}), 400
+
+    # 1. Super Admin tekshiruvi
+    sa = SuperAdmin.query.filter_by(username=username).first()
+    if sa and sa.check_password(password):
+        session.clear()
+        session['user_type'] = 'super_admin'
+        session['username'] = sa.username
+        return jsonify({'success': True, 'redirect': '/superadmin', 'user_type': 'super_admin'})
+
+    # 2. Oshxona Admin tekshiruvi
+    t = Tenant.query.filter_by(admin_username=username).first()
+    if t and t.check_password(password):
+        if not t.is_active:
+            return jsonify({'success': False, 'error': "Ushbu oshxona faoliyati to'xtatilgan yoki bloklangan!"}), 403
+        session.clear()
+        session['user_type'] = 'tenant_admin'
+        session['tenant_id'] = t.id
+        session['tenant_slug'] = t.slug
+        session['tenant_name'] = t.name
+        session['username'] = t.admin_username
+        return jsonify({'success': True, 'redirect': '/admin', 'user_type': 'tenant_admin'})
+
+    return jsonify({'success': False, 'error': 'Login yoki parol noto\'g\'ri!'}), 401
+
+
+@app.route('/logout')
+def logout_view():
+    session.clear()
+    return redirect('/login')
+
+
+@app.route('/superadmin/exit-impersonate')
+def exit_impersonate():
+    if session.get('is_impersonating'):
+        session.clear()
+        session['user_type'] = 'super_admin'
+        session['username'] = 'superadmin'
+        return redirect('/superadmin')
+    return redirect('/login')
+
+
+# --- Super Admin Panel Routes & APIs ---
+
+@app.route('/superadmin')
+@super_admin_required
+def super_admin_dashboard():
+    return render_template('admin/super_admin.html')
+
+
+@app.route('/api/superadmin/stats')
+@super_admin_required
+def api_superadmin_stats():
+    total_tenants = Tenant.query.count()
+    active_tenants = Tenant.query.filter_by(is_active=True).count()
+    total_orders = Order.query.count()
+    total_revenue = db.session.query(db.func.sum(Order.total_amount)).filter(Order.status.in_(['Tasdiqlandi', 'Tugatildi'])).scalar() or 0
+    return jsonify({
+        'success': True,
+        'stats': {
+            'total_tenants': total_tenants,
+            'active_tenants': active_tenants,
+            'total_orders': total_orders,
+            'total_revenue': total_revenue
+        }
+    })
+
+
+@app.route('/api/superadmin/tenants')
+@super_admin_required
+def api_superadmin_tenants():
+    tenants = Tenant.query.order_by(Tenant.id.desc()).all()
+    result = []
+    for t in tenants:
+        orders_count = Order.query.filter_by(tenant_id=t.id).count()
+        rev = db.session.query(db.func.sum(Order.total_amount)).filter(Order.tenant_id == t.id, Order.status.in_(['Tasdiqlandi', 'Tugatildi'])).scalar() or 0
+        created_str = t.created_at.strftime("%Y-%m-%d %H:%M") if t.created_at else ""
+        result.append({
+            'id': t.id,
+            'name': t.name,
+            'slug': t.slug,
+            'bot_username': t.bot_username or '',
+            'bot_token_masked': t.bot_token[:8] + "..." + t.bot_token[-4:] if len(t.bot_token) > 12 else "***",
+            'admin_telegram_id': t.admin_telegram_id or '',
+            'admin_username': t.admin_username,
+            'is_active': bool(t.is_active),
+            'orders_count': orders_count,
+            'total_revenue': rev,
+            'created_at': created_str
+        })
+    return jsonify({'success': True, 'tenants': result})
+
+
+@app.route('/api/superadmin/verify-token', methods=['POST'])
+@super_admin_required
+def api_superadmin_verify_token():
+    data = request.get_json(silent=True) or request.form.to_dict() or {}
+    token = str(data.get('token', '')).strip()
+    if not token:
+        return jsonify({'success': False, 'error': 'Token kiritilmadi'}), 400
+    try:
+        r = requests.get(f"https://api.telegram.org/bot{token}/getMe", timeout=8)
+        res = r.json()
+        if res.get('ok'):
+            return jsonify({'success': True, 'bot': res.get('result')})
+        else:
+            return jsonify({'success': False, 'error': res.get('description', 'Yaroqsiz token')})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/api/superadmin/tenants/create', methods=['POST'])
+@super_admin_required
+def api_superadmin_tenants_create():
+    data = request.get_json(silent=True) or request.form.to_dict() or {}
+    name = str(data.get('name', '')).strip()
+    slug = str(data.get('slug', '')).strip().lower()
+    bot_token = str(data.get('bot_token', '')).strip()
+    admin_telegram_id = str(data.get('admin_telegram_id', '')).strip()
+    admin_username = str(data.get('admin_username', '')).strip()
+    admin_password = str(data.get('admin_password', '')).strip()
+    clone_menu = bool(data.get('clone_menu', True))
+
+    if not name:
+        return jsonify({'success': False, 'error': 'Oshxona nomi kiritilmadi!'}), 400
+    if not bot_token:
+        return jsonify({'success': False, 'error': 'Telegram bot tokeni kiritilmadi!'}), 400
+    if not admin_username or not admin_password:
+        return jsonify({'success': False, 'error': 'Admin logini va paroli kiritilmadi!'}), 400
+
+    if not slug:
+        slug = re.sub(r'[^a-zA-Z0-9_]', '', name.lower().replace(' ', '_'))[:20]
+
+    # Unikallikni tekshirish
+    if Tenant.query.filter_by(slug=slug).first():
+        return jsonify({'success': False, 'error': f"'{slug}' identifikatori allaqachon mavjud!"}), 400
+    if Tenant.query.filter_by(bot_token=bot_token).first():
+        return jsonify({'success': False, 'error': "Ushbu bot tokeni allaqachon boshqa oshxonaga ulangan!"}), 400
+    if Tenant.query.filter_by(admin_username=admin_username).first() or SuperAdmin.query.filter_by(username=admin_username).first():
+        return jsonify({'success': False, 'error': f"'{admin_username}' logini allaqachon band!"}), 400
+
+    # Telegram bot tokenini tekshirish va @username ni olish
+    bot_username = ''
+    try:
+        r = requests.get(f"https://api.telegram.org/bot{bot_token}/getMe", timeout=8)
+        res = r.json()
+        if not res.get('ok'):
+            return jsonify({'success': False, 'error': f"Telegram API xatosi: {res.get('description', 'Yaroqsiz token')}"}), 400
+        raw_user = res.get('result', {}).get('username', '')
+        if raw_user:
+            bot_username = '@' + raw_user if not raw_user.startswith('@') else raw_user
+    except Exception as te:
+        return jsonify({'success': False, 'error': f"Telegram botini tekshirib bo'lmadi: {te}"}), 400
+
+    # Yangi Tenant yaratish
+    new_tenant = Tenant(
+        name=name,
+        slug=slug,
+        bot_token=bot_token,
+        bot_username=bot_username,
+        admin_telegram_id=admin_telegram_id,
+        admin_username=admin_username,
+        is_active=True
+    )
+    new_tenant.set_password(admin_password)
+    db.session.add(new_tenant)
+    db.session.flush()
+
+    # Yangi oshxona uchun standart Sozlamalar (Setting) yaratish
+    new_setting = Setting(
+        tenant_id=new_tenant.id,
+        card_number="8600 0000 0000 0000",
+        card_name=name,
+        work_time_start="09:00",
+        work_time_end="22:00"
+    )
+    db.session.add(new_setting)
+
+    # Agar menyuni klonlash tanlangan bo'lsa, 1-oshxonadan ko'chiramiz
+    if clone_menu:
+        try:
+            base_cats = Category.query.filter_by(tenant_id=1).all()
+            for cat in base_cats:
+                new_cat = Category(
+                    tenant_id=new_tenant.id,
+                    name=cat.name,
+                    name_ru=cat.name_ru,
+                    name_en=cat.name_en
+                )
+                db.session.add(new_cat)
+                db.session.flush()
+
+                cat_menus = Menu.query.filter_by(category_id=cat.id, tenant_id=1).all()
+                for m in cat_menus:
+                    new_menu = Menu(
+                        tenant_id=new_tenant.id,
+                        category_id=new_cat.id,
+                        name=m.name,
+                        name_ru=m.name_ru,
+                        name_en=m.name_en,
+                        description=m.description,
+                        description_ru=m.description_ru,
+                        description_en=m.description_en,
+                        price=m.price,
+                        old_price=m.old_price,
+                        calories=m.calories,
+                        image_url=m.image_url
+                    )
+                    db.session.add(new_menu)
+        except Exception as ce:
+            print(f"[Clone menu error]: {ce}")
+
+    db.session.commit()
+
+    # Telegram bot komandalari va WebApp tugmasini avtomatik sozlash
+    try:
+        raw_url = os.getenv("RENDER_EXTERNAL_URL", "") or os.getenv("WEB_APP_URL", "")
+        base_url = raw_url.strip().rstrip('/') if raw_url else ""
+        if base_url and not base_url.startswith('http'):
+            base_url = f"https://{base_url}"
+        web_app_url = f"{base_url}/webapp?tenant={slug}" if base_url else f"https://your-app.onrender.com/webapp?tenant={slug}"
+
+        requests.post(
+            f"https://api.telegram.org/bot{bot_token}/setMyCommands",
+            json={
+                "commands": [
+                    {"command": "start", "description": "Botni qayta ishga tushirish"},
+                    {"command": "menu", "description": "Menyuni ochish"},
+                    {"command": "help", "description": "Yordam va bog'lanish"}
+                ]
+            },
+            timeout=8
+        )
+        requests.post(
+            f"https://api.telegram.org/bot{bot_token}/setChatMenuButton",
+            json={
+                "menu_button": {
+                    "type": "web_app",
+                    "text": "🍔 Menyu",
+                    "web_app": {"url": web_app_url}
+                }
+            },
+            timeout=8
+        )
+        requests.post(f"https://api.telegram.org/bot{bot_token}/deleteWebhook", timeout=8)
+    except Exception as e:
+        print(f"[Auto bot setup error]: {e}")
+
+    return jsonify({'success': True, 'tenant_id': new_tenant.id, 'slug': new_tenant.slug})
+
+
+@app.route('/api/superadmin/tenants/<int:tenant_id>/toggle', methods=['POST'])
+@super_admin_required
+def api_superadmin_tenants_toggle(tenant_id):
+    tenant = Tenant.query.get(tenant_id)
+    if not tenant:
+        return jsonify({'success': False, 'error': 'Oshxona topilmadi'}), 404
+    tenant.is_active = not bool(tenant.is_active)
+    db.session.commit()
+    return jsonify({'success': True, 'is_active': tenant.is_active})
+
+
+@app.route('/api/superadmin/tenants/<int:tenant_id>/impersonate', methods=['POST'])
+@super_admin_required
+def api_superadmin_tenants_impersonate(tenant_id):
+    tenant = Tenant.query.get(tenant_id)
+    if not tenant:
+        return jsonify({'success': False, 'error': 'Oshxona topilmadi'}), 404
+    session['user_type'] = 'tenant_admin'
+    session['tenant_id'] = tenant.id
+    session['tenant_slug'] = tenant.slug
+    session['tenant_name'] = tenant.name
+    session['username'] = tenant.admin_username
+    session['is_impersonating'] = True
+    return jsonify({'success': True, 'redirect': '/admin'})
+
+
+@app.route('/api/superadmin/tenants/<int:tenant_id>/delete', methods=['POST'])
+@super_admin_required
+def api_superadmin_tenants_delete(tenant_id):
+    if tenant_id == 1:
+        return jsonify({'success': False, 'error': "Asosiy boshlang'ich oshxonani o'chirib bo'lmaydi!"}), 400
+    tenant = Tenant.query.get(tenant_id)
+    if not tenant:
+        return jsonify({'success': False, 'error': 'Oshxona topilmadi'}), 404
+
+    Menu.query.filter_by(tenant_id=tenant_id).delete()
+    Category.query.filter_by(tenant_id=tenant_id).delete()
+    Order.query.filter_by(tenant_id=tenant_id).delete()
+    OrderItem.query.filter_by(tenant_id=tenant_id).delete()
+    Promotion.query.filter_by(tenant_id=tenant_id).delete()
+    PromoCode.query.filter_by(tenant_id=tenant_id).delete()
+    Setting.query.filter_by(tenant_id=tenant_id).delete()
+    User.query.filter_by(tenant_id=tenant_id).delete()
+    Cart.query.filter_by(tenant_id=tenant_id).delete()
+    db.session.delete(tenant)
+    db.session.commit()
+    return jsonify({'success': True})
+
+
 # --- Bitepoint Modern POS & Admin Panel Routes ---
 @app.route('/')
 def index_redirect():
-    return redirect('/admin')
+    if session.get('user_type') == 'super_admin':
+        return redirect('/superadmin')
+    elif session.get('user_type') == 'tenant_admin':
+        return redirect('/admin')
+    return redirect('/login')
 
 @app.route('/admin')
 @app.route('/admin/')
+@login_required
 def bitepoint_admin():
+    if session.get('user_type') == 'super_admin' and not session.get('is_impersonating'):
+        return redirect('/superadmin')
     return render_template('admin/bitepoint_admin.html')
+
+@app.route('/api/admin/me')
+@login_required
+def api_admin_me():
+    tenant = get_current_tenant()
+    return jsonify({
+        'success': True,
+        'tenant': {
+            'id': tenant.id if tenant else 1,
+            'name': tenant.name if tenant else "Cafe Express",
+            'slug': tenant.slug if tenant else "express",
+            'bot_username': tenant.bot_username if tenant else "@CafeExpressBot",
+            'admin_username': tenant.admin_username if tenant else "admin"
+        },
+        'is_impersonating': bool(session.get('is_impersonating', False))
+    })
 
 
 # --- REST API for Bitepoint Admin ---
 
 @app.route('/api/admin/orders')
+@login_required
 def api_admin_orders():
-    orders = Order.query.order_by(Order.id.desc()).all()
+    t_id = get_current_tenant_id()
+    orders = Order.query.filter_by(tenant_id=t_id).order_by(Order.id.desc()).all()
     result = []
     for o in orders:
         created_dt = o.created_at
@@ -1186,8 +1688,10 @@ def api_admin_orders():
 
 
 @app.route('/api/admin/orders/<int:order_id>/status', methods=['POST'])
+@login_required
 def api_admin_order_status(order_id):
-    order = Order.query.get(order_id)
+    t_id = get_current_tenant_id()
+    order = Order.query.filter_by(id=order_id, tenant_id=t_id).first()
     if not order:
         return jsonify({'success': False, 'error': 'Buyurtma topilmadi'}), 404
     data = request.get_json(force=True, silent=True) or request.form.to_dict() or {}
@@ -1198,13 +1702,15 @@ def api_admin_order_status(order_id):
     order.status = new_status
     db.session.commit()
 
-    send_telegram_order_status_update(order.user_id, order.id, new_status, order.payment_method, order.total_amount)
+    send_telegram_order_status_update(order.user_id, order.id, new_status, order.payment_method, order.total_amount, tenant_id=order.tenant_id or t_id)
     return jsonify({'success': True, 'status': new_status})
 
 
 @app.route('/api/admin/orders/<int:order_id>/delete', methods=['POST'])
+@login_required
 def api_admin_order_delete(order_id):
-    order = Order.query.get(order_id)
+    t_id = get_current_tenant_id()
+    order = Order.query.filter_by(id=order_id, tenant_id=t_id).first()
     if not order:
         return jsonify({'success': False, 'error': 'Buyurtma topilmadi'}), 404
     db.session.delete(order)
@@ -1213,8 +1719,10 @@ def api_admin_order_delete(order_id):
 
 
 @app.route('/api/admin/menu')
+@login_required
 def api_admin_menu():
-    menus = Menu.query.all()
+    t_id = get_current_tenant_id()
+    menus = Menu.query.filter_by(tenant_id=t_id).all()
     return jsonify({
         'success': True,
         'menu': [{
@@ -1235,7 +1743,9 @@ def api_admin_menu():
 
 
 @app.route('/api/admin/menu/create', methods=['POST'])
+@login_required
 def api_admin_menu_create():
+    t_id = get_current_tenant_id()
     data = request.get_json(force=True, silent=True) or request.form.to_dict() or {}
     name = data.get('name', '').strip()
     if not name:
@@ -1265,6 +1775,7 @@ def api_admin_menu_create():
         calories = 0
 
     menu = Menu(
+        tenant_id=t_id,
         name=name,
         name_ru=name_ru,
         name_en=name_en,
@@ -1280,7 +1791,7 @@ def api_admin_menu_create():
     db.session.add(menu)
     db.session.commit()
 
-    # Yangi taom haqida barcha mijozlarga reklama xabarini yuborish
+    # Yangi taom haqida oshxona mijozlariga reklama xabarini yuborish
     try:
         desc_clean = (menu.description or '').strip()
         desc_line = f"📝 {desc_clean}\n" if desc_clean else ""
@@ -1295,7 +1806,7 @@ def api_admin_menu_create():
             f"😋 Hoziroq Mini App ga kiring va tatib ko'ring! 🚀"
         )
         photo_target = menu.image_url if menu.image_url else None
-        broadcast_to_users(ad_text, photo_target)
+        broadcast_to_users(ad_text, photo_target, tenant_id=t_id)
     except Exception as be:
         print(f"[Broadcast menu error]: {be}")
 
@@ -1303,8 +1814,10 @@ def api_admin_menu_create():
 
 
 @app.route('/api/admin/menu/<int:item_id>/update', methods=['POST'])
+@login_required
 def api_admin_menu_update(item_id):
-    menu = Menu.query.get(item_id)
+    t_id = get_current_tenant_id()
+    menu = Menu.query.filter_by(id=item_id, tenant_id=t_id).first()
     if not menu:
         return jsonify({'success': False, 'error': 'Taom topilmadi'}), 404
     data = request.get_json(force=True, silent=True) or request.form.to_dict() or {}
@@ -1352,8 +1865,10 @@ def api_admin_menu_update(item_id):
 
 
 @app.route('/api/admin/menu/<int:item_id>/delete', methods=['POST'])
+@login_required
 def api_admin_menu_delete(item_id):
-    menu = Menu.query.get(item_id)
+    t_id = get_current_tenant_id()
+    menu = Menu.query.filter_by(id=item_id, tenant_id=t_id).first()
     if not menu:
         return jsonify({'success': False, 'error': 'Taom topilmadi'}), 404
     db.session.delete(menu)
@@ -1362,8 +1877,10 @@ def api_admin_menu_delete(item_id):
 
 
 @app.route('/api/admin/categories')
+@login_required
 def api_admin_categories():
-    categories = Category.query.all()
+    t_id = get_current_tenant_id()
+    categories = Category.query.filter_by(tenant_id=t_id).all()
     return jsonify({
         'success': True,
         'categories': [{
@@ -1376,7 +1893,9 @@ def api_admin_categories():
 
 
 @app.route('/api/admin/category/create', methods=['POST'])
+@login_required
 def api_admin_category_create():
+    t_id = get_current_tenant_id()
     data = request.get_json(force=True, silent=True) or request.form.to_dict() or {}
     name = data.get('name', '').strip()
     if not name:
@@ -1391,6 +1910,7 @@ def api_admin_category_create():
         name_en = translate_text(name, 'en') or name
 
     cat = Category(
+        tenant_id=t_id,
         name=name,
         name_ru=name_ru,
         name_en=name_en
@@ -1401,8 +1921,10 @@ def api_admin_category_create():
 
 
 @app.route('/api/admin/category/<int:cat_id>/update', methods=['POST'])
+@login_required
 def api_admin_category_update(cat_id):
-    cat = Category.query.get(cat_id)
+    t_id = get_current_tenant_id()
+    cat = Category.query.filter_by(id=cat_id, tenant_id=t_id).first()
     if not cat:
         return jsonify({'success': False, 'error': 'Kategoriya topilmadi'}), 404
     data = request.get_json(force=True, silent=True) or request.form.to_dict() or {}
@@ -1424,8 +1946,10 @@ def api_admin_category_update(cat_id):
 
 
 @app.route('/api/admin/category/<int:cat_id>/delete', methods=['POST'])
+@login_required
 def api_admin_category_delete(cat_id):
-    cat = Category.query.get(cat_id)
+    t_id = get_current_tenant_id()
+    cat = Category.query.filter_by(id=cat_id, tenant_id=t_id).first()
     if not cat:
         return jsonify({'success': False, 'error': 'Kategoriya topilmadi'}), 404
     db.session.delete(cat)
@@ -1434,8 +1958,10 @@ def api_admin_category_delete(cat_id):
 
 
 @app.route('/api/admin/promotions')
+@login_required
 def api_admin_promotions():
-    promos = Promotion.query.order_by(Promotion.id.desc()).all()
+    t_id = get_current_tenant_id()
+    promos = Promotion.query.filter_by(tenant_id=t_id).order_by(Promotion.id.desc()).all()
     return jsonify({
         'success': True,
         'promotions': [{
@@ -1457,12 +1983,15 @@ def api_admin_promotions():
 
 
 @app.route('/api/admin/promotion/create', methods=['POST'])
+@login_required
 def api_admin_promotion_create():
+    t_id = get_current_tenant_id()
     data = request.get_json(force=True, silent=True) or request.form.to_dict() or {}
     title = data.get('title', '').strip()
     if not title:
         return jsonify({'success': False, 'error': 'Aksiya sarlavhasi kiritilmadi'}), 400
     promo = Promotion(
+        tenant_id=t_id,
         title=title,
         title_ru=data.get('title_ru', '').strip() or title,
         title_en=data.get('title_en', '').strip() or title,
@@ -1479,8 +2008,10 @@ def api_admin_promotion_create():
 
 
 @app.route('/api/admin/promotion/<int:promo_id>/toggle', methods=['POST'])
+@login_required
 def api_admin_promotion_toggle(promo_id):
-    promo = Promotion.query.get(promo_id)
+    t_id = get_current_tenant_id()
+    promo = Promotion.query.filter_by(id=promo_id, tenant_id=t_id).first()
     if not promo:
         return jsonify({'success': False, 'error': 'Aksiya topilmadi'}), 404
     promo.is_active = not bool(promo.is_active)
@@ -1489,8 +2020,10 @@ def api_admin_promotion_toggle(promo_id):
 
 
 @app.route('/api/admin/promotion/<int:promo_id>/delete', methods=['POST'])
+@login_required
 def api_admin_promotion_delete(promo_id):
-    promo = Promotion.query.get(promo_id)
+    t_id = get_current_tenant_id()
+    promo = Promotion.query.filter_by(id=promo_id, tenant_id=t_id).first()
     if not promo:
         return jsonify({'success': False, 'error': 'Aksiya topilmadi'}), 404
     db.session.delete(promo)
@@ -1501,8 +2034,10 @@ def api_admin_promotion_delete(promo_id):
 # --- Promocode API Endpoints ---
 
 @app.route('/api/admin/promocodes')
+@login_required
 def api_admin_promocodes():
-    promos = PromoCode.query.order_by(PromoCode.id.desc()).all()
+    t_id = get_current_tenant_id()
+    promos = PromoCode.query.filter_by(tenant_id=t_id).order_by(PromoCode.id.desc()).all()
     return jsonify({
         'success': True,
         'promocodes': [{
@@ -1520,7 +2055,9 @@ def api_admin_promocodes():
 
 
 @app.route('/api/admin/promocode/create', methods=['POST'])
+@login_required
 def api_admin_promocode_create():
+    t_id = get_current_tenant_id()
     data = request.get_json(force=True, silent=True) or request.form.to_dict() or {}
     code = (data.get('code') or '').strip().upper()
     try:
@@ -1540,15 +2077,16 @@ def api_admin_promocode_create():
         max_order_amount = 0
 
     if not code:
-        return jsonify({'success': False, 'error': 'Promokod kodi kiritilishi shart!'}), 400
+        return jsonify({'success': False, 'error': 'Promokod kiritilishi shart!'}), 400
     if discount_percent <= 0 or discount_percent > 100:
         return jsonify({'success': False, 'error': 'Chegirma foizi 1% dan 100% gacha bo\'lishi kerak!'}), 400
 
-    existing = PromoCode.query.filter_by(code=code).first()
+    existing = PromoCode.query.filter_by(code=code, tenant_id=t_id).first()
     if existing:
         return jsonify({'success': False, 'error': f"'{code}' nomli promokod allaqachon mavjud!"}), 400
 
     promo = PromoCode(
+        tenant_id=t_id,
         code=code,
         discount_percent=discount_percent,
         end_date=end_date,
@@ -1559,7 +2097,7 @@ def api_admin_promocode_create():
     db.session.add(promo)
     db.session.commit()
 
-    # Yangi promokod haqida barcha mijozlarga reklama xabarini yuborish
+    # Yangi promokod haqida oshxona mijozlariga reklama xabarini yuborish
     try:
         cond_lines = []
         if min_order_amount > 0 and max_order_amount > 0:
@@ -1582,7 +2120,7 @@ def api_admin_promocode_create():
             f"{cond_text}\n"
             f"🍔 Hoziroq Mini App ga kiring va buyurtma bering! 🚀"
         )
-        broadcast_to_users(ad_text)
+        broadcast_to_users(ad_text, tenant_id=t_id)
     except Exception as be:
         print(f"[Broadcast promo error]: {be}")
 
@@ -1601,8 +2139,10 @@ def api_admin_promocode_create():
 
 
 @app.route('/api/admin/promocode/<int:promo_id>/toggle', methods=['POST'])
+@login_required
 def api_admin_promocode_toggle(promo_id):
-    promo = PromoCode.query.get(promo_id)
+    t_id = get_current_tenant_id()
+    promo = PromoCode.query.filter_by(id=promo_id, tenant_id=t_id).first()
     if not promo:
         return jsonify({'success': False, 'error': 'Promokod topilmadi'}), 404
     promo.is_active = not bool(promo.is_active)
@@ -1611,8 +2151,10 @@ def api_admin_promocode_toggle(promo_id):
 
 
 @app.route('/api/admin/promocode/<int:promo_id>/delete', methods=['POST'])
+@login_required
 def api_admin_promocode_delete(promo_id):
-    promo = PromoCode.query.get(promo_id)
+    t_id = get_current_tenant_id()
+    promo = PromoCode.query.filter_by(id=promo_id, tenant_id=t_id).first()
     if not promo:
         return jsonify({'success': False, 'error': 'Promokod topilmadi'}), 404
     db.session.delete(promo)
@@ -1632,7 +2174,15 @@ def api_validate_promocode():
     if not code:
         return jsonify({'success': False, 'error': 'Promokod kiritilmadi'}), 400
 
-    promo = PromoCode.query.filter_by(code=code).first()
+    tenant_param = data.get('tenant', '').strip()
+    tenant_obj = None
+    if tenant_param:
+        tenant_obj = Tenant.query.filter((Tenant.slug == tenant_param.lower()) | (Tenant.id == tenant_param)).first()
+    if not tenant_obj:
+        tenant_obj = Tenant.query.first()
+    t_id = tenant_obj.id if tenant_obj else 1
+
+    promo = PromoCode.query.filter_by(code=code, tenant_id=t_id).first()
     if not promo:
         return jsonify({'success': False, 'error': 'Bunday promokod mavjud emas!'})
 
@@ -1651,10 +2201,14 @@ def api_validate_promocode():
 
 
 @app.route('/api/admin/settings')
+@login_required
 def api_admin_get_settings():
-    setting = Setting.query.first()
+    t_id = get_current_tenant_id()
+    setting = Setting.query.filter_by(tenant_id=t_id).first()
     if not setting:
-        setting = Setting(card_number="8600 0000 0000 0000", card_name="Admin", work_time_start="09:00", work_time_end="22:00")
+        t_obj = Tenant.query.get(t_id)
+        default_name = t_obj.name if t_obj else "Admin"
+        setting = Setting(tenant_id=t_id, card_number="8600 0000 0000 0000", card_name=default_name, work_time_start="09:00", work_time_end="22:00")
         db.session.add(setting)
         db.session.commit()
     return jsonify({
@@ -1669,11 +2223,13 @@ def api_admin_get_settings():
 
 
 @app.route('/api/admin/settings/update', methods=['POST'])
+@login_required
 def api_admin_update_settings():
+    t_id = get_current_tenant_id()
     data = request.get_json(force=True, silent=True) or request.form.to_dict() or {}
-    setting = Setting.query.first()
+    setting = Setting.query.filter_by(tenant_id=t_id).first()
     if not setting:
-        setting = Setting()
+        setting = Setting(tenant_id=t_id)
         db.session.add(setting)
     setting.card_number = data.get('card_number', setting.card_number)
     setting.card_name = data.get('card_name', setting.card_name)
@@ -1684,8 +2240,10 @@ def api_admin_update_settings():
 
 
 @app.route('/api/admin/stats')
+@login_required
 def api_admin_stats():
-    orders = Order.query.all()
+    t_id = get_current_tenant_id()
+    orders = Order.query.filter_by(tenant_id=t_id).all()
     today_orders_count = 0
     today_revenue = 0
     cash_revenue = 0

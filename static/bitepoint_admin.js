@@ -722,8 +722,36 @@ function applyTranslationsToStaticElements() {
   mapText('#btn-cancel-order-text', t('modal_cancel_order'));
 }
 
+async function fetchAdminMe() {
+  try {
+    const res = await fetch('/api/admin/me');
+    const data = await res.json();
+    if (data.success && data.tenant) {
+      const brandEl = document.getElementById('sidebar-brand-name');
+      if (brandEl) brandEl.innerText = data.tenant.name;
+      const userEl = document.getElementById('sidebar-user-name');
+      if (userEl) userEl.innerText = data.tenant.name;
+      const avatarEl = document.getElementById('sidebar-avatar');
+      if (avatarEl) {
+        const initials = data.tenant.name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+        avatarEl.innerText = initials || 'CE';
+      }
+      document.title = `${data.tenant.name} — Admin Panel`;
+      if (data.is_impersonating) {
+        const impBar = document.getElementById('impersonate-bar');
+        if (impBar) impBar.style.display = 'block';
+      }
+    }
+  } catch (e) {
+    console.error('Error fetching admin me:', e);
+  }
+}
+
 // Initialize Application
 document.addEventListener('DOMContentLoaded', () => {
+  // Fetch tenant info
+  fetchAdminMe();
+
   // Apply theme immediately
   applyAdminTheme();
 

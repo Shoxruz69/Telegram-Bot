@@ -9,3 +9,4 @@ env/
 *.log
 database/*.db-shm
 database/*.db-wal
+scratch/
