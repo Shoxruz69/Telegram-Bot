@@ -130,18 +130,58 @@
 
         <div class="header-right">
           <!-- Theme Toggle Button -->
-          <button class="theme-toggle-btn" id="admin-theme-btn" onclick="toggleAdminTheme()" title="Rejim" style="width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--border-gold); background: var(--bg-card); color: var(--gold-primary); font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: var(--transition);">🌙</button>
+          <button class="theme-toggle-btn" id="admin-theme-btn" onclick="toggleAdminTheme()" title="Rejim">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+          </button>
 
-          <!-- Language Selector -->
+          <!-- Language Selector with SVG Flags -->
           <div class="lang-selector">
-            <button class="lang-btn active" data-lang="uz" onclick="setLanguage('uz')">🇺🇿 UZ</button>
-            <button class="lang-btn" data-lang="ru" onclick="setLanguage('ru')">🇷🇺 RU</button>
-            <button class="lang-btn" data-lang="en" onclick="setLanguage('en')">🇬🇧 EN</button>
+            <button class="lang-btn active" data-lang="uz" onclick="setLanguage('uz')">
+              <svg width="18" height="13" viewBox="0 0 640 480" class="flag-icon" style="border-radius: 2px;">
+                <g fill-rule="evenodd" stroke-width="1pt">
+                  <path fill="#0099b5" d="M0 0h640v160H0z"/>
+                  <path fill="#ce1126" d="M0 155h640v10H0z"/>
+                  <path fill="#fff" d="M0 160h640v160H0z"/>
+                  <path fill="#ce1126" d="M0 315h640v10H0z"/>
+                  <path fill="#1eb53a" d="M0 320h640v160H0z"/>
+                  <circle cx="70" cy="80" r="45" fill="#fff"/>
+                  <circle cx="85" cy="80" r="40" fill="#0099b5"/>
+                </g>
+              </svg>
+              <span>UZ</span>
+            </button>
+            <button class="lang-btn" data-lang="ru" onclick="setLanguage('ru')">
+              <svg width="18" height="13" viewBox="0 0 640 480" class="flag-icon" style="border-radius: 2px;">
+                <g fill-rule="evenodd" stroke-width="1pt">
+                  <path fill="#fff" d="M0 0h640v160H0z"/>
+                  <path fill="#0039a6" d="M0 160h640v160H0z"/>
+                  <path fill="#d52b1e" d="M0 320h640v160H0z"/>
+                </g>
+              </svg>
+              <span>RU</span>
+            </button>
+            <button class="lang-btn" data-lang="en" onclick="setLanguage('en')">
+              <svg width="18" height="13" viewBox="0 0 640 480" class="flag-icon" style="border-radius: 2px;">
+                <path fill="#012169" d="M0 0h640v480H0z"/>
+                <path fill="#fff" d="m75 0 245 180L565 0h75v60L440 240l200 150v90h-75L320 300 75 480H0v-60l200-150L0 120V0z"/>
+                <path fill="#C8102E" d="m424 288 216 162v30l-256-192zm-208-96L0 30V0l256 192zm384-192-216 162v-30L600 0zM0 450l216-162v30L40 480z"/>
+                <path fill="#fff" d="M240 0h160v480H240zM0 160h640v160H0z"/>
+                <path fill="#C8102E" d="M266 0h108v480H266zM0 186h640v108H0z"/>
+              </svg>
+              <span>EN</span>
+            </button>
           </div>
 
           <!-- Live Date Display -->
           <div class="current-date">
-            <span>📅</span>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
             <span id="current-date-text">28-Avgust, 2026</span>
           </div>
 
@@ -165,7 +205,11 @@
 
           <!-- Dynamic Action Button (e.g. + Yangi Taom / Kategoriya) -->
           <button id="header-action-btn" class="btn-primary" style="display: none;">
-            <span>➕</span> <span>Yangi</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            <span>Yangi</span>
           </button>
         </div>
       </header>
@@ -204,10 +248,12 @@
           <div style="display: flex; gap: 10px; margin-bottom: 20px; align-items: center; justify-content: space-between;">
             <div class="filter-tabs">
               <button class="tab-btn active" id="subtab-promos" onclick="switchPromoSubTab('promos')">
-                <span id="subtab-promos-text">🏷️ Aksiyalar</span>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
+                <span id="subtab-promos-text">Aksiyalar</span>
               </button>
               <button class="tab-btn" id="subtab-promocodes" onclick="switchPromoSubTab('promocodes')">
-                <span id="subtab-promocodes-text">🎟️ Promokodlar</span>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z"></path><line x1="13" y1="5" x2="13" y2="19" stroke-dasharray="2 2"></line></svg>
+                <span id="subtab-promocodes-text">Promokodlar</span>
               </button>
             </div>
           </div>
@@ -223,28 +269,49 @@
         <div id="view-accounting" class="view-panel" style="display: none;">
           <div class="stats-cards-grid">
             <div class="stat-card">
-              <div class="stat-icon yellow">💰</div>
+              <div class="stat-icon yellow">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                </svg>
+              </div>
               <div class="stat-details">
                 <span class="stat-title" id="stat-today-revenue-title">Bugungi Savdo</span>
                 <span class="stat-val" id="stat-today-revenue">0 so'm</span>
               </div>
             </div>
             <div class="stat-card">
-              <div class="stat-icon teal">🧾</div>
+              <div class="stat-icon teal">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+                  <line x1="3" y1="6" x2="21" y2="6"/>
+                  <path d="M16 10a4 4 0 0 1-8 0"/>
+                </svg>
+              </div>
               <div class="stat-details">
                 <span class="stat-title" id="stat-today-orders-title">Buyurtmalar Soni</span>
                 <span class="stat-val" id="stat-today-orders">0 ta</span>
               </div>
             </div>
             <div class="stat-card">
-              <div class="stat-icon blue">📊</div>
+              <div class="stat-icon blue">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="18" y1="20" x2="18" y2="10"/>
+                  <line x1="12" y1="20" x2="12" y2="4"/>
+                  <line x1="6" y1="20" x2="6" y2="14"/>
+                </svg>
+              </div>
               <div class="stat-details">
                 <span class="stat-title" id="stat-avg-order-title">O'rtacha Chek</span>
                 <span class="stat-val" id="stat-avg-order">0 so'm</span>
               </div>
             </div>
             <div class="stat-card">
-              <div class="stat-icon purple">⏳</div>
+              <div class="stat-icon purple">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"/>
+                  <polyline points="12 6 12 12 16 14"/>
+                </svg>
+              </div>
               <div class="stat-details">
                 <span class="stat-title" id="stat-pending-orders-title">Kutilayotgan</span>
                 <span class="stat-val" id="stat-pending-orders">0 ta</span>
@@ -254,23 +321,58 @@
 
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
             <div class="stat-card" style="flex-direction: column; align-items: stretch;">
-              <h4 style="font-size: 16px; font-weight: 700; margin-bottom: 12px;" id="stat-payment-split-title">💳 To'lov Turlari Taqsimoti</h4>
-              <div style="display: flex; flex-direction: column; gap: 10px;">
-                <div style="display: flex; justify-content: space-between; padding: 10px 14px; background: rgba(16, 185, 129, 0.12); border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.25);">
-                  <span style="font-weight: 600; color: #34D399;" id="stat-cash-lbl">💵 Naqd to'lov:</span>
-                  <span style="font-weight: 800; color: #34D399;" id="stat-cash-sum">0 so'm</span>
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 14px;">
+                <div class="stat-icon-mini gold">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+                    <line x1="1" y1="10" x2="23" y2="10"/>
+                  </svg>
                 </div>
-                <div style="display: flex; justify-content: space-between; padding: 10px 14px; background: rgba(212, 175, 55, 0.12); border-radius: 8px; border: 1px solid var(--border-gold);">
-                  <span style="font-weight: 600; color: var(--gold-light);" id="stat-card-lbl">💳 Karta orqali:</span>
-                  <span style="font-weight: 800; color: var(--gold-light);" id="stat-card-sum">0 so'm</span>
+                <h4 style="font-size: 15px; font-weight: 700; margin: 0;" id="stat-payment-split-title">To'lov Turlari Taqsimoti</h4>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 10px;">
+                <div class="payment-split-row cash-row">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="2" y="6" width="20" height="12" rx="2"/>
+                      <circle cx="12" cy="12" r="2"/>
+                      <path d="M6 12h.01M18 12h.01"/>
+                    </svg>
+                    <span style="font-weight: 600;" id="stat-cash-lbl">Naqd to'lov:</span>
+                  </div>
+                  <span style="font-weight: 800;" id="stat-cash-sum">0 so'm</span>
+                </div>
+                <div class="payment-split-row card-row">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+                      <line x1="1" y1="10" x2="23" y2="10"/>
+                    </svg>
+                    <span style="font-weight: 600;" id="stat-card-lbl">Karta orqali:</span>
+                  </div>
+                  <span style="font-weight: 800;" id="stat-card-sum">0 so'm</span>
                 </div>
               </div>
             </div>
 
             <div class="stat-card" style="flex-direction: column; align-items: stretch;">
-              <h4 style="font-size: 16px; font-weight: 700; margin-bottom: 12px;" id="stat-top-dishes-title">🏆 Eng Ko'p Sotilgan Taomlar</h4>
-              <ul id="stat-top-dishes-list" style="list-style: none;">
-                <!-- Top dishes -->
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 14px;">
+                <div class="stat-icon-mini amber">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/>
+                    <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
+                    <path d="M4 22h16"/>
+                    <path d="M10 14.66V17c0 .55-.45 1-1 1H7c-.55 0-1-.45-1-1v-2.34"/>
+                    <path d="M18 14.66V17c0 .55-.45 1-1 1h-2c-.55 0-1-.45-1-1v-2.34"/>
+                    <path d="M14 14.66V22"/>
+                    <path d="M10 14.66V22"/>
+                    <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
+                  </svg>
+                </div>
+                <h4 style="font-size: 15px; font-weight: 700; margin: 0;" id="stat-top-dishes-title">Eng Ko'p Sotilgan Taomlar</h4>
+              </div>
+              <ul id="stat-top-dishes-list" style="list-style: none; margin: 0; padding: 0;">
+                <!-- Top dishes rendered by JS -->
               </ul>
             </div>
           </div>
@@ -279,7 +381,15 @@
         <!-- ================= SETTINGS VIEW ================= -->
         <div id="view-settings" class="view-panel" style="display: none; max-width: 600px;">
           <div class="stat-card" style="flex-direction: column; align-items: stretch; padding: 28px;">
-            <h3 style="font-size: 18px; font-weight: 800; margin-bottom: 18px;" id="lbl-setting-box-title">⚙️ Tizim va To'lov Sozlamalari</h3>
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 18px;">
+              <div class="stat-icon-mini gold">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="3"></circle>
+                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                </svg>
+              </div>
+              <h3 style="font-size: 18px; font-weight: 800; margin: 0;" id="lbl-setting-box-title">Tizim va To'lov Sozlamalari</h3>
+            </div>
             <form onsubmit="saveSettings(event)">
               <div class="form-group">
                 <label class="form-label" id="lbl-setting-card-number">Karta Raqami (Mijozlar to'lashi uchun)</label>
@@ -300,7 +410,8 @@
                 </div>
               </div>
               <button type="submit" class="btn-primary" style="width: 100%; justify-content: center; margin-top: 10px;">
-                <span id="btn-save-settings-text">💾 Sozlamalarni Saqlash</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                <span id="btn-save-settings-text">Sozlamalarni Saqlash</span>
               </button>
             </form>
           </div>
@@ -331,11 +442,13 @@
               <div style="font-size: 12px; color: var(--text-muted);" id="modal-order-type">Buyurtma #925</div>
             </div>
           </div>
-          <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;" id="modal-customer-phone">
-            📞 +998 90 000 00 00
+          <div style="font-size: 12px; color: var(--text-muted); margin-top: 6px; display: flex; align-items: center; gap: 6px;" id="modal-customer-phone">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            <span>+998 90 000 00 00</span>
           </div>
-          <div style="font-size: 12px; color: var(--text-muted);" id="modal-order-address">
-            📍 Manzil: Toshkent
+          <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px; display: flex; align-items: center; gap: 6px;" id="modal-order-address">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            <span>Manzil: Toshkent</span>
           </div>
         </div>
 
@@ -370,17 +483,19 @@
           </div>
           <div class="calc-total-line grand-total">
             <span id="modal-grandtotal-lbl">Jami To'lov:</span>
-            <span id="modal-grandtotal" style="color: var(--gold-light);">0 so'm</span>
+            <span id="modal-grandtotal" style="color: var(--gold-primary); font-weight: 800;">0 so'm</span>
           </div>
         </div>
 
         <!-- Actions -->
         <div class="modal-actions-box">
           <button class="btn-pay-now" id="modal-btn-pay-now" onclick="confirmPaymentAndClose()">
-            <span id="btn-pay-now-text">⚡ Tasdiqlash (Mijozga xabar yuborish)</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            <span id="btn-pay-now-text">Tasdiqlash (Mijozga xabar yuborish)</span>
           </button>
           <button class="btn-modal-action danger" id="modal-btn-cancel-order" onclick="cancelOrderFromModal()">
-            <span id="btn-cancel-order-text">❌ Buyurtmani Bekor Qilish</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+            <span id="btn-cancel-order-text">Buyurtmani Bekor Qilish</span>
           </button>
         </div>
 
@@ -401,21 +516,25 @@
         <input type="hidden" id="category-id">
         <div class="form-group">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-            <label class="form-label" id="lbl-cat-name-uz" style="margin-bottom: 0;">Kategoriya Nomi (UZ 🇺🇿)</label>
-            <button type="button" class="btn-card-secondary" style="padding: 2px 8px; font-size: 11px; border-radius: 6px;" onclick="autoTranslateCategory(true)">✨ Avto-tarjima</button>
+            <label class="form-label" id="lbl-cat-name-uz" style="margin-bottom: 0;">Kategoriya Nomi (UZ)</label>
+            <button type="button" class="btn-card-secondary" style="padding: 3px 8px; font-size: 11px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;" onclick="autoTranslateCategory(true)">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+              <span>Avto-tarjima</span>
+            </button>
           </div>
           <input type="text" id="category-name-input" class="form-input" required placeholder="Masalan: Fast Food" onblur="autoTranslateCategory(false)">
         </div>
         <div class="form-group">
-          <label class="form-label" id="lbl-cat-name-ru">Название (RU 🇷🇺)</label>
+          <label class="form-label" id="lbl-cat-name-ru">Название (RU)</label>
           <input type="text" id="category-name-ru-input" class="form-input" placeholder="Например: Фастфуд">
         </div>
         <div class="form-group">
-          <label class="form-label" id="lbl-cat-name-en">Name (EN 🇬🇧)</label>
+          <label class="form-label" id="lbl-cat-name-en">Name (EN)</label>
           <input type="text" id="category-name-en-input" class="form-input" placeholder="e.g. Fast Food">
         </div>
         <button type="submit" class="btn-primary" style="width: 100%; justify-content: center; margin-top: 12px;">
-          💾 Saqlash
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+          <span>Saqlash</span>
         </button>
       </form>
     </div>
@@ -436,8 +555,11 @@
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
           <div class="form-group">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-              <label class="form-label" style="margin-bottom: 0;">Taom Nomi (UZ 🇺🇿)</label>
-              <button type="button" class="btn-card-secondary" style="padding: 2px 8px; font-size: 11px; border-radius: 6px;" onclick="autoTranslateDish()">✨ Avto-tarjima</button>
+              <label class="form-label" style="margin-bottom: 0;">Taom Nomi (UZ)</label>
+              <button type="button" class="btn-card-secondary" style="padding: 3px 8px; font-size: 11px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;" onclick="autoTranslateDish()">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+                <span>Avto-tarjima</span>
+              </button>
             </div>
             <input type="text" id="dish-name" class="form-input" required placeholder="Masalan: Gamburger" onblur="autoTranslateDishName()">
           </div>
@@ -449,11 +571,11 @@
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
           <div class="form-group">
-            <label class="form-label">Название (RU 🇷🇺)</label>
+            <label class="form-label">Название (RU)</label>
             <input type="text" id="dish-name-ru" class="form-input" placeholder="Например: Гамбургер">
           </div>
           <div class="form-group">
-            <label class="form-label">Name (EN 🇬🇧)</label>
+            <label class="form-label">Name (EN)</label>
             <input type="text" id="dish-name-en" class="form-input" placeholder="e.g. Hamburger">
           </div>
         </div>
@@ -468,23 +590,26 @@
             <input type="number" id="dish-old-price" class="form-input" placeholder="0">
           </div>
           <div class="form-group">
-            <label class="form-label">🔥 Kaloriya (kkal)</label>
+            <label class="form-label" style="display: flex; align-items: center; gap: 4px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
+              <span>Kaloriya (kkal)</span>
+            </label>
             <input type="number" id="dish-calories" class="form-input" min="0" placeholder="450">
           </div>
         </div>
 
         <div class="form-group">
-          <label class="form-label">Tavsif (UZ 🇺🇿)</label>
+          <label class="form-label">Tavsif (UZ)</label>
           <textarea id="dish-description" class="form-textarea" placeholder="Taom haqida ma'lumot..." onblur="autoTranslateDishDesc()"></textarea>
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
           <div class="form-group">
-            <label class="form-label">Описание (RU 🇷🇺)</label>
+            <label class="form-label">Описание (RU)</label>
             <textarea id="dish-description-ru" class="form-textarea" placeholder="Описание на русском..."></textarea>
           </div>
           <div class="form-group">
-            <label class="form-label">Description (EN 🇬🇧)</label>
+            <label class="form-label">Description (EN)</label>
             <textarea id="dish-description-en" class="form-textarea" placeholder="Description in English..."></textarea>
           </div>
         </div>
@@ -495,7 +620,8 @@
           <input type="file" accept="image/*" class="form-input" onchange="uploadDishImage(this)">
         </div>
         <button type="submit" class="btn-primary" style="width: 100%; justify-content: center; margin-top: 12px;">
-          💾 Saqlash
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+          <span>Saqlash</span>
         </button>
       </form>
     </div>
@@ -512,16 +638,16 @@
       </div>
       <form onsubmit="savePromotion(event)" style="padding: 24px;">
         <div class="form-group">
-          <label class="form-label">Aksiya Sarlavhasi (UZ 🇺🇿)</label>
+          <label class="form-label">Aksiya Sarlavhasi (UZ)</label>
           <input type="text" id="promo-title" class="form-input" required placeholder="Masalan: Yozgi 20% Chegirma">
         </div>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
           <div class="form-group">
-            <label class="form-label">Заголовок (RU 🇷🇺)</label>
+            <label class="form-label">Заголовок (RU)</label>
             <input type="text" id="promo-title-ru" class="form-input" placeholder="Летняя скидка 20%">
           </div>
           <div class="form-group">
-            <label class="form-label">Title (EN 🇬🇧)</label>
+            <label class="form-label">Title (EN)</label>
             <input type="text" id="promo-title-en" class="form-input" placeholder="Summer 20% Discount">
           </div>
         </div>
@@ -538,23 +664,24 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label">Aksiya Shartlari / Tavsifi (UZ 🇺🇿)</label>
+          <label class="form-label">Aksiya Shartlari / Tavsifi (UZ)</label>
           <textarea id="promo-desc" class="form-textarea" placeholder="Barcha taomlarga..."></textarea>
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
           <div class="form-group">
-            <label class="form-label">Описание (RU 🇷🇺)</label>
+            <label class="form-label">Описание (RU)</label>
             <textarea id="promo-desc-ru" class="form-textarea" placeholder="Описание на русском..."></textarea>
           </div>
           <div class="form-group">
-            <label class="form-label">Description (EN 🇬🇧)</label>
+            <label class="form-label">Description (EN)</label>
             <textarea id="promo-desc-en" class="form-textarea" placeholder="Description in English..."></textarea>
           </div>
         </div>
 
         <button type="submit" class="btn-primary" style="width: 100%; justify-content: center; margin-top: 12px;">
-          <span id="btn-save-promo-text">💾 Aksiyani Saqlash</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+          <span id="btn-save-promo-text">Aksiyani Saqlash</span>
         </button>
       </form>
     </div>
@@ -566,7 +693,10 @@
   <div class="modal-overlay" id="promocode-modal-overlay">
     <div class="modal-container" style="max-width: 440px;">
       <div class="modal-header-bar">
-        <h3 class="modal-title" id="promocode-modal-title">🎟️ Yangi Promokod</h3>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z"></path><line x1="13" y1="5" x2="13" y2="19" stroke-dasharray="2 2"></line></svg>
+          <h3 class="modal-title" id="promocode-modal-title" style="margin: 0;">Yangi Promokod</h3>
+        </div>
         <button class="btn-close-modal" onclick="closePromoCodeModal()">✕</button>
       </div>
       <form onsubmit="savePromoCodeForm(event)" style="padding: 16px 20px;">
@@ -596,7 +726,8 @@
           </div>
         </div>
         <button type="submit" class="btn-primary" style="width: 100%; justify-content: center; margin-top: 14px;">
-          <span id="btn-save-promocode-text">💾 Promokodni Saqlash</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+          <span id="btn-save-promocode-text">Promokodni Saqlash</span>
         </button>
       </form>
     </div>
@@ -609,7 +740,10 @@
     <div class="modal-container" style="max-width: 500px; padding: 20px; background: transparent; box-shadow: none;" onclick="event.stopPropagation()">
       <div style="background: #18181B; border: 1px solid var(--border-gold); border-radius: 16px; overflow: hidden; padding: 14px; text-align: center;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-          <h4 style="font-weight: 800; color: var(--gold-light);">📎 To'lov Cheki</h4>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--gold-primary)" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+            <h4 style="font-weight: 800; color: var(--gold-primary); margin: 0;">To'lov Cheki</h4>
+          </div>
           <button class="btn-close-modal" onclick="closeReceiptModal()">✕</button>
         </div>
         <img id="receipt-full-image" src="" alt="Chek" style="max-width: 100%; max-height: 70vh; object-fit: contain; border-radius: 8px;">

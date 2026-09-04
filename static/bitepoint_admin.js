@@ -39,7 +39,7 @@ const i18n = {
     total_lbl: "Jami:",
     see_details: "Batafsil",
     pay_bills: "To'lov / Tasdiqlash",
-    complete_order: "Tugatish ✓",
+    complete_order: "Tugatish",
     view_btn: "Ko'rish",
     receipt_attached: "Chek mavjud",
     cash: "Naqd",
@@ -49,13 +49,13 @@ const i18n = {
     no_orders_sub: "Ushbu filtr bo'yicha hech qanday buyurtma topilmadi.",
 
     // Status Texts
-    status_ready: "✓ Tasdiqlandi",
+    status_ready: "Tasdiqlandi",
     status_ready_sub: "Tayyor / Yetkazilmoqda",
-    status_cooking: "🔥 Oshxonada",
+    status_cooking: "Oshxonada",
     status_cooking_sub: "Tayyorlanmoqda",
-    status_pending: "⏳ Kutilmoqda",
+    status_pending: "Kutilmoqda",
     status_pending_sub: "Tasdiqlash kerak",
-    status_cancelled: "✕ Bekor qilindi",
+    status_cancelled: "Bekor qilindi",
     status_cancelled_sub: "Rad etildi",
 
     // Payment / Details Modal
@@ -63,23 +63,23 @@ const i18n = {
     modal_items_subtotal: "Mahsulotlar summasi:",
     modal_delivery_fee: "Yetkazish / Xizmat:",
     modal_grand_total: "Jami To'lov:",
-    modal_cancel_order: "❌ Buyurtmani Bekor Qilish",
+    modal_cancel_order: "Buyurtmani Bekor Qilish",
     modal_received_amount: "Mijozdan qabul qilingan summa:",
     modal_change: "Qaytim (Сдача):",
     modal_need_more: "Yana",
     modal_need_more_suffix: "kerak",
-    modal_pay_now: "⚡ Tasdiqlash (Mijozga xabar yuborish)",
-    modal_card_receipt_alert: "💳 Karta To'lovi Cheki Yuklangan",
+    modal_pay_now: "Tasdiqlash (Mijozga xabar yuborish)",
+    modal_card_receipt_alert: "Karta To'lovi Cheki Yuklangan",
     modal_view_receipt: "Chekni Ko'rish",
-    view_map: "🗺️ Xaritada ko'rish",
+    view_map: "Xaritada ko'rish",
     address_lbl: "Manzil:",
     not_specified: "Ko'rsatilmagan",
 
     // Menu Management
     menu_management_title: "Menyu Boshqaruvi",
     all_categories: "Barchasi",
-    edit_btn: "✏️ Tahrirlash",
-    delete_btn: "🗑️",
+    edit_btn: "Tahrirlash",
+    delete_btn: "O'chirish",
     add_dish_modal_title: "Yangi Taom Qo'shish",
     edit_dish_modal_title: "Taomni Tahrirlash",
     dish_name_lbl: "Taom Nomi",
@@ -90,7 +90,7 @@ const i18n = {
     dish_desc_lbl: "Tavsif / Tarkibi",
     dish_desc_placeholder: "Taom haqida qisqacha ma'lumot...",
     dish_image_lbl: "Rasm URL yoki Fayldan yuklash",
-    save_btn: "💾 Saqlash",
+    save_btn: "Saqlash",
 
     // Categories
     categories_title: "Kategoriyalar Boshqaruvi",
@@ -131,21 +131,21 @@ const i18n = {
     today_orders: "Buyurtmalar Soni",
     avg_order: "O'rtacha Chek",
     pending_orders: "Kutilayotgan",
-    payment_split_title: "💳 To'lov Turlari Taqsimoti",
-    cash_split_lbl: "💵 Naqd to'lov:",
-    card_split_lbl: "💳 Karta orqali:",
-    top_dishes_title: "🏆 Eng Ko'p Sotilgan Taomlar",
+    payment_split_title: "To'lov Turlari Taqsimoti",
+    cash_split_lbl: "Naqd to'lov:",
+    card_split_lbl: "Karta orqali:",
+    top_dishes_title: "Eng Ko'p Sotilgan Taomlar",
     sold_qty_suffix: "ta sotildi",
     no_sales_yet: "Hozircha sotuvlar yo'q",
 
     // Settings
     settings_title: "Sozlamalar",
-    settings_box_title: "⚙️ Tizim va To'lov Sozlamalari",
+    settings_box_title: "Tizim va To'lov Sozlamalari",
     card_number_lbl: "Karta Raqami (Mijozlar to'lashi uchun)",
     card_name_lbl: "Karta Egasi Ism-Familiyasi",
     work_start_lbl: "Ish Vaqti Boshi",
     work_end_lbl: "Ish Vaqti Tugashi",
-    save_settings_btn: "💾 Sozlamalarni Saqlash",
+    save_settings_btn: "Sozlamalarni Saqlash",
 
     // Toasts
     order_status_updated: "Buyurtma statusi o'zgartirildi!",
@@ -158,7 +158,7 @@ const i18n = {
     settings_saved: "Sozlamalar muvaffaqiyatli saqlandi!",
     img_uploading: "Rasm yuklanmoqda...",
     img_uploaded: "Rasm muvaffaqiyatli yuklandi!",
-    new_order_toast: "🔔 Yangi buyurtma qabul qilindi!"
+    new_order_toast: "Yangi buyurtma qabul qilindi!"
   },
 
   ru: {
@@ -195,7 +195,7 @@ const i18n = {
     total_lbl: "Итого:",
     see_details: "Детали",
     pay_bills: "Оплата / Принять",
-    complete_order: "Завершить ✓",
+    complete_order: "Завершить",
     view_btn: "Просмотр",
     receipt_attached: "Чек прикреплен",
     cash: "Наличные",
@@ -205,13 +205,13 @@ const i18n = {
     no_orders_sub: "По данному фильтру заказов не найдено.",
 
     // Status Texts
-    status_ready: "✓ Подтвержден",
+    status_ready: "Подтвержден",
     status_ready_sub: "Готов / В пути",
-    status_cooking: "🔥 На кухне",
+    status_cooking: "На кухне",
     status_cooking_sub: "Готовится",
-    status_pending: "⏳ Ожидает",
+    status_pending: "Ожидает",
     status_pending_sub: "Требует подтверждения",
-    status_cancelled: "✕ Отменен",
+    status_cancelled: "Отменен",
     status_cancelled_sub: "Отклонен",
 
     // Payment / Details Modal
@@ -219,23 +219,23 @@ const i18n = {
     modal_items_subtotal: "Сумма товаров:",
     modal_delivery_fee: "Доставка / Сервис:",
     modal_grand_total: "Итого к оплате:",
-    modal_cancel_order: "❌ Отменить заказ",
+    modal_cancel_order: "Отменить заказ",
     modal_received_amount: "Принятая сумма от клиента:",
     modal_change: "Сдача:",
     modal_need_more: "Не хватает еще",
     modal_need_more_suffix: "",
-    modal_pay_now: "⚡ Подтвердить (Уведомить клиента)",
-    modal_card_receipt_alert: "💳 Чек оплаты картой загружен",
+    modal_pay_now: "Подтвердить (Уведомить клиента)",
+    modal_card_receipt_alert: "Чек оплаты картой загружен",
     modal_view_receipt: "Посмотреть чек",
-    view_map: "🗺️ На карте",
+    view_map: "На карте",
     address_lbl: "Адрес:",
     not_specified: "Не указан",
 
     // Menu Management
     menu_management_title: "Управление меню",
     all_categories: "Все",
-    edit_btn: "✏️ Изменить",
-    delete_btn: "🗑️",
+    edit_btn: "Изменить",
+    delete_btn: "Удалить",
     add_dish_modal_title: "Добавить новое блюдо",
     edit_dish_modal_title: "Редактировать блюдо",
     dish_name_lbl: "Название блюда",
@@ -246,7 +246,7 @@ const i18n = {
     dish_desc_lbl: "Описание / Состав",
     dish_desc_placeholder: "Краткая информация о блюде...",
     dish_image_lbl: "Ссылка на фото или загрузка",
-    save_btn: "💾 Сохранить",
+    save_btn: "Сохранить",
 
     // Categories
     categories_title: "Управление категориями",
@@ -287,21 +287,21 @@ const i18n = {
     today_orders: "Количество заказов",
     avg_order: "Средний чек",
     pending_orders: "В ожидании",
-    payment_split_title: "💳 Распределение способов оплаты",
-    cash_split_lbl: "💵 Наличные:",
-    card_split_lbl: "💳 Безналичные:",
-    top_dishes_title: "🏆 Топ популярных блюд",
+    payment_split_title: "Распределение способов оплаты",
+    cash_split_lbl: "Наличные:",
+    card_split_lbl: "Безналичные:",
+    top_dishes_title: "Топ популярных блюд",
     sold_qty_suffix: "шт продано",
     no_sales_yet: "Продаж пока нет",
 
     // Settings
     settings_title: "Настройки",
-    settings_box_title: "⚙️ Настройки системы и реквизиты",
+    settings_box_title: "Настройки системы и реквизиты",
     card_number_lbl: "Номер карты для оплаты",
     card_name_lbl: "Имя владельца карты",
     work_start_lbl: "Время открытия",
     work_end_lbl: "Время закрытия",
-    save_settings_btn: "💾 Сохранить настройки",
+    save_settings_btn: "Сохранить настройки",
 
     // Toasts
     order_status_updated: "Статус заказа обновлен!",
@@ -314,7 +314,7 @@ const i18n = {
     settings_saved: "Настройки успешно сохранены!",
     img_uploading: "Изображение загружается...",
     img_uploaded: "Изображение успешно загружено!",
-    new_order_toast: "🔔 Принят новый заказ!"
+    new_order_toast: "Принят новый заказ!"
   },
 
   en: {
@@ -351,7 +351,7 @@ const i18n = {
     total_lbl: "Total:",
     see_details: "See Details",
     pay_bills: "Pay Bills",
-    complete_order: "Complete ✓",
+    complete_order: "Complete",
     view_btn: "View",
     receipt_attached: "Receipt attached",
     cash: "Cash",
@@ -361,13 +361,13 @@ const i18n = {
     no_orders_sub: "No orders found matching this filter.",
 
     // Status Texts
-    status_ready: "✓ Ready",
+    status_ready: "Ready",
     status_ready_sub: "Ready to serve",
-    status_cooking: "🔥 In Kitchen",
+    status_cooking: "In Kitchen",
     status_cooking_sub: "Cooking Now",
-    status_pending: "⏳ In Progress",
+    status_pending: "In Progress",
     status_pending_sub: "Requires confirmation",
-    status_cancelled: "✕ Cancelled",
+    status_cancelled: "Cancelled",
     status_cancelled_sub: "Rejected",
 
     // Payment / Details Modal
@@ -375,23 +375,23 @@ const i18n = {
     modal_items_subtotal: "Items Total:",
     modal_delivery_fee: "Delivery / Service:",
     modal_grand_total: "Grand Total:",
-    modal_cancel_order: "❌ Cancel Order",
+    modal_cancel_order: "Cancel Order",
     modal_received_amount: "Amount received from customer:",
     modal_change: "Change:",
     modal_need_more: "Still need",
     modal_need_more_suffix: "more",
-    modal_pay_now: "⚡ Pay Now (Confirm Order)",
-    modal_card_receipt_alert: "💳 Card Payment Receipt Attached",
+    modal_pay_now: "Pay Now (Confirm Order)",
+    modal_card_receipt_alert: "Card Payment Receipt Attached",
     modal_view_receipt: "View Receipt",
-    view_map: "🗺️ View on Map",
+    view_map: "View on Map",
     address_lbl: "Address:",
     not_specified: "Not specified",
 
     // Menu Management
     menu_management_title: "Menu Management",
     all_categories: "All",
-    edit_btn: "✏️ Edit",
-    delete_btn: "🗑️",
+    edit_btn: "Edit",
+    delete_btn: "Delete",
     add_dish_modal_title: "Add New Dish",
     edit_dish_modal_title: "Edit Dish",
     dish_name_lbl: "Dish Name",
@@ -402,7 +402,7 @@ const i18n = {
     dish_desc_lbl: "Description / Ingredients",
     dish_desc_placeholder: "Brief information about dish...",
     dish_image_lbl: "Image URL or Upload",
-    save_btn: "💾 Save",
+    save_btn: "Save",
 
     // Categories
     categories_title: "Category Management",
@@ -443,21 +443,21 @@ const i18n = {
     today_orders: "Total Orders",
     avg_order: "Average Check",
     pending_orders: "Pending Orders",
-    payment_split_title: "💳 Payment Method Split",
-    cash_split_lbl: "💵 Cash:",
-    card_split_lbl: "💳 Card:",
-    top_dishes_title: "🏆 Top Selling Dishes",
+    payment_split_title: "Payment Method Split",
+    cash_split_lbl: "Cash:",
+    card_split_lbl: "Card:",
+    top_dishes_title: "Top Selling Dishes",
     sold_qty_suffix: "sold",
     no_sales_yet: "No sales yet",
 
     // Settings
     settings_title: "Settings",
-    settings_box_title: "⚙️ System & Payment Settings",
+    settings_box_title: "System & Payment Settings",
     card_number_lbl: "Card Number (for payments)",
     card_name_lbl: "Card Holder Name",
     work_start_lbl: "Opening Time",
     work_end_lbl: "Closing Time",
-    save_settings_btn: "💾 Save Settings",
+    save_settings_btn: "Save Settings",
 
     // Toasts
     order_status_updated: "Order status updated!",
@@ -470,7 +470,7 @@ const i18n = {
     settings_saved: "Settings saved successfully!",
     img_uploading: "Uploading image...",
     img_uploaded: "Image uploaded successfully!",
-    new_order_toast: "🔔 New order received!"
+    new_order_toast: "New order received!"
   }
 };
 
@@ -552,7 +552,10 @@ function applyAdminTheme() {
   document.body.classList.toggle('light-theme', isLight);
   const btn = document.getElementById('admin-theme-btn');
   if (btn) {
-    btn.textContent = isLight ? '☀️' : '🌙';
+    btn.innerHTML = isLight 
+      ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>`
+      : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`;
+    btn.title = isLight ? "Tungi rejim" : "Kunduzgi rejim";
   }
 }
 
@@ -624,10 +627,16 @@ function showToast(message, type = 'success') {
   const container = document.getElementById('toast-container');
   if (!container) return;
 
+  const iconSvg = type === 'success' 
+    ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>`
+    : type === 'error'
+    ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>`
+    : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>`;
+
   const toast = document.createElement('div');
   toast.className = `toast ${type}`;
   toast.innerHTML = `
-    <span>${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'}</span>
+    <span style="display: flex; align-items: center;">${iconSvg}</span>
     <span>${message}</span>
   `;
 
@@ -780,14 +789,14 @@ function switchTab(tab) {
     titleEl.textContent = t('menu_management_title');
     filterTabs.style.display = 'none';
     actionBtn.style.display = 'flex';
-    actionBtn.innerHTML = `<span>➕</span> <span>${t('add_dish')}</span>`;
+    actionBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> <span>${t('add_dish')}</span>`;
     actionBtn.onclick = () => openDishModal();
     renderMenuView();
   } else if (tab === 'categories') {
     titleEl.textContent = t('categories_title');
     filterTabs.style.display = 'none';
     actionBtn.style.display = 'flex';
-    actionBtn.innerHTML = `<span>➕</span> <span>${t('add_category')}</span>`;
+    actionBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> <span>${t('add_category')}</span>`;
     actionBtn.onclick = () => openCategoryModal();
     renderCategoriesView();
   } else if (tab === 'promotions') {
@@ -839,7 +848,7 @@ function initAudioToggle() {
     btn.addEventListener('click', () => {
       state.audioEnabled = !state.audioEnabled;
       btn.classList.toggle('active', state.audioEnabled);
-      showToast(state.audioEnabled ? "🔔 " + (state.lang === 'ru' ? "Звук включен" : state.lang === 'en' ? "Sound enabled" : "Ovozli bildirishnoma yoqildi") : "🔕 " + (state.lang === 'ru' ? "Звук отключен" : state.lang === 'en' ? "Sound disabled" : "Ovozli bildirishnoma o'chirildi"), "info");
+      showToast(state.audioEnabled ? (state.lang === 'ru' ? "Звук включен" : state.lang === 'en' ? "Sound enabled" : "Ovozli bildirishnoma yoqildi") : (state.lang === 'ru' ? "Звук отключен" : state.lang === 'en' ? "Sound disabled" : "Ovozli bildirishnoma o'chirildi"), "info");
       if (state.audioEnabled) playChimeSound();
     });
   }
@@ -973,7 +982,16 @@ function renderOrdersGrid() {
   if (filtered.length === 0) {
     container.innerHTML = `
       <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: #94A3B8;">
-        <div style="font-size: 48px; margin-bottom: 12px;">🧾</div>
+        <div style="display: flex; justify-content: center; margin-bottom: 12px;">
+          <div style="width: 56px; height: 56px; border-radius: 50%; background: var(--bg-card-alt); border: 1px solid var(--border-gold); display: flex; align-items: center; justify-content: center; color: var(--gold-primary);">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+          </div>
+        </div>
         <h3 style="font-size: 18px; color: #475569; margin-bottom: 6px;">${t('no_orders_found')}</h3>
         <p style="font-size: 13px;">${t('no_orders_sub')}</p>
       </div>
@@ -988,7 +1006,8 @@ function renderOrdersGrid() {
     const displayItems = isExpanded ? order.items : (order.items || []).slice(0, 3);
     const hasMore = (order.items || []).length > 3 && !isExpanded;
     const remainingCount = (order.items || []).length - 3;
-    const paymentText = order.payment_method === 'Karta' ? t('card') : t('cash');
+    const isCard = order.payment_method === 'Karta';
+    const paymentText = isCard ? t('card') : t('cash');
 
     return `
       <div class="order-card ${order.status === 'Kutilmoqda' ? 'new-order-highlight' : ''}" id="order-card-${order.id}">
@@ -1039,21 +1058,27 @@ function renderOrdersGrid() {
           <!-- Badges (Payment & Address & Promocode) -->
           <div class="card-badges-row" style="margin-top: 10px;">
             <span class="card-info-tag">
-              <span>💳</span> <span>${paymentText}</span>
+              ${isCard 
+                ? `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>`
+                : `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/></svg>`}
+              <span>${paymentText}</span>
             </span>
             ${order.promocode ? `
               <span class="card-info-tag" style="background: rgba(16, 185, 129, 0.15); border-color: #10B981; color: #10B981; font-weight: 700;">
-                <span>🎟️</span> <span>${order.promocode}</span>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z"/></svg>
+                <span>${order.promocode}</span>
               </span>
             ` : ''}
             ${order.receipt_image ? `
               <span class="card-info-tag receipt-attached" onclick="openReceiptModal('/static/uploads/receipts/${order.receipt_image}')">
-                <span>📎</span> <span>${t('receipt_attached')}</span>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                <span>${t('receipt_attached')}</span>
               </span>
             ` : ''}
             ${order.address ? `
               <span class="card-info-tag" title="${order.address}">
-                <span>📍</span> <span>${order.address.length > 25 ? order.address.substring(0, 25) + '...' : order.address}</span>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                <span>${order.address.length > 25 ? order.address.substring(0, 25) + '...' : order.address}</span>
               </span>
             ` : ''}
           </div>
@@ -1133,12 +1158,12 @@ function openOrderDetailsModal(orderId) {
     modalBadge.textContent = badge.text;
   }
   if (modalCustomerName) modalCustomerName.textContent = order.user_phone || 'Mijoz';
-  if (modalCustomerPhone) modalCustomerPhone.innerHTML = `<a href="tel:${order.user_phone}" style="color: inherit; text-decoration: none;">📞 ${order.user_phone || 'N/A'}</a>`;
-  const promoStr = order.promocode ? ` • 🎟️ ${order.promocode}` : '';
-  if (modalOrderType) modalOrderType.textContent = `${t('order')} #${order.id} (${order.payment_method === 'Karta' ? t('card') : t('cash')})${promoStr}`;
+  if (modalCustomerPhone) modalCustomerPhone.innerHTML = `<a href="tel:${order.user_phone}" style="color: inherit; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg> <span>${order.user_phone || 'N/A'}</span></a>`;
+  const promoStr = order.promocode ? ` • <span style="color: #10B981; font-weight: 700;">${order.promocode}</span>` : '';
+  if (modalOrderType) modalOrderType.innerHTML = `${t('order')} #${order.id} (${order.payment_method === 'Karta' ? t('card') : t('cash')})${promoStr}`;
   if (modalAddress) {
-    modalAddress.innerHTML = `📍 <strong>${t('address_lbl')}</strong> ${order.address || t('not_specified')} ` +
-      (order.latitude && order.longitude ? `<a href="https://maps.google.com/?q=${order.latitude},${order.longitude}" target="_blank" style="color: #0284C7; margin-left: 8px;">${t('view_map')}</a>` : '');
+    modalAddress.innerHTML = `<div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> <strong>${t('address_lbl')}</strong> <span>${order.address || t('not_specified')}</span>` +
+      (order.latitude && order.longitude ? `<a href="https://maps.google.com/?q=${order.latitude},${order.longitude}" target="_blank" style="color: #0284C7; margin-left: 8px; display: inline-flex; align-items: center; gap: 3px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg> ${t('view_map')}</a>` : '') + `</div>`;
   }
 
   // Items
@@ -1324,14 +1349,19 @@ function renderMenuGridFiltered(catId) {
             <p class="menu-desc">${dDesc || ''}</p>
           </div>
           <div>
-            ${dish.calories && dish.calories > 0 ? `<div style="margin-bottom: 6px;"><span style="display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 700; color: #F59E0B; background: rgba(245, 158, 11, 0.12); padding: 2px 7px; border-radius: 6px;">🔥 ${dish.calories} kkal</span></div>` : ''}
+            ${dish.calories && dish.calories > 0 ? `<div style="margin-bottom: 6px;"><span style="display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; color: #F59E0B; background: rgba(245, 158, 11, 0.12); padding: 2px 7px; border-radius: 6px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg> ${dish.calories} kkal</span></div>` : ''}
             <div class="menu-prices-row">
               <span class="price-current">${formatPrice(dish.price)}</span>
               ${dish.old_price && dish.old_price > 0 ? `<span class="price-old">${formatPrice(dish.old_price)}</span>` : ''}
             </div>
             <div class="menu-card-actions">
-              <button class="btn-card-secondary" style="flex: 1;" onclick="openDishModal(${dish.id})">${t('edit_btn')}</button>
-              <button class="btn-card-secondary" style="color: #DC2626;" onclick="deleteDish(${dish.id})">${t('delete_btn')}</button>
+              <button class="btn-card-secondary" style="flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px;" onclick="openDishModal(${dish.id})">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                <span>${t('edit_btn')}</span>
+              </button>
+              <button class="btn-card-secondary" style="color: #DC2626; display: inline-flex; align-items: center; justify-content: center; padding: 6px 12px;" onclick="deleteDish(${dish.id})" title="${t('delete_btn')}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+              </button>
             </div>
           </div>
         </div>
@@ -1400,7 +1430,7 @@ async function autoTranslateDish() {
     return;
   }
 
-  showToast("Tarjima qilinmoqda... ⏳", "info");
+  showToast(state.lang === 'ru' ? "Перевод выполняется..." : state.lang === 'en' ? "Translating..." : "Tarjima qilinmoqda...", "info");
 
   if (name && nameRuEl && nameEnEl) {
     try {
@@ -1432,7 +1462,7 @@ async function autoTranslateDish() {
     } catch (e) {}
   }
 
-  showToast("Avtomatik tarjima qilindi! ✓", "success");
+  showToast(state.lang === 'ru' ? "Автоматически переведено!" : state.lang === 'en' ? "Auto translated!" : "Avtomatik tarjima qilindi!", "success");
 }
 
 // Dish Create / Edit Modal
@@ -1589,15 +1619,23 @@ function renderCategoriesView() {
     return `
       <div class="stat-card" style="justify-content: space-between;">
         <div style="display: flex; align-items: center; gap: 14px;">
-          <div class="stat-icon yellow">📁</div>
+          <div class="stat-icon yellow">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+            </svg>
+          </div>
           <div>
             <h4 style="font-size: 16px; font-weight: 700;">${catDisplayName}</h4>
             <span style="font-size: 12px; color: var(--text-muted);">${count} ${t('cat_dishes_count')}</span>
           </div>
         </div>
         <div style="display: flex; gap: 8px;">
-          <button class="btn-card-secondary" style="padding: 6px 12px;" onclick="openCategoryModal(${cat.id})">✏️</button>
-          <button class="btn-card-secondary" style="padding: 6px 12px; color: #DC2626;" onclick="deleteCategory(${cat.id})">🗑️</button>
+          <button class="btn-card-secondary" style="padding: 6px 12px; display: inline-flex; align-items: center; justify-content: center;" onclick="openCategoryModal(${cat.id})" title="${t('edit_btn')}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+          </button>
+          <button class="btn-card-secondary" style="padding: 6px 12px; color: #DC2626; display: inline-flex; align-items: center; justify-content: center;" onclick="deleteCategory(${cat.id})" title="${t('delete_btn')}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+          </button>
         </div>
       </div>
     `;
@@ -1763,7 +1801,9 @@ function renderPromotionsView() {
           <button class="btn-card-secondary" style="flex: 1;" onclick="togglePromoStatus(${p.id})">
             ${p.is_active ? t('turn_off') : t('turn_on')}
           </button>
-          <button class="btn-card-secondary" style="color: #DC2626;" onclick="deletePromo(${p.id})">🗑️</button>
+          <button class="btn-card-secondary" style="color: #DC2626; padding: 6px 12px; display: inline-flex; align-items: center; justify-content: center;" onclick="deletePromo(${p.id})" title="${t('delete_btn')}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+          </button>
         </div>
       </div>
     `;
@@ -1846,7 +1886,7 @@ function switchPromoSubTab(subTab) {
     if (gridPromos) gridPromos.style.display = 'grid';
     if (gridPromocodes) gridPromocodes.style.display = 'none';
     if (actionBtn) {
-      actionBtn.innerHTML = `<span>➕</span> <span>${t('add_discount')}</span>`;
+      actionBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> <span>${t('add_discount')}</span>`;
       actionBtn.onclick = () => openPromotionModal();
     }
     fetchPromotions();
@@ -1854,7 +1894,7 @@ function switchPromoSubTab(subTab) {
     if (gridPromos) gridPromos.style.display = 'none';
     if (gridPromocodes) gridPromocodes.style.display = 'grid';
     if (actionBtn) {
-      actionBtn.innerHTML = `<span>➕</span> <span>${t('add_promocode')}</span>`;
+      actionBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> <span>${t('add_promocode')}</span>`;
       actionBtn.onclick = () => openPromoCodeModal();
     }
     fetchPromoCodes();
@@ -1898,8 +1938,6 @@ function renderPromoCodesView() {
       rangeText = `Maks. ${formatPrice(p.max_order_amount)}`;
     }
 
-    const expiryText = p.end_date ? `⏳ ${p.end_date}` : `⏳ ${t('promo_unlimited')}`;
-
     return `
       <div class="stat-card" style="flex-direction: column; align-items: stretch; gap: 14px; position: relative;">
         <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -1911,20 +1949,33 @@ function renderPromoCodesView() {
         </div>
         <div>
           <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-            <span style="font-size: 20px;">🎟️</span>
-            <span style="font-size: 20px; font-weight: 800; font-family: monospace; letter-spacing: 1.5px; color: var(--gold);">${p.code}</span>
+            <div style="width: 28px; height: 28px; border-radius: 6px; background: rgba(212, 175, 55, 0.15); display: flex; align-items: center; justify-content: center; color: var(--gold-primary);">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z"></path><line x1="13" y1="5" x2="13" y2="19" stroke-dasharray="2 2"></line></svg>
+            </div>
+            <span style="font-size: 18px; font-weight: 800; font-family: monospace; letter-spacing: 1.5px; color: var(--gold-primary);">${p.code}</span>
           </div>
-          <div style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--text-muted);">
-            <div>💳 <strong>${t('promo_range_lbl')}</strong> ${rangeText}</div>
-            <div>${expiryText}</div>
-            <div style="margin-top: 2px;">📊 ${p.times_used} ${t('times_used_suffix')}</div>
+          <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--text-muted);">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+              <span><strong>${t('promo_range_lbl')}</strong> ${rangeText}</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              <span>${p.end_date ? p.end_date : t('promo_unlimited')}</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+              <span>${p.times_used} ${t('times_used_suffix')}</span>
+            </div>
           </div>
         </div>
         <div style="display: flex; gap: 8px; border-top: 1px solid var(--border-subtle); padding-top: 10px;">
           <button class="btn-card-secondary" style="flex: 1;" onclick="togglePromoCodeStatus(${p.id})">
             ${p.is_active ? t('turn_off') : t('turn_on')}
           </button>
-          <button class="btn-card-secondary" style="color: #DC2626;" onclick="deletePromoCode(${p.id})">🗑️</button>
+          <button class="btn-card-secondary" style="color: #DC2626; padding: 6px 12px; display: inline-flex; align-items: center; justify-content: center;" onclick="deletePromoCode(${p.id})" title="${t('delete_btn')}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+          </button>
         </div>
       </div>
     `;
@@ -2053,12 +2104,19 @@ function renderStatsView() {
     if ((stats.top_dishes || []).length === 0) {
       topList.innerHTML = `<li style="padding: 10px; color: var(--text-muted);">${t('no_sales_yet')}</li>`;
     } else {
-      topList.innerHTML = stats.top_dishes.map((item, idx) => `
-        <li style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border-light); font-size: 13.5px;">
-          <span><strong>#${idx + 1}</strong> ${item.name}</span>
-          <span style="font-weight: 700; color: var(--forest-teal);">${item.qty} ${t('sold_qty_suffix')}</span>
-        </li>
-      `).join('');
+      topList.innerHTML = stats.top_dishes.map((item, idx) => {
+        const rankColor = idx === 0 ? '#F59E0B' : idx === 1 ? '#94A3B8' : idx === 2 ? '#B45309' : '#64748B';
+        const rankBg = idx === 0 ? 'rgba(245, 158, 11, 0.15)' : idx === 1 ? 'rgba(148, 163, 184, 0.15)' : idx === 2 ? 'rgba(180, 83, 9, 0.15)' : 'rgba(100, 116, 139, 0.1)';
+        return `
+          <li style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border-subtle); font-size: 13.5px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span style="display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 6px; font-size: 11px; font-weight: 800; background: ${rankBg}; color: ${rankColor};">#${idx + 1}</span>
+              <span style="font-weight: 600;">${item.name}</span>
+            </div>
+            <span style="font-weight: 700; color: #10B981;">${item.qty} ${t('sold_qty_suffix')}</span>
+          </li>
+        `;
+      }).join('');
     }
   }
 }
