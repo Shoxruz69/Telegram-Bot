@@ -25,10 +25,18 @@ app.config['FLASK_ADMIN_SWATCH'] = 'flatly'
 from sqlalchemy import event
 from sqlalchemy.engine import Engine
 
-# Baza fayli joylashgan manzil
-db_path = os.path.join(os.path.dirname(__file__), 'database', 'restaurant.db')
-app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}?timeout=30'
-app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'connect_args': {'timeout': 30}}
+# Baza sozlamalari (Render PostgreSQL yoki SQLite)
+raw_db_url = os.getenv("DATABASE_URL", "").strip()
+if raw_db_url:
+    if raw_db_url.startswith("postgres://"):
+        raw_db_url = raw_db_url.replace("postgres://", "postgresql://", 1)
+    app.config['SQLALCHEMY_DATABASE_URI'] = raw_db_url
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {}
+else:
+    db_path = os.path.join(os.path.dirname(__file__), 'database', 'restaurant.db')
+    app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}?timeout=30'
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'connect_args': {'timeout': 30}}
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 @event.listens_for(Engine, "connect")
@@ -38,8 +46,8 @@ def set_sqlite_pragma(dbapi_connection, connection_record):
         cursor.execute("PRAGMA journal_mode=WAL")
         cursor.execute("PRAGMA busy_timeout=30000")
         cursor.close()
-    except Exception as e:
-        print("[SQLite Pragma error]:", e)
+    except Exception:
+        pass
 
 db = SQLAlchemy(app)
 
@@ -236,6 +244,20 @@ class Order(db.Model):
     def __repr__(self):
         return f"Buyurtma #{self.daily_id or self.id} - {self.status}"
 
+class BotCommand(db.Model):
+    __tablename__ = 'bot_commands'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    tenant_id = db.Column(db.Integer, default=1)
+    command = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.String(255))
+    reply_text = db.Column(db.Text, nullable=False)
+    reply_image = db.Column(db.String(500))
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+    __table_args__ = (db.UniqueConstraint('tenant_id', 'command', name='uq_tenant_command'),)
+
+    def __repr__(self):
+        return f"/{self.command}"
+
 # --- Jadvallarni yaratish va Auto-migration ---
 with app.app_context():
     db.create_all()
@@ -395,6 +417,40 @@ with app.app_context():
                         db.session.commit()
         except Exception as te:
             print("[Tenant seed error]:", te)
+
+        # Restore tenants from tenants_backup.json if needed (anti-wipe protection)
+        try:
+            backup_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'database', 'tenants_backup.json')
+            if os.path.exists(backup_file):
+                with open(backup_file, 'r', encoding='utf-8') as f:
+                    bk_list = json.load(f)
+                for bt in bk_list:
+                    t_slug = bt.get('slug', '').strip().lower()
+                    if not t_slug:
+                        continue
+                    existing = Tenant.query.filter_by(slug=t_slug).first()
+                    if not existing:
+                        new_t = Tenant(
+                            name=bt.get('name', 'Oshxona'),
+                            slug=t_slug,
+                            bot_token=bt.get('bot_token', ''),
+                            bot_username=bt.get('bot_username', ''),
+                            admin_telegram_id=bt.get('admin_telegram_id', ''),
+                            admin_username=bt.get('admin_username', f"{t_slug}_admin"),
+                            is_active=bool(bt.get('is_active', 1))
+                        )
+                        if bt.get('admin_password_hash'):
+                            new_t.admin_password_hash = bt.get('admin_password_hash')
+                        else:
+                            new_t.set_password('admin123')
+                        db.session.add(new_t)
+                        db.session.commit()
+                        print(f"[SQLAlchemy Startup]: Restored tenant {bt.get('name')} ({t_slug}) from backup")
+                    elif existing.bot_token in ('YOUR_BOT_TOKEN_HERE', 'YOUR_DILI_BOT_TOKEN_HERE', '') and bt.get('bot_token') and bt.get('bot_token') not in ('YOUR_BOT_TOKEN_HERE', 'YOUR_DILI_BOT_TOKEN_HERE', ''):
+                        existing.bot_token = bt.get('bot_token')
+                        db.session.commit()
+        except Exception as s_bke:
+            print(f"[SQLAlchemy Startup backup restore error]: {s_bke}")
 
         # Seed initial sample promo code if table is empty
         try:
@@ -841,6 +897,7 @@ def api_data():
 
     return jsonify({
         'restaurant_name': tenant_obj.name if tenant_obj else "Cafe Express",
+        'logo_url': (setting.welcome_image if setting and setting.welcome_image else '/static/cafe_logo.png'),
         'categories': [{
             'id': c.id, 
             'name': c.name,
@@ -1343,6 +1400,30 @@ def get_current_tenant_id():
     t = get_current_tenant()
     return t.id if t else 1
 
+def sync_tenants_backup_json():
+    """Barcha oshxonalarni tenants_backup.json fayliga avtomatik zaxiralash"""
+    try:
+        backup_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'database', 'tenants_backup.json')
+        tenants = Tenant.query.all()
+        data = []
+        for t in tenants:
+            data.append({
+                "id": t.id,
+                "name": t.name,
+                "slug": t.slug,
+                "bot_token": t.bot_token,
+                "bot_username": t.bot_username,
+                "admin_telegram_id": t.admin_telegram_id,
+                "admin_username": t.admin_username,
+                "admin_password_hash": t.admin_password_hash,
+                "is_active": 1 if t.is_active else 0
+            })
+        with open(backup_file, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        print(f"[sync_tenants_backup_json]: {len(data)} ta oshxona zaxiralandi")
+    except Exception as ex:
+        print(f"[sync_tenants_backup_json error]: {ex}")
+
 
 # --- Auth Routes ---
 
@@ -1608,6 +1689,7 @@ def api_superadmin_tenants_create():
     except Exception as e:
         print(f"[Auto bot setup error]: {e}")
 
+    sync_tenants_backup_json()
     return jsonify({'success': True, 'tenant_id': new_tenant.id, 'slug': new_tenant.slug})
 
 
@@ -1619,6 +1701,7 @@ def api_superadmin_tenants_toggle(tenant_id):
         return jsonify({'success': False, 'error': 'Oshxona topilmadi'}), 404
     tenant.is_active = not bool(tenant.is_active)
     db.session.commit()
+    sync_tenants_backup_json()
     return jsonify({'success': True, 'is_active': tenant.is_active})
 
 
@@ -1652,11 +1735,13 @@ def api_superadmin_tenants_delete(tenant_id):
     OrderItem.query.filter_by(tenant_id=tenant_id).delete()
     Promotion.query.filter_by(tenant_id=tenant_id).delete()
     PromoCode.query.filter_by(tenant_id=tenant_id).delete()
+    BotCommand.query.filter_by(tenant_id=tenant_id).delete()
     Setting.query.filter_by(tenant_id=tenant_id).delete()
     User.query.filter_by(tenant_id=tenant_id).delete()
     Cart.query.filter_by(tenant_id=tenant_id).delete()
     db.session.delete(tenant)
     db.session.commit()
+    sync_tenants_backup_json()
     return jsonify({'success': True})
 
 
@@ -2300,6 +2385,146 @@ def api_admin_update_settings():
     if 'welcome_image' in data:
         setting.welcome_image = data.get('welcome_image')
     db.session.commit()
+    return jsonify({'success': True})
+
+
+def sync_telegram_bot_commands(tenant_id):
+    """Admin buyruqlarni o'zgartirganda Telegram setMyCommands ni chaqirib yangilash"""
+    try:
+        tenant = Tenant.query.get(tenant_id)
+        if not tenant or not tenant.bot_token or tenant.bot_token in ("YOUR_BOT_TOKEN_HERE", ""):
+            return
+        
+        base_cmds = [
+            {"command": "start", "description": "Botni qayta ishga tushirish"},
+            {"command": "menu", "description": "Menyuni ochish"},
+            {"command": "help", "description": "Yordam va qoidalar"}
+        ]
+        cmds = BotCommand.query.filter_by(tenant_id=tenant_id).all()
+        for c in cmds:
+            clean_c = c.command.strip().lstrip('/').lower()
+            if clean_c not in ["start", "menu", "help", "myid"]:
+                safe_name = re.sub(r'[^a-z0-9_]', '_', clean_c)[:32]
+                if safe_name:
+                    base_cmds.append({
+                        "command": safe_name,
+                        "description": (c.description or safe_name)[:255]
+                    })
+        requests.post(
+            f"https://api.telegram.org/bot{tenant.bot_token}/setMyCommands",
+            json={"commands": base_cmds},
+            timeout=5
+        )
+    except Exception as ex:
+        print(f"[sync_telegram_bot_commands error]: {ex}")
+
+
+@app.route('/api/admin/commands')
+@login_required
+def api_admin_commands():
+    t_id = get_current_tenant_id()
+    cmds = BotCommand.query.filter_by(tenant_id=t_id).order_by(BotCommand.id.asc()).all()
+    return jsonify({
+        'success': True,
+        'commands': [{
+            'id': c.id,
+            'command': c.command,
+            'description': c.description or '',
+            'reply_text': c.reply_text,
+            'reply_image': c.reply_image or '',
+            'created_at': c.created_at.strftime("%Y-%m-%d %H:%M") if c.created_at else ''
+        } for c in cmds]
+    })
+
+
+@app.route('/api/admin/commands/create', methods=['POST'])
+@login_required
+def api_admin_command_create():
+    t_id = get_current_tenant_id()
+    data = request.get_json(force=True, silent=True) or request.form.to_dict() or {}
+    raw_cmd = str(data.get('command', '')).strip().lstrip('/').lower()
+    description = str(data.get('description', '')).strip()
+    reply_text = str(data.get('reply_text', '')).strip()
+    reply_image = str(data.get('reply_image', '')).strip()
+
+    if not raw_cmd:
+        return jsonify({'success': False, 'error': 'Komanda nomi kiritilmadi!'}), 400
+    if not reply_text:
+        return jsonify({'success': False, 'error': 'Javob matni kiritilmadi!'}), 400
+
+    clean_cmd = re.sub(r'[^a-z0-9_]', '_', raw_cmd)[:32]
+    if not clean_cmd:
+        return jsonify({'success': False, 'error': 'Komanda nomi yaroqsiz!'}), 400
+
+    if BotCommand.query.filter_by(tenant_id=t_id, command=clean_cmd).first():
+        return jsonify({'success': False, 'error': f'/{clean_cmd} buyrug\'i allaqachon mavjud!'}), 400
+
+    new_cmd = BotCommand(
+        tenant_id=t_id,
+        command=clean_cmd,
+        description=description,
+        reply_text=reply_text,
+        reply_image=reply_image
+    )
+    db.session.add(new_cmd)
+    db.session.commit()
+
+    sync_telegram_bot_commands(t_id)
+    return jsonify({'success': True, 'command': {
+        'id': new_cmd.id,
+        'command': new_cmd.command,
+        'description': new_cmd.description,
+        'reply_text': new_cmd.reply_text,
+        'reply_image': new_cmd.reply_image
+    }})
+
+
+@app.route('/api/admin/commands/<int:cmd_id>/update', methods=['POST'])
+@login_required
+def api_admin_command_update(cmd_id):
+    t_id = get_current_tenant_id()
+    cmd_obj = BotCommand.query.filter_by(id=cmd_id, tenant_id=t_id).first()
+    if not cmd_obj:
+        return jsonify({'success': False, 'error': 'Buyruq topilmadi'}), 404
+
+    data = request.get_json(force=True, silent=True) or request.form.to_dict() or {}
+    raw_cmd = str(data.get('command', cmd_obj.command)).strip().lstrip('/').lower()
+    description = str(data.get('description', cmd_obj.description or '')).strip()
+    reply_text = str(data.get('reply_text', cmd_obj.reply_text)).strip()
+    reply_image = str(data.get('reply_image', cmd_obj.reply_image or '')).strip()
+
+    if not raw_cmd:
+        return jsonify({'success': False, 'error': 'Komanda nomi kiritilmadi!'}), 400
+    if not reply_text:
+        return jsonify({'success': False, 'error': 'Javob matni kiritilmadi!'}), 400
+
+    clean_cmd = re.sub(r'[^a-z0-9_]', '_', raw_cmd)[:32]
+    existing = BotCommand.query.filter_by(tenant_id=t_id, command=clean_cmd).first()
+    if existing and existing.id != cmd_obj.id:
+        return jsonify({'success': False, 'error': f'/{clean_cmd} buyrug\'i allaqachon mavjud!'}), 400
+
+    cmd_obj.command = clean_cmd
+    cmd_obj.description = description
+    cmd_obj.reply_text = reply_text
+    cmd_obj.reply_image = reply_image
+    db.session.commit()
+
+    sync_telegram_bot_commands(t_id)
+    return jsonify({'success': True})
+
+
+@app.route('/api/admin/commands/<int:cmd_id>/delete', methods=['POST'])
+@login_required
+def api_admin_command_delete(cmd_id):
+    t_id = get_current_tenant_id()
+    cmd_obj = BotCommand.query.filter_by(id=cmd_id, tenant_id=t_id).first()
+    if not cmd_obj:
+        return jsonify({'success': False, 'error': 'Buyruq topilmadi'}), 404
+
+    db.session.delete(cmd_obj)
+    db.session.commit()
+
+    sync_telegram_bot_commands(t_id)
     return jsonify({'success': True})
 
 

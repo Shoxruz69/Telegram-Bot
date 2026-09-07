@@ -1,9 +1,11 @@
 import os
+import json
 import aiosqlite
 from contextlib import asynccontextmanager
 from werkzeug.security import generate_password_hash, check_password_hash
 
 DB_NAME = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'restaurant.db')
+BACKUP_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tenants_backup.json')
 
 @asynccontextmanager
 async def get_db():
@@ -166,6 +168,18 @@ async def init_db():
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         ''')
+        await db.execute('''
+            CREATE TABLE IF NOT EXISTS bot_commands (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                tenant_id INTEGER DEFAULT 1,
+                command TEXT NOT NULL,
+                description TEXT,
+                reply_text TEXT NOT NULL,
+                reply_image TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(tenant_id, command)
+            )
+        ''')
         await db.commit()
 
         # 4. Migratsiyalar: users jadvalini multi-tenant qilish (user_id yagona PK bo'lmasligi kerak)
@@ -281,7 +295,40 @@ async def init_db():
                     (2, 'Coca Cola 1L', 'Muzdek kola', 10000, 'https://via.placeholder.com/150'),
                     (3, 'Medovik', 'Asalli tort', 15000, 'https://via.placeholder.com/150')
                 ])
-                await db.commit()
+        # 8. tenants_backup.json dan tiklash (agar Render konteyneri qayta ishga tushsa)
+        if os.path.exists(BACKUP_FILE):
+            try:
+                with open(BACKUP_FILE, 'r', encoding='utf-8') as f:
+                    bk_tenants = json.load(f)
+                for bt in bk_tenants:
+                    t_slug = bt.get('slug', '').strip().lower()
+                    if not t_slug:
+                        continue
+                    async with db.execute("SELECT id, bot_token FROM tenants WHERE slug = ?", (t_slug,)) as cur:
+                        row = await cur.fetchone()
+                        if not row:
+                            await db.execute('''
+                                INSERT INTO tenants (name, slug, bot_token, bot_username, admin_telegram_id, admin_username, admin_password_hash, is_active)
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                            ''', (
+                                bt.get('name', 'Oshxona'),
+                                t_slug,
+                                bt.get('bot_token', ''),
+                                bt.get('bot_username', ''),
+                                bt.get('admin_telegram_id', ''),
+                                bt.get('admin_username', f"{t_slug}_admin"),
+                                bt.get('admin_password_hash', generate_password_hash('admin123')),
+                                1
+                            ))
+                            await db.commit()
+                            print(f"[Backup restore]: Oshxona tiklandi: {bt.get('name')} ({t_slug})")
+                        elif row[1] in ('YOUR_BOT_TOKEN_HERE', 'YOUR_DILI_BOT_TOKEN_HERE', '') and bt.get('bot_token') and bt.get('bot_token') not in ('YOUR_BOT_TOKEN_HERE', 'YOUR_DILI_BOT_TOKEN_HERE', ''):
+                            await db.execute("UPDATE tenants SET bot_token = ? WHERE id = ?", (bt.get('bot_token'), row[0]))
+                            await db.commit()
+            except Exception as bke:
+                print(f"[Backup restore error]: {bke}")
+
+        await db.commit()
 
 # --- Tenant & SuperAdmin Helper Funksiyalari ---
 
@@ -441,3 +488,65 @@ async def get_welcome_settings(tenant_id=1):
             if row:
                 return row['welcome_message'], row['welcome_image']
             return None, None
+
+async def backup_tenants_file():
+    """Barcha oshxonalarni tenants_backup.json fayliga zaxiralash"""
+    try:
+        tenants = await get_all_tenants()
+        with open(BACKUP_FILE, 'w', encoding='utf-8') as f:
+            json.dump(tenants, f, ensure_ascii=False, indent=2)
+        return True
+    except Exception as ex:
+        print(f"[backup_tenants_file error]: {ex}")
+        return False
+
+# --- Maxsus Bot Komandalari (Bot Commands) ---
+
+async def get_all_custom_commands(tenant_id=1):
+    async with get_db() as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute('SELECT * FROM bot_commands WHERE tenant_id = ? ORDER BY id ASC', (tenant_id,)) as cursor:
+            rows = await cursor.fetchall()
+            return [dict(r) for r in rows]
+
+async def get_custom_command(tenant_id, command_name):
+    if not command_name:
+        return None
+    clean_cmd = command_name.strip().lstrip('/').lower()
+    async with get_db() as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            'SELECT * FROM bot_commands WHERE tenant_id = ? AND (command = ? OR command = ?)',
+            (tenant_id, clean_cmd, f"/{clean_cmd}")
+        ) as cursor:
+            row = await cursor.fetchone()
+            return dict(row) if row else None
+
+async def create_custom_command(tenant_id, command, description, reply_text, reply_image=None):
+    clean_cmd = command.strip().lstrip('/').lower()
+    async with get_db() as db:
+        await db.execute('''
+            INSERT INTO bot_commands (tenant_id, command, description, reply_text, reply_image)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (tenant_id, clean_cmd, description or '', reply_text, reply_image or ''))
+        async with db.execute('SELECT last_insert_rowid()') as cursor:
+            cmd_id = (await cursor.fetchone())[0]
+        await db.commit()
+        return cmd_id
+
+async def update_custom_command(cmd_id, tenant_id, command, description, reply_text, reply_image=None):
+    clean_cmd = command.strip().lstrip('/').lower()
+    async with get_db() as db:
+        await db.execute('''
+            UPDATE bot_commands 
+            SET command = ?, description = ?, reply_text = ?, reply_image = ?
+            WHERE id = ? AND tenant_id = ?
+        ''', (clean_cmd, description or '', reply_text, reply_image or '', cmd_id, tenant_id))
+        await db.commit()
+        return True
+
+async def delete_custom_command(cmd_id, tenant_id):
+    async with get_db() as db:
+        await db.execute('DELETE FROM bot_commands WHERE id = ? AND tenant_id = ?', (cmd_id, tenant_id))
+        await db.commit()
+        return True

@@ -843,10 +843,11 @@ function switchTab(tab) {
     actionBtn.style.display = 'none';
     fetchSettings();
   } else if (tab === 'bot_settings') {
-    titleEl.textContent = 'Bot Xabarlari (Start)';
+    titleEl.textContent = 'Bot Xabarlari va Buyruqlar';
     filterTabs.style.display = 'none';
     actionBtn.style.display = 'none';
     fetchBotSettings();
+    fetchBotCommands();
   }
 }
 
@@ -2221,6 +2222,7 @@ async function fetchBotSettings() {
 
       updateBotPreview();
     }
+    fetchBotCommands();
   } catch (err) {
     console.error("Error fetching bot settings:", err);
   }
@@ -2324,6 +2326,245 @@ async function saveBotSettings(e) {
       showToast(data.error || "Saqlashda xatolik", "error");
     }
   } catch (err) {
+    showToast("Server bilan aloqa uzildi", "error");
+  }
+}
+
+// ==========================================================================
+// CUSTOM BOT COMMANDS (/komandalar) MANAGEMENT
+// ==========================================================================
+
+let cachedBotCommands = [];
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+async function fetchBotCommands() {
+  const tbody = document.getElementById('bot-commands-table-body');
+  if (!tbody) return;
+
+  try {
+    const res = await fetch('/api/admin/commands');
+    const data = await res.json();
+    if (data.success) {
+      cachedBotCommands = data.commands || [];
+      renderBotCommands(cachedBotCommands);
+    } else {
+      tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 20px;">Yuklashda xatolik: ${data.error || 'Noma\'lum'}</td></tr>`;
+    }
+  } catch (err) {
+    console.error("fetchBotCommands error:", err);
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 20px;">Serverga ulanishda xatolik</td></tr>`;
+  }
+}
+
+function renderBotCommands(commands) {
+  const tbody = document.getElementById('bot-commands-table-body');
+  if (!tbody) return;
+
+  if (!commands || commands.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="5" style="text-align: center; padding: 32px 16px; color: var(--text-muted);">
+          <div style="font-size: 28px; margin-bottom: 8px;">⚡</div>
+          <div style="font-size: 14px; font-weight: 600; color: #fff;">Hozircha maxsus buyruqlar yo'q</div>
+          <div style="font-size: 12px; margin-top: 4px;">"Yangi Buyruq Qo'shish" tugmasi orqali istalgan /komandani qo'shishingiz mumkin.</div>
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  tbody.innerHTML = commands.map(cmd => {
+    const previewTxt = (cmd.reply_text || '').length > 60
+      ? (cmd.reply_text.substring(0, 60) + '...')
+      : (cmd.reply_text || '—');
+
+    const imageHtml = cmd.reply_image
+      ? `<a href="${cmd.reply_image}" target="_blank" style="display: inline-flex; align-items: center; gap: 4px; color: #D4AF37; text-decoration: none; font-size: 12px;">
+           <img src="${cmd.reply_image}" style="width: 24px; height: 24px; border-radius: 4px; object-fit: cover;" onerror="this.style.display='none'">
+           <span>Ko'rish</span>
+         </a>`
+      : `<span style="color: var(--text-muted); font-size: 12px;">Yo'q</span>`;
+
+    return `
+      <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+        <td style="padding: 12px 14px;">
+          <span style="display: inline-block; background: rgba(212, 175, 55, 0.15); color: #D4AF37; border: 1px solid rgba(212, 175, 55, 0.3); padding: 3px 8px; border-radius: 6px; font-weight: 700; font-size: 13px; font-family: monospace;">
+            /${escapeHtml(cmd.command)}
+          </span>
+        </td>
+        <td style="padding: 12px 14px; color: var(--text-color); font-size: 13px;">
+          ${escapeHtml(cmd.description || '—')}
+        </td>
+        <td style="padding: 12px 14px; color: var(--text-muted); font-size: 12px; max-width: 240px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+          ${escapeHtml(previewTxt)}
+        </td>
+        <td style="padding: 12px 14px;">
+          ${imageHtml}
+        </td>
+        <td style="padding: 12px 14px; text-align: right; white-space: nowrap;">
+          <button type="button" class="btn-secondary" onclick="openCommandModal(${cmd.id})" style="padding: 5px 10px; font-size: 12px; margin-right: 6px;">
+            ✏️ Tahrirlash
+          </button>
+          <button type="button" class="btn-secondary" onclick="deleteCommand(${cmd.id}, '${escapeHtml(cmd.command)}')" style="padding: 5px 10px; font-size: 12px; color: #ef4444; border-color: rgba(239, 68, 68, 0.3);">
+            🗑️ O'chirish
+          </button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function openCommandModal(cmdId = null) {
+  const modal = document.getElementById('command-modal-overlay');
+  const title = document.getElementById('command-modal-title');
+  const idInput = document.getElementById('cmd-edit-id');
+  const nameInput = document.getElementById('cmd-name-input');
+  const descInput = document.getElementById('cmd-desc-input');
+  const textInput = document.getElementById('cmd-reply-text');
+  const imgInput = document.getElementById('cmd-image-url');
+  const statusEl = document.getElementById('cmd-upload-status');
+
+  if (statusEl) statusEl.textContent = '';
+
+  if (cmdId) {
+    const cmd = cachedBotCommands.find(c => c.id === cmdId);
+    if (cmd) {
+      if (title) title.textContent = `⚡ /${cmd.command} Buyrug'ini Tahrirlash`;
+      if (idInput) idInput.value = cmd.id;
+      if (nameInput) nameInput.value = cmd.command;
+      if (descInput) descInput.value = cmd.description || '';
+      if (textInput) textInput.value = cmd.reply_text || '';
+      if (imgInput) imgInput.value = cmd.reply_image || '';
+    }
+  } else {
+    if (title) title.textContent = "⚡ Yangi Bot Buyrug'i Qo'shish";
+    if (idInput) idInput.value = '';
+    if (nameInput) nameInput.value = '';
+    if (descInput) descInput.value = '';
+    if (textInput) textInput.value = '';
+    if (imgInput) imgInput.value = '';
+  }
+
+  if (modal) modal.classList.add('active');
+}
+
+function closeCommandModal() {
+  const modal = document.getElementById('command-modal-overlay');
+  if (modal) modal.classList.remove('active');
+}
+
+function insertCommandTag(tag) {
+  const textarea = document.getElementById('cmd-reply-text');
+  if (!textarea) return;
+  const start = textarea.selectionStart;
+  const end = textarea.selectionEnd;
+  const text = textarea.value;
+  textarea.value = text.substring(0, start) + tag + text.substring(end);
+  textarea.focus();
+  textarea.selectionStart = textarea.selectionEnd = start + tag.length;
+}
+
+async function handleCommandImageUpload(input) {
+  if (!input.files || !input.files[0]) return;
+  const file = input.files[0];
+  const statusEl = document.getElementById('cmd-upload-status');
+  if (statusEl) statusEl.textContent = "Yuklanmoqda...";
+
+  const formData = new FormData();
+  formData.append('image', file);
+
+  try {
+    const res = await fetch('/api/admin/upload_image', {
+      method: 'POST',
+      body: formData
+    });
+    const data = await res.json();
+    if (data.success && data.image_url) {
+      const urlInput = document.getElementById('cmd-image-url');
+      if (urlInput) urlInput.value = data.image_url;
+      if (statusEl) statusEl.textContent = "✅ Yuklandi";
+      showToast("Rasm muvaffaqiyatli yuklandi!", "success");
+    } else {
+      if (statusEl) statusEl.textContent = "❌ Xato";
+      showToast(data.error || "Rasm yuklashda xatolik", "error");
+    }
+  } catch (err) {
+    if (statusEl) statusEl.textContent = "❌ Xato";
+    showToast("Server bilan aloqa uzildi", "error");
+  }
+}
+
+async function saveCommand() {
+  const editId = document.getElementById('cmd-edit-id') ? document.getElementById('cmd-edit-id').value : '';
+  const rawCmd = document.getElementById('cmd-name-input') ? document.getElementById('cmd-name-input').value.trim() : '';
+  const description = document.getElementById('cmd-desc-input') ? document.getElementById('cmd-desc-input').value.trim() : '';
+  const reply_text = document.getElementById('cmd-reply-text') ? document.getElementById('cmd-reply-text').value.trim() : '';
+  const reply_image = document.getElementById('cmd-image-url') ? document.getElementById('cmd-image-url').value.trim() : '';
+
+  if (!rawCmd) {
+    showToast("Buyruq nomini kiriting!", "error");
+    return;
+  }
+  if (!reply_text) {
+    showToast("Javob xabari matnini kiriting!", "error");
+    return;
+  }
+
+  const payload = {
+    command: rawCmd,
+    description,
+    reply_text,
+    reply_image
+  };
+
+  try {
+    const url = editId ? `/api/admin/commands/${editId}/update` : '/api/admin/commands/create';
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast(editId ? "✅ Buyruq muvaffaqiyatli yangilandi!" : "✅ Yangi buyruq muvaffaqiyatli qo'shildi!", "success");
+      closeCommandModal();
+      fetchBotCommands();
+    } else {
+      showToast(data.error || "Saqlashda xatolik yuz berdi", "error");
+    }
+  } catch (err) {
+    console.error("saveCommand error:", err);
+    showToast("Server bilan aloqa uzildi", "error");
+  }
+}
+
+async function deleteCommand(id, cmdName) {
+  if (!confirm(`Haqiqatan ham /${cmdName} buyrug'ini o'chirmoqchimisiz?`)) {
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/admin/commands/${id}/delete`, {
+      method: 'POST'
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast(`/${cmdName} buyrug'i o'chirildi!`, "success");
+      fetchBotCommands();
+    } else {
+      showToast(data.error || "O'chirishda xatolik", "error");
+    }
+  } catch (err) {
+    console.error("deleteCommand error:", err);
     showToast("Server bilan aloqa uzildi", "error");
   }
 }

@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+import re
 import urllib.request
 import ssl
 from aiogram import Bot, Dispatcher
@@ -8,8 +9,8 @@ from aiogram.types import BotCommand, MenuButtonWebApp, WebAppInfo
 from aiogram.fsm.storage.memory import MemoryStorage
 from dotenv import load_dotenv
 
-from database.db import init_db, get_all_active_tenants, add_user, get_tenant_by_bot_token
-from handlers import start, menu, order
+from database.db import init_db, get_all_active_tenants, add_user, get_tenant_by_bot_token, get_all_custom_commands
+from handlers import start, menu, order, custom_commands
 
 # Logger sozlamalari
 logging.basicConfig(
@@ -88,11 +89,24 @@ async def start_single_bot(tenant: dict, dp: Dispatcher):
 
         # Komandalar va WebApp tugmasini sozlash
         try:
-            await bot.set_my_commands([
+            base_cmds = [
                 BotCommand(command="start", description="Botni qayta ishga tushirish"),
                 BotCommand(command="menu", description="Menyuni ochish"),
                 BotCommand(command="help", description="Yordam va qoidalar")
-            ])
+            ]
+            try:
+                custom_cmds = await get_all_custom_commands(tid)
+                for cc in custom_cmds:
+                    c_name = cc['command'].strip().lstrip('/').lower()
+                    if c_name not in ['start', 'menu', 'help', 'myid']:
+                        desc = cc.get('description', '') or c_name
+                        safe_c_name = re.sub(r'[^a-z0-9_]', '_', c_name)[:32]
+                        if safe_c_name:
+                            base_cmds.append(BotCommand(command=safe_c_name, description=desc[:255]))
+            except Exception as dbe:
+                logging.warning(f"Custom commands yuklashda ogohlantirish ({tid}): {dbe}")
+
+            await bot.set_my_commands(base_cmds)
             await bot.set_chat_menu_button(
                 menu_button=MenuButtonWebApp(text="🍔 Menyu", web_app=WebAppInfo(url=web_app_url))
             )
@@ -227,6 +241,7 @@ async def main():
 
     # Routerni ulash
     dp.include_router(start.router)
+    dp.include_router(custom_commands.router)
     dp.include_router(menu.router)
     dp.include_router(order.router)
 

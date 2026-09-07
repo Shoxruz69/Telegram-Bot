@@ -1,0 +1,24 @@
+[
+  {
+    "id": 1,
+    "name": "Cafe Express",
+    "slug": "express",
+    "bot_token": "YOUR_BOT_TOKEN_HERE",
+    "bot_username": "@CafeExpressBot",
+    "admin_telegram_id": "6876312568",
+    "admin_username": "admin",
+    "admin_password_hash": "scrypt:32768:8:1$zJHyJ0MPcmTyvz8b$cfd336423128792c28bae573317951b775865442bcadd61c674604e5bccff7ca334a1a27484c826597a5bba2edba7743fd08bd43357ad768102bb78a0b8d2339",
+    "is_active": 1
+  },
+  {
+    "id": 2,
+    "name": "Dili Cafe",
+    "slug": "dilicafe",
+    "bot_token": "YOUR_DILI_BOT_TOKEN_HERE",
+    "bot_username": "@Dili_Cafe_bot",
+    "admin_telegram_id": "6876312568",
+    "admin_username": "dilicafe_admin",
+    "admin_password_hash": "scrypt:32768:8:1$zJHyJ0MPcmTyvz8b$cfd336423128792c28bae573317951b775865442bcadd61c674604e5bccff7ca334a1a27484c826597a5bba2edba7743fd08bd43357ad768102bb78a0b8d2339",
+    "is_active": 1
+  }
+]

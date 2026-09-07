@@ -524,6 +524,49 @@
             </div>
 
           </div>
+
+          <!-- =========================================================
+               ⚡ MAXSUS BOT BUYRUQLARI (/komandalar)
+               ========================================================= -->
+          <div class="card" style="margin-top: 24px; padding: 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+              <div>
+                <h4 style="font-size: 16px; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 8px;">
+                  <span style="font-size: 20px;">⚡</span> Maxsus Bot Buyruqlari (/komandalar)
+                </h4>
+                <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+                  Mijoz Telegram'da buyruq yozganda yoki Telegram menyusidan tanlaganda bot darhol kiritilgan xabar va rasmni yuboradi.
+                </div>
+              </div>
+              <button type="button" class="btn-primary" onclick="openCommandModal()" style="padding: 8px 16px; font-size: 13px; display: inline-flex; align-items: center; gap: 6px;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                <span>Yangi Buyruq Qo'shish</span>
+              </button>
+            </div>
+
+            <!-- Buyruqlar ro'yxati jadvali -->
+            <div style="overflow-x: auto;">
+              <table class="data-table" style="width: 100%; border-collapse: collapse;">
+                <thead>
+                  <tr style="border-bottom: 1px solid var(--border-color); text-align: left; font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">
+                    <th style="padding: 10px 14px;">Buyruq</th>
+                    <th style="padding: 10px 14px;">Tavsif</th>
+                    <th style="padding: 10px 14px;">Javob Xabari</th>
+                    <th style="padding: 10px 14px;">Rasm</th>
+                    <th style="padding: 10px 14px; text-align: right;">Amallar</th>
+                  </tr>
+                </thead>
+                <tbody id="bot-commands-table-body">
+                  <tr>
+                    <td colspan="5" style="text-align: center; padding: 24px; color: var(--text-muted); font-size: 13px;">
+                      Yuklanmoqda...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
         </div>
 
       </section>
@@ -856,6 +899,69 @@
           <button class="btn-close-modal" onclick="closeReceiptModal()">✕</button>
         </div>
         <img id="receipt-full-image" src="" alt="Chek" style="max-width: 100%; max-height: 70vh; object-fit: contain; border-radius: 8px;">
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       BOT CUSTOM COMMAND MODAL
+       ==================================================================== -->
+  <div class="modal-overlay" id="command-modal-overlay">
+    <div class="modal-container" style="max-width: 540px;">
+      <div class="modal-header-bar">
+        <h3 class="modal-title" id="command-modal-title">⚡ Yangi Bot Buyrug'i Qo'shish</h3>
+        <button class="btn-close-modal" onclick="closeCommandModal()">✕</button>
+      </div>
+
+      <div style="padding: 20px 24px;">
+        <input type="hidden" id="cmd-edit-id" value="">
+
+        <!-- Buyruq nomi -->
+        <div class="form-group" style="margin-bottom: 14px;">
+          <label class="form-label" style="font-weight: 700;">Buyruq Nomi (Telegram Command)</label>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span style="font-size: 16px; font-weight: 700; color: #D4AF37;">/</span>
+            <input type="text" id="cmd-name-input" class="form-input" placeholder="masalan: manzil, aksiyalar, aloqa..." style="flex: 1;">
+          </div>
+          <span style="font-size: 11px; color: var(--text-muted); display: block; margin-top: 4px;">Faqat lotin harflari va sonlar (masalan: <code>/manzil</code> yoki <code>/aloqa</code>).</span>
+        </div>
+
+        <!-- Tavsif -->
+        <div class="form-group" style="margin-bottom: 14px;">
+          <label class="form-label" style="font-weight: 700;">Buyruq Tavsifi (Telegram Menu uchun)</label>
+          <input type="text" id="cmd-desc-input" class="form-input" placeholder="Masalan: Bizning filiallar va manzilimiz">
+        </div>
+
+        <!-- Javob matni -->
+        <div class="form-group" style="margin-bottom: 14px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <label class="form-label" style="font-weight: 700; margin: 0;">Javob Xabari Matni</label>
+            <div style="display: flex; gap: 6px;">
+              <button type="button" class="badge" onclick="insertCommandTag('{ism}')" style="cursor: pointer; background: rgba(212,175,55,0.15); border: 1px solid rgba(212,175,55,0.3); color: #D4AF37; font-size: 11px; border-radius: 4px; padding: 2px 6px;">+ {ism}</button>
+              <button type="button" class="badge" onclick="insertCommandTag('{oshxona}')" style="cursor: pointer; background: rgba(212,175,55,0.15); border: 1px solid rgba(212,175,55,0.3); color: #D4AF37; font-size: 11px; border-radius: 4px; padding: 2px 6px;">+ {oshxona}</button>
+            </div>
+          </div>
+          <textarea id="cmd-reply-text" class="form-input" rows="5" placeholder="Masalan: 📍 {oshxona} manzili: Toshkent sh., Chilonzor 9-mavze...&#10;📞 Tel: +998 90 123 45 67" style="font-family: inherit; resize: vertical; line-height: 1.5;"></textarea>
+        </div>
+
+        <!-- Rasm (ixtiyoriy) -->
+        <div class="form-group" style="margin-bottom: 20px;">
+          <label class="form-label" style="font-weight: 700;">🖼️ Biriktirilgan Rasm (Ixtiyoriy)</label>
+          <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 6px;">
+            <input type="file" id="cmd-image-file" accept="image/*" style="display: none;" onchange="handleCommandImageUpload(this)">
+            <button type="button" class="btn-secondary" onclick="document.getElementById('cmd-image-file').click()" style="padding: 6px 12px; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+              <span>Rasm Yuklash</span>
+            </button>
+            <span id="cmd-upload-status" style="font-size: 12px; color: var(--text-muted);"></span>
+          </div>
+          <input type="text" id="cmd-image-url" class="form-input" placeholder="/static/uploads/menu/... yoki rasm URL havolasi">
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 10px;">
+          <button type="button" class="btn-secondary" onclick="closeCommandModal()" style="padding: 8px 18px;">Bekor Qilish</button>
+          <button type="button" class="btn-primary" onclick="saveCommand()" style="padding: 8px 22px;">Saqlash</button>
+        </div>
       </div>
     </div>
   </div>

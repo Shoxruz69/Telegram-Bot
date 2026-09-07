@@ -861,7 +861,7 @@
     <div class="header">
         <div class="header-brand">
             <div class="header-logo">
-                <img src="/static/cafe_logo.png" alt="Logo">
+                <img id="header-app-logo" src="/static/cafe_logo.png" alt="Logo">
             </div>
             <div>
                 <h3 id="app-restaurant-name">Cafe Express</h3>
@@ -1798,6 +1798,10 @@
                     const rNameEl = document.getElementById('app-restaurant-name');
                     if (rNameEl) rNameEl.innerText = data.restaurant_name;
                     document.title = data.restaurant_name;
+                }
+                if (data.logo_url) {
+                    const logoEl = document.getElementById('header-app-logo');
+                    if (logoEl) logoEl.src = data.logo_url;
                 }
 
                 cachedPromotions = data.promotions || [];
