@@ -428,12 +428,20 @@ with app.app_context():
                     t_slug = bt.get('slug', '').strip().lower()
                     if not t_slug:
                         continue
+
+                    env_token_key = f"BOT_TOKEN_{t_slug.upper()}"
+                    env_token_val = os.getenv(env_token_key, "").strip()
+                    if not env_token_val and (bt.get('id') == 1 or t_slug == 'express'):
+                        env_token_val = os.getenv("BOT_TOKEN", "").strip()
+
+                    token_to_use = env_token_val or bt.get('bot_token', '').strip()
+
                     existing = Tenant.query.filter_by(slug=t_slug).first()
                     if not existing:
                         new_t = Tenant(
                             name=bt.get('name', 'Oshxona'),
                             slug=t_slug,
-                            bot_token=bt.get('bot_token', ''),
+                            bot_token=token_to_use,
                             bot_username=bt.get('bot_username', ''),
                             admin_telegram_id=bt.get('admin_telegram_id', ''),
                             admin_username=bt.get('admin_username', f"{t_slug}_admin"),
@@ -446,9 +454,14 @@ with app.app_context():
                         db.session.add(new_t)
                         db.session.commit()
                         print(f"[SQLAlchemy Startup]: Restored tenant {bt.get('name')} ({t_slug}) from backup")
-                    elif existing.bot_token in ('YOUR_BOT_TOKEN_HERE', 'YOUR_DILI_BOT_TOKEN_HERE', '') and bt.get('bot_token') and bt.get('bot_token') not in ('YOUR_BOT_TOKEN_HERE', 'YOUR_DILI_BOT_TOKEN_HERE', ''):
-                        existing.bot_token = bt.get('bot_token')
-                        db.session.commit()
+                    else:
+                        is_current_placeholder = any(p in (existing.bot_token or '').upper() for p in ['YOUR_', '_HERE', 'PLACEHOLDER']) or not existing.bot_token
+                        is_new_real = token_to_use and not any(p in token_to_use.upper() for p in ['YOUR_', '_HERE', 'PLACEHOLDER'])
+                        if is_current_placeholder and is_new_real:
+                            existing.bot_token = token_to_use
+                            existing.is_active = True
+                            db.session.commit()
+                            print(f"[SQLAlchemy Startup]: Updated bot token for {t_slug} from env/backup")
         except Exception as s_bke:
             print(f"[SQLAlchemy Startup backup restore error]: {s_bke}")
 
@@ -826,7 +839,16 @@ def webapp():
 @app.route('/ping', methods=['GET', 'HEAD'])
 @app.route('/health', methods=['GET', 'HEAD'])
 def ping():
-    return "OK", 200
+    try:
+        t_count = Tenant.query.filter_by(is_active=True).count()
+    except Exception:
+        t_count = -1
+    return jsonify({
+        "status": "ok",
+        "active_tenants": t_count,
+        "service": "telegram-bot-restaurant",
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }), 200
 
 def start_self_ping():
     def ping_worker():
@@ -834,7 +856,7 @@ def start_self_ping():
         time.sleep(5)
         ssl_ctx = ssl._create_unverified_context()
         while True:
-            raw_url = os.getenv("RENDER_EXTERNAL_URL", "") or os.getenv("WEB_APP_URL", "")
+            raw_url = os.getenv("RENDER_EXTERNAL_URL", "") or os.getenv("WEB_APP_URL", "") or "https://telegram-bot-2-j4nb.onrender.com"
             if raw_url:
                 raw_url = raw_url.strip().rstrip("/")
                 if not raw_url.startswith("http://") and not raw_url.startswith("https://"):
@@ -847,13 +869,13 @@ def start_self_ping():
                 
                 ping_url = f"{base_url}/ping"
                 try:
-                    req = urllib.request.Request(ping_url, headers={"User-Agent": "KeepAlive-Admin/1.0"})
+                    req = urllib.request.Request(ping_url, headers={"User-Agent": "KeepAlive-Admin/2.0"})
                     urllib.request.urlopen(req, timeout=15, context=ssl_ctx)
                     print(f"[KeepAlive Admin] Ping muvaffaqiyatli: {ping_url}", flush=True)
                 except Exception as e:
                     print(f"[KeepAlive Admin] Ping xatosi: {e}", flush=True)
             
-            time.sleep(150)
+            time.sleep(120)
 
     t = threading.Thread(target=ping_worker, daemon=True)
     t.start()

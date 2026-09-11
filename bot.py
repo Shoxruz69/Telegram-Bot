@@ -22,15 +22,15 @@ load_dotenv()
 
 def format_url(url_str):
     if not url_str:
-        return ""
+        return "https://telegram-bot-2-j4nb.onrender.com"
     url_str = url_str.strip().rstrip("/")
     if not url_str.startswith("http://") and not url_str.startswith("https://"):
         return f"https://{url_str}"
     return url_str
 
 async def keep_alive():
-    """Render'da botni uxlatmaslik uchun har 2.5 daqiqada (150s) ping yuborish"""
-    raw_url = os.getenv("RENDER_EXTERNAL_URL", "") or os.getenv("WEB_APP_URL", "")
+    """Render'da botni uxlatmaslik uchun har 2 daqiqada (120s) ping yuborish"""
+    raw_url = os.getenv("RENDER_EXTERNAL_URL", "") or os.getenv("WEB_APP_URL", "") or "https://telegram-bot-2-j4nb.onrender.com"
     url = format_url(raw_url)
     if url.endswith("/webapp"):
         url = url[:-7]
@@ -48,32 +48,68 @@ async def keep_alive():
         except Exception as e:
             logging.warning(f"Local ping xatosi: {e}")
 
-        if url:
+        if url and "your-app" not in url:
             try:
                 ping_url = f"{url}/ping"
                 req_ext = urllib.request.Request(
                     ping_url,
-                    headers={"User-Agent": "KeepAlive-Bot/1.0"}
+                    headers={"User-Agent": "KeepAlive-Bot/2.0"}
                 )
                 await asyncio.to_thread(urllib.request.urlopen, req_ext, timeout=15, context=ssl_ctx)
                 logging.info(f"Keep-alive (Bot) ping muvaffaqiyatli: {ping_url}")
             except Exception as e:
                 logging.warning(f"External keep-alive (Bot) ping xatosi: {e}")
 
-        await asyncio.sleep(150)
+        await asyncio.sleep(120)
+
+def resolve_tenant_bot_token(tenant: dict) -> str:
+    """Oshxona bot tokenini aniqlash (DB, Environment variable yoki TENANT_TOKENS)"""
+    tid = tenant.get('id', 1)
+    slug = str(tenant.get('slug', '')).strip().lower()
+    token = str(tenant.get('bot_token', '')).strip()
+
+    # Agar token placeholder bo'lsa uni bo'sh deb hisoblaymiz
+    if any(ph in token.upper() for ph in ["YOUR_", "_HERE", "PLACEHOLDER", "TOKEN_HERE"]):
+        token = ""
+
+    # 1. Environment variable: BOT_TOKEN_<SLUG> (masalan BOT_TOKEN_DILICAFE, BOT_TOKEN_EXPRESS)
+    if slug:
+        slug_env = re.sub(r'[^A-Z0-9_]', '_', slug.upper())
+        env_val = os.getenv(f"BOT_TOKEN_{slug_env}", "").strip()
+        if env_val:
+            return env_val
+
+    # 2. TENANT_TOKENS JSON env var (masalan: {"dilicafe": "...", "express": "..."})
+    json_tokens = os.getenv("TENANT_TOKENS", "").strip()
+    if json_tokens:
+        try:
+            import json as _json
+            mapping = _json.loads(json_tokens)
+            if slug in mapping and mapping[slug]:
+                return str(mapping[slug]).strip()
+            if str(tid) in mapping and mapping[str(tid)]:
+                return str(mapping[str(tid)]).strip()
+        except Exception:
+            pass
+
+    # 3. 1-oshxona uchun asosiy BOT_TOKEN
+    if tid == 1 or slug == "express":
+        primary_token = os.getenv("BOT_TOKEN", "").strip()
+        if primary_token and not any(ph in primary_token.upper() for ph in ["YOUR_", "_HERE"]):
+            return primary_token
+
+    return token
 
 # Multi-Bot dinamik boshqaruvi
 running_bots = {}  # {tenant_id: {'bot': bot, 'token': token, 'task': task, 'username': username, 'tenant': tenant}}
 
 async def start_single_bot(tenant: dict, dp: Dispatcher):
     tid = tenant['id']
-    token = tenant.get('bot_token', '').strip()
-    # 1-oshxona uchun .env dagi BOT_TOKEN dan foydalanish (agar DB dagi token bo'sh yoki placeholder bo'lsa)
-    if tid == 1 and (not token or token in ("YOUR_BOT_TOKEN_HERE", "")):
-        token = os.getenv("BOT_TOKEN", "").strip()
+    slug = tenant.get('slug', 'express')
+    token = resolve_tenant_bot_token(tenant)
 
-    if not token or token in ("YOUR_BOT_TOKEN_HERE", ""):
-        logging.warning(f"Tenant {tid} ({tenant.get('name')}) uchun BOT_TOKEN mavjud emas.")
+    if not token:
+        logging.warning(f"Tenant {tid} ({tenant.get('name')}, slug: {slug}) uchun yaroqli BOT_TOKEN topilmadi (bo'sh yoki placeholder). Qidirilgan env: BOT_TOKEN_{slug.upper()}")
         return
 
     try:
@@ -180,9 +216,9 @@ async def dynamic_bot_watcher(dp: Dispatcher):
             # 1. Yangi, o'zgargan tokenli yoki to'xtab qolgan botlarni ishga tushirish
             for t in active_tenants:
                 tid = t['id']
-                token = t.get('bot_token', '').strip()
-                if tid == 1 and (not token or token in ("YOUR_BOT_TOKEN_HERE", "")):
-                    token = os.getenv("BOT_TOKEN", "").strip()
+                token = resolve_tenant_bot_token(t)
+                if not token:
+                    continue
 
                 is_not_running = tid not in running_bots
                 is_task_dead = (not is_not_running) and running_bots[tid]['task'].done()

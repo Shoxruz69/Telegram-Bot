@@ -9,9 +9,9 @@ BACKUP_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tenants_
 
 @asynccontextmanager
 async def get_db():
-    async with aiosqlite.connect(DB_NAME, timeout=30.0) as db:
+    async with aiosqlite.connect(DB_NAME, timeout=60.0) as db:
         await db.execute("PRAGMA journal_mode=WAL;")
-        await db.execute("PRAGMA busy_timeout=30000;")
+        await db.execute("PRAGMA busy_timeout=60000;")
         yield db
 
 async def init_db():
@@ -279,6 +279,29 @@ async def init_db():
                     """, (env_admin_id,))
                     await db.commit()
 
+        # 6.5. Barcha BOT_TOKEN_ bilan boshlanadigan Environment o'zgaruvchilarni qidirib avtomatik qo'shish
+        for env_key, env_val in os.environ.items():
+            if env_key.startswith("BOT_TOKEN_") and env_val.strip() and env_key != "BOT_TOKEN_":
+                slug = env_key.replace("BOT_TOKEN_", "").strip().lower()
+                if slug and slug != "express":
+                    async with db.execute("SELECT COUNT(*) FROM tenants WHERE slug = ?", (slug,)) as cur:
+                        if (await cur.fetchone())[0] == 0:
+                            name = slug.capitalize() + " Cafe"
+                            bot_username = f"@{name.replace(' ', '')}Bot"
+                            admin_user = f"{slug}_admin"
+                            admin_pw_hash = generate_password_hash("admin123")
+                            
+                            await db.execute('''
+                                INSERT INTO tenants (name, slug, bot_token, bot_username, admin_telegram_id, admin_username, admin_password_hash, is_active)
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                            ''', (name, slug, env_val.strip(), bot_username, env_admin_id, admin_user, admin_pw_hash, 1))
+                            await db.commit()
+                            print(f"[Auto-Seed] {name} ({slug}) muhit o'zgaruvchisidan avtomatik qo'shildi!")
+                        else:
+                            # Agar mavjud bo'lsa, tokenini yangilash
+                            await db.execute("UPDATE tenants SET bot_token = ?, is_active = 1 WHERE slug = ?", (env_val.strip(), slug))
+                            await db.commit()
+
         # 7. Mavjud kategoriyalar yoki menyu bo'sh bo'lsa boshlang'ich ma'lumotlar qo'shish
         async with db.execute('SELECT COUNT(*) FROM categories WHERE tenant_id = 1') as cursor:
             count = (await cursor.fetchone())[0]
@@ -304,6 +327,15 @@ async def init_db():
                     t_slug = bt.get('slug', '').strip().lower()
                     if not t_slug:
                         continue
+
+                    env_token_key = f"BOT_TOKEN_{t_slug.upper()}"
+                    env_token_val = os.getenv(env_token_key, "").strip()
+                    if not env_token_val and (bt.get('id') == 1 or t_slug == 'express'):
+                        env_token_val = os.getenv("BOT_TOKEN", "").strip()
+
+                    bk_token = bt.get('bot_token', '').strip()
+                    token_to_use = env_token_val or bk_token
+
                     async with db.execute("SELECT id, bot_token FROM tenants WHERE slug = ?", (t_slug,)) as cur:
                         row = await cur.fetchone()
                         if not row:
@@ -313,7 +345,7 @@ async def init_db():
                             ''', (
                                 bt.get('name', 'Oshxona'),
                                 t_slug,
-                                bt.get('bot_token', ''),
+                                token_to_use,
                                 bt.get('bot_username', ''),
                                 bt.get('admin_telegram_id', ''),
                                 bt.get('admin_username', f"{t_slug}_admin"),
@@ -322,9 +354,14 @@ async def init_db():
                             ))
                             await db.commit()
                             print(f"[Backup restore]: Oshxona tiklandi: {bt.get('name')} ({t_slug})")
-                        elif row[1] in ('YOUR_BOT_TOKEN_HERE', 'YOUR_DILI_BOT_TOKEN_HERE', '') and bt.get('bot_token') and bt.get('bot_token') not in ('YOUR_BOT_TOKEN_HERE', 'YOUR_DILI_BOT_TOKEN_HERE', ''):
-                            await db.execute("UPDATE tenants SET bot_token = ? WHERE id = ?", (bt.get('bot_token'), row[0]))
-                            await db.commit()
+                        else:
+                            curr_tok = row[1] or ''
+                            is_curr_ph = any(ph in curr_tok.upper() for ph in ['YOUR_', '_HERE', 'PLACEHOLDER']) or not curr_tok
+                            is_new_real = token_to_use and not any(ph in token_to_use.upper() for ph in ['YOUR_', '_HERE', 'PLACEHOLDER'])
+                            if is_curr_ph and is_new_real:
+                                await db.execute("UPDATE tenants SET bot_token = ?, is_active = 1 WHERE id = ?", (token_to_use, row[0]))
+                                await db.commit()
+                                print(f"[Backup restore]: Oshxona tokeni yangilandi ({t_slug})")
             except Exception as bke:
                 print(f"[Backup restore error]: {bke}")
 
@@ -386,7 +423,17 @@ async def get_all_active_tenants():
         db.row_factory = aiosqlite.Row
         async with db.execute("SELECT * FROM tenants WHERE is_active IN (1, '1', 'True', 'true', 1.0) OR is_active IS TRUE") as cursor:
             rows = await cursor.fetchall()
-            return [dict(r) for r in rows]
+            tenants = [dict(r) for r in rows]
+            for t in tenants:
+                t_slug = str(t.get('slug', '')).strip().lower()
+                tok = str(t.get('bot_token', '')).strip()
+                if not tok or any(ph in tok.upper() for ph in ['YOUR_', '_HERE', 'PLACEHOLDER']):
+                    env_tok = os.getenv(f"BOT_TOKEN_{t_slug.upper()}", "").strip()
+                    if not env_tok and (t.get('id') == 1 or t_slug == 'express'):
+                        env_tok = os.getenv("BOT_TOKEN", "").strip()
+                    if env_tok and not any(ph in env_tok.upper() for ph in ['YOUR_', '_HERE']):
+                        t['bot_token'] = env_tok
+            return tenants
 
 async def get_all_tenants():
     async with get_db() as db:

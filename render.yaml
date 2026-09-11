@@ -9,6 +9,8 @@ services:
         sync: false
       - key: ADMIN_ID
         sync: false
+      - key: BOT_TOKEN_DILICAFE
+        sync: false
       - key: RENDER_EXTERNAL_URL
         fromService:
           type: web
