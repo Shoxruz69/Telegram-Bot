@@ -235,11 +235,11 @@ async function verifyBotToken() {
       resBox.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="3" style="vertical-align: middle; margin-right: 4px;"><polyline points="20 6 9 17 4 12"></polyline></svg> Bot topildi: <strong>@${data.bot.username}</strong> (${data.bot.first_name})`;
     } else {
       resBox.className = "verify-status-box error";
-      resBox.textContent = "<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="3" style="vertical-align: middle; margin-right: 4px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> " + (data.error || "Yaroqsiz bot token!");
+      resBox.innerHTML = '<span style="color:#EF4444;">✗ ' + (data.error || "Yaroqsiz bot token!") + '</span>';
     }
   } catch (err) {
     resBox.className = "verify-status-box error";
-    resBox.textContent = "<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="3" style="vertical-align: middle; margin-right: 4px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> Tekshirishda server xatoligi yuz berdi!";
+    resBox.innerHTML = '<span style="color:#EF4444;">✗ Tekshirishda server xatoligi yuz berdi!</span>';
   }
 }
 
