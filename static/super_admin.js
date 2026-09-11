@@ -112,7 +112,7 @@ function renderTenantsTable(list) {
               <span>Panel</span>
             </button>
             <button class="btn-action" onclick="toggleTenantStatus(${t.id})" title="${t.is_active ? 'To\'xtatish' : 'Faollashtirish'}">
-              ${t.is_active ? '⏸️' : '▶️'}
+              ${t.is_active ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>' : '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>'}
             </button>
             ${t.id !== 1 ? `
               <button class="btn-action edit" onclick="editTenant(${t.id})" title="Tahrirlash">
@@ -232,14 +232,14 @@ async function verifyBotToken() {
     const data = await res.json();
     if (data.success && data.bot) {
       resBox.className = "verify-status-box success";
-      resBox.innerHTML = `✓ Bot topildi: <strong>@${data.bot.username}</strong> (${data.bot.first_name})`;
+      resBox.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="3" style="vertical-align: middle; margin-right: 4px;"><polyline points="20 6 9 17 4 12"></polyline></svg> Bot topildi: <strong>@${data.bot.username}</strong> (${data.bot.first_name})`;
     } else {
       resBox.className = "verify-status-box error";
-      resBox.textContent = "✗ " + (data.error || "Yaroqsiz bot token!");
+      resBox.textContent = "<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="3" style="vertical-align: middle; margin-right: 4px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> " + (data.error || "Yaroqsiz bot token!");
     }
   } catch (err) {
     resBox.className = "verify-status-box error";
-    resBox.textContent = "✗ Tekshirishda server xatoligi yuz berdi!";
+    resBox.textContent = "<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="3" style="vertical-align: middle; margin-right: 4px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> Tekshirishda server xatoligi yuz berdi!";
   }
 }
 

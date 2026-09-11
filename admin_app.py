@@ -2614,8 +2614,12 @@ def api_admin_stats():
     dish_sales = {}
 
     tz = timezone(timedelta(hours=5))
-    now = datetime.now(tz)
-    today_date_str = now.strftime("%Y-%m-%d")
+    req_date = request.args.get('date')
+    if req_date:
+        today_date_str = req_date
+    else:
+        now = datetime.now(tz)
+        today_date_str = now.strftime("%Y-%m-%d")
 
     for o in orders:
         if o.status == 'Kutilmoqda':

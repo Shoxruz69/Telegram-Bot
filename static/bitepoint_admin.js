@@ -1728,7 +1728,7 @@ async function autoTranslateCategory(isExplicit = false) {
       if (data.success && data.translations) {
         if (isExplicit || !nameRuEl.value) nameRuEl.value = data.translations.ru || name;
         if (isExplicit || !nameEnEl.value) nameEnEl.value = data.translations.en || name;
-        if (isExplicit) showToast("Avtomatik tarjima qilindi! ✓", "success");
+        if (isExplicit) showToast("Avtomatik tarjima qilindi! <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="3" style="vertical-align: middle; margin-right: 4px;"><polyline points="20 6 9 17 4 12"></polyline></svg>", "success");
       }
     } catch (err) {
       console.error("Auto translate category error:", err);
@@ -2108,9 +2108,15 @@ async function deletePromoCode(id) {
 // ACCOUNTING & STATS
 // ==========================================================================
 
+async function loadStatsData() {
+  await fetchStats();
+}
+
 async function fetchStats() {
   try {
-    const res = await fetch('/api/admin/stats');
+    const dateInput = document.getElementById('accounting-date-filter');
+    const dateParam = dateInput && dateInput.value ? `?date=${dateInput.value}` : '';
+    const res = await fetch('/api/admin/stats' + dateParam);
     const data = await res.json();
     if (data.success) {
       state.stats = data.stats || {};
@@ -2294,15 +2300,15 @@ async function handleBotImageUpload(input) {
     if (data.success && data.image_url) {
       const urlInput = document.getElementById('bot-image-url');
       if (urlInput) urlInput.value = data.image_url;
-      if (statusEl) statusEl.textContent = "✅ Yuklandi";
+      if (statusEl) statusEl.textContent = "<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="3" style="vertical-align: middle; margin-right: 4px;"><polyline points="20 6 9 17 4 12"></polyline></svg> Yuklandi";
       updateBotPreview();
       showToast("Rasm muvaffaqiyatli yuklandi!", "success");
     } else {
-      if (statusEl) statusEl.textContent = "❌ Xatolik";
+      if (statusEl) statusEl.textContent = "<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="3" style="vertical-align: middle; margin-right: 4px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> Xatolik";
       showToast(data.error || "Rasm yuklashda xatolik", "error");
     }
   } catch (err) {
-    if (statusEl) statusEl.textContent = "❌ Xatolik";
+    if (statusEl) statusEl.textContent = "<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="3" style="vertical-align: middle; margin-right: 4px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> Xatolik";
     showToast("Server bilan aloqa uzildi", "error");
   }
 }
@@ -2321,7 +2327,7 @@ async function saveBotSettings(e) {
     });
     const data = await res.json();
     if (data.success) {
-      showToast("✅ Bot /start xabari va rasmi muvaffaqiyatli saqlandi!", "success");
+      showToast("<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="3" style="vertical-align: middle; margin-right: 4px;"><polyline points="20 6 9 17 4 12"></polyline></svg> Bot /start xabari va rasmi muvaffaqiyatli saqlandi!", "success");
     } else {
       showToast(data.error || "Saqlashda xatolik", "error");
     }
@@ -2373,7 +2379,7 @@ function renderBotCommands(commands) {
     tbody.innerHTML = `
       <tr>
         <td colspan="5" style="text-align: center; padding: 32px 16px; color: var(--text-muted);">
-          <div style="font-size: 28px; margin-bottom: 8px;">⚡</div>
+          <div style="font-size: 28px; margin-bottom: 8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 4px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg></div>
           <div style="font-size: 14px; font-weight: 600; color: #fff;">Hozircha maxsus buyruqlar yo'q</div>
           <div style="font-size: 12px; margin-top: 4px;">"Yangi Buyruq Qo'shish" tugmasi orqali istalgan /komandani qo'shishingiz mumkin.</div>
         </td>
@@ -2412,10 +2418,10 @@ function renderBotCommands(commands) {
         </td>
         <td style="padding: 12px 14px; text-align: right; white-space: nowrap;">
           <button type="button" class="btn-secondary" onclick="openCommandModal(${cmd.id})" style="padding: 5px 10px; font-size: 12px; margin-right: 6px;">
-            ✏️ Tahrirlash
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 4px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg> Tahrirlash
           </button>
           <button type="button" class="btn-secondary" onclick="deleteCommand(${cmd.id}, '${escapeHtml(cmd.command)}')" style="padding: 5px 10px; font-size: 12px; color: #ef4444; border-color: rgba(239, 68, 68, 0.3);">
-            🗑️ O'chirish
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 4px;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg> O'chirish
           </button>
         </td>
       </tr>
@@ -2438,7 +2444,7 @@ function openCommandModal(cmdId = null) {
   if (cmdId) {
     const cmd = cachedBotCommands.find(c => c.id === cmdId);
     if (cmd) {
-      if (title) title.textContent = `⚡ /${cmd.command} Buyrug'ini Tahrirlash`;
+      if (title) title.textContent = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 4px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg> /${cmd.command} Buyrug'ini Tahrirlash`;
       if (idInput) idInput.value = cmd.id;
       if (nameInput) nameInput.value = cmd.command;
       if (descInput) descInput.value = cmd.description || '';
@@ -2446,7 +2452,7 @@ function openCommandModal(cmdId = null) {
       if (imgInput) imgInput.value = cmd.reply_image || '';
     }
   } else {
-    if (title) title.textContent = "⚡ Yangi Bot Buyrug'i Qo'shish";
+    if (title) title.textContent = "<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 4px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg> Yangi Bot Buyrug'i Qo'shish";
     if (idInput) idInput.value = '';
     if (nameInput) nameInput.value = '';
     if (descInput) descInput.value = '';
@@ -2491,14 +2497,14 @@ async function handleCommandImageUpload(input) {
     if (data.success && data.image_url) {
       const urlInput = document.getElementById('cmd-image-url');
       if (urlInput) urlInput.value = data.image_url;
-      if (statusEl) statusEl.textContent = "✅ Yuklandi";
+      if (statusEl) statusEl.textContent = "<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="3" style="vertical-align: middle; margin-right: 4px;"><polyline points="20 6 9 17 4 12"></polyline></svg> Yuklandi";
       showToast("Rasm muvaffaqiyatli yuklandi!", "success");
     } else {
-      if (statusEl) statusEl.textContent = "❌ Xato";
+      if (statusEl) statusEl.textContent = "<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="3" style="vertical-align: middle; margin-right: 4px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> Xato";
       showToast(data.error || "Rasm yuklashda xatolik", "error");
     }
   } catch (err) {
-    if (statusEl) statusEl.textContent = "❌ Xato";
+    if (statusEl) statusEl.textContent = "<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="3" style="vertical-align: middle; margin-right: 4px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> Xato";
     showToast("Server bilan aloqa uzildi", "error");
   }
 }
@@ -2535,7 +2541,7 @@ async function saveCommand() {
     });
     const data = await res.json();
     if (data.success) {
-      showToast(editId ? "✅ Buyruq muvaffaqiyatli yangilandi!" : "✅ Yangi buyruq muvaffaqiyatli qo'shildi!", "success");
+      showToast(editId ? "<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="3" style="vertical-align: middle; margin-right: 4px;"><polyline points="20 6 9 17 4 12"></polyline></svg> Buyruq muvaffaqiyatli yangilandi!" : "<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="3" style="vertical-align: middle; margin-right: 4px;"><polyline points="20 6 9 17 4 12"></polyline></svg> Yangi buyruq muvaffaqiyatli qo'shildi!", "success");
       closeCommandModal();
       fetchBotCommands();
     } else {
