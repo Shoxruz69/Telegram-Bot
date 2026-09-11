@@ -1715,6 +1715,57 @@ def api_superadmin_tenants_create():
     return jsonify({'success': True, 'tenant_id': new_tenant.id, 'slug': new_tenant.slug})
 
 
+@app.route('/api/superadmin/tenants/<int:tenant_id>/update', methods=['POST'])
+@super_admin_required
+def api_superadmin_tenants_update(tenant_id):
+    tenant = Tenant.query.get_or_404(tenant_id)
+    if tenant.id == 1:
+        return jsonify({'success': False, 'error': "Asosiy oshxonani tahrirlash bu yerdan mumkin emas!"}), 400
+
+    data = request.get_json(silent=True) or request.form.to_dict() or {}
+    name = str(data.get('name', '')).strip()
+    slug = str(data.get('slug', '')).strip().lower()
+    bot_token = str(data.get('bot_token', '')).strip()
+    admin_telegram_id = str(data.get('admin_telegram_id', '')).strip()
+    admin_username = str(data.get('admin_username', '')).strip()
+    admin_password = str(data.get('admin_password', '')).strip()
+
+    if not name or not bot_token or not admin_username:
+        return jsonify({'success': False, 'error': "Barcha majburiy maydonlarni to'ldiring!"}), 400
+
+    if slug and slug != tenant.slug and Tenant.query.filter_by(slug=slug).first():
+        return jsonify({'success': False, 'error': f"'{slug}' identifikatori allaqachon mavjud!"}), 400
+    if bot_token != tenant.bot_token and Tenant.query.filter_by(bot_token=bot_token).first():
+        return jsonify({'success': False, 'error': "Ushbu bot tokeni allaqachon boshqa oshxonaga ulangan!"}), 400
+    if admin_username != tenant.admin_username and (Tenant.query.filter_by(admin_username=admin_username).first() or SuperAdmin.query.filter_by(username=admin_username).first()):
+        return jsonify({'success': False, 'error': f"'{admin_username}' logini allaqachon band!"}), 400
+
+    if bot_token != tenant.bot_token:
+        try:
+            r = requests.get(f"https://api.telegram.org/bot{bot_token}/getMe", timeout=8)
+            res = r.json()
+            if not res.get('ok'):
+                return jsonify({'success': False, 'error': f"Telegram API xatosi: {res.get('description', 'Yaroqsiz token')}"}), 400
+            raw_user = res.get('result', {}).get('username', '')
+            if raw_user:
+                tenant.bot_username = '@' + raw_user if not raw_user.startswith('@') else raw_user
+        except Exception as te:
+            return jsonify({'success': False, 'error': f"Telegram botini tekshirib bo'lmadi: {te}"}), 400
+
+    tenant.name = name
+    if slug:
+        tenant.slug = slug
+    tenant.bot_token = bot_token
+    tenant.admin_telegram_id = admin_telegram_id
+    tenant.admin_username = admin_username
+    if admin_password:
+        tenant.set_password(admin_password)
+
+    db.session.commit()
+    sync_tenants_backup_json()
+    return jsonify({'success': True, 'message': "Muvaffaqiyatli saqlandi!"})
+
+
 @app.route('/api/superadmin/tenants/<int:tenant_id>/toggle', methods=['POST'])
 @super_admin_required
 def api_superadmin_tenants_toggle(tenant_id):

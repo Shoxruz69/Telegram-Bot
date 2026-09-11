@@ -115,6 +115,9 @@ function renderTenantsTable(list) {
               ${t.is_active ? '⏸️' : '▶️'}
             </button>
             ${t.id !== 1 ? `
+              <button class="btn-action edit" onclick="editTenant(${t.id})" title="Tahrirlash">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+              </button>
               <button class="btn-action danger" onclick="deleteTenant(${t.id}, '${t.name}')" title="O'chirish">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
               </button>
@@ -160,8 +163,28 @@ function openCreateTenantModal() {
   document.getElementById('create-modal-overlay').classList.add('active');
 }
 
+function editTenant(id) {
+  const t = tenantsData.find(x => x.id === id);
+  if(!t) return;
+  document.getElementById('edit-tenant-id').value = t.id;
+  document.getElementById('tenant-name').value = t.name || '';
+  document.getElementById('tenant-slug').value = t.slug || '';
+  document.getElementById('tenant-bot-token').value = t.bot_token || '';
+  document.getElementById('tenant-admin-id').value = t.admin_telegram_id || '';
+  document.getElementById('tenant-username').value = t.admin_username || '';
+  document.getElementById('tenant-password').value = ''; 
+  document.getElementById('tenant-password').placeholder = "O'zgartirish uchun kiriting...";
+  document.getElementById('bot-verify-result').style.display = 'none';
+  document.getElementById('clone-menu-wrap').style.display = 'none'; 
+  document.getElementById('modal-title-text').textContent = "Oshxonani Tahrirlash";
+  document.getElementById('save-btn-text').textContent = "O'zgarishlarni Saqlash";
+  
+  document.getElementById('create-modal-overlay').classList.add('active');
+}
+
 function closeCreateTenantModal() {
   document.getElementById('create-modal-overlay').classList.remove('active');
+  document.getElementById('tenant-password').placeholder = "••••••••";
 }
 
 function autoGenerateSlug(name) {
@@ -233,12 +256,16 @@ async function handleSaveTenant(e) {
 
   const btn = document.getElementById('btn-save-tenant');
   const btnText = document.getElementById('save-btn-text');
+  
+  const isEdit = !!document.getElementById('edit-tenant-id').value;
+  const tenantId = document.getElementById('edit-tenant-id').value;
+  const url = isEdit ? `/api/superadmin/tenants/${tenantId}/update` : '/api/superadmin/tenants/create';
 
   btn.disabled = true;
-  btnText.textContent = "Ishga tushirilmoqda...";
+  btnText.textContent = isEdit ? "Saqlanmoqda..." : "Ishga tushirilmoqda...";
 
   try {
-    const res = await fetch('/api/superadmin/tenants/create', {
+    const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -253,7 +280,7 @@ async function handleSaveTenant(e) {
     });
     const data = await res.json();
     if (data.success) {
-      showToast(`"${name}" muvaffaqiyatli yaratildi va bot ishga tushirildi!`, "success");
+      showToast(isEdit ? "O'zgarishlar muvaffaqiyatli saqlandi!" : `"${name}" muvaffaqiyatli yaratildi va bot ishga tushirildi!`, "success");
       closeCreateTenantModal();
       loadDashboardData();
     } else {
@@ -263,7 +290,7 @@ async function handleSaveTenant(e) {
     showToast("Server bilan bog'lanishda xatolik!", "error");
   } finally {
     btn.disabled = false;
-    btnText.textContent = "Saqlash & Botni Ishga Tushirish";
+    btnText.textContent = isEdit ? "O'zgarishlarni Saqlash" : "Saqlash & Botni Ishga Tushirish";
   }
 }
 
