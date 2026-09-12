@@ -1,4 +1,4 @@
-﻿import os
+import os
 import json
 import asyncpg
 import os
@@ -483,12 +483,33 @@ async def get_all_active_tenants():
             tenants = [dict(r) for r in rows]
             for t in tenants:
                 t_slug = str(t.get('slug', '')).strip().lower()
+                t_name = str(t.get('name', '')).strip().lower()
+                tid = t.get('id', 1)
                 tok = str(t.get('bot_token', '')).strip()
                 if not tok or any(ph in tok.upper() for ph in ['YOUR_', '_HERE', 'PLACEHOLDER']):
-                    env_tok = os.getenv(f"BOT_TOKEN_{t_slug.upper()}", "").strip()
-                    if not env_tok and (t.get('id') == 1 or t_slug == 'express'):
-                        env_tok = os.getenv("BOT_TOKEN", "").strip()
-                    if env_tok and not any(ph in env_tok.upper() for ph in ['YOUR_', '_HERE']):
+                    env_tok = ""
+                    candidates = []
+                    if t_slug:
+                        s_clean = re.sub(r'[^A-Z0-9_]', '_', t_slug.upper())
+                        candidates.extend([f"BOT_TOKEN_{s_clean}", f"{s_clean}_BOT_TOKEN", f"{s_clean}_TOKEN"])
+                        if "CAFE" in s_clean:
+                            short_slug = s_clean.replace("CAFE", "").strip("_")
+                            if short_slug:
+                                candidates.extend([f"BOT_TOKEN_{short_slug}", f"{short_slug}_BOT_TOKEN", f"{short_slug}_TOKEN"])
+                    if t_name:
+                        n_clean = re.sub(r'[^A-Z0-9_]', '_', t_name.upper())
+                        candidates.extend([f"BOT_TOKEN_{n_clean}", f"{n_clean}_BOT_TOKEN"])
+                    candidates.extend([f"BOT_TOKEN_{tid}", f"TENANT_{tid}_BOT_TOKEN"])
+                    if tid == 1 or t_slug == 'express':
+                        candidates.append("BOT_TOKEN")
+
+                    for k in candidates:
+                        val = os.getenv(k, "").strip()
+                        if val and not any(ph in val.upper() for ph in ['YOUR_', '_HERE', 'PLACEHOLDER']):
+                            env_tok = val
+                            break
+
+                    if env_tok:
                         t['bot_token'] = env_tok
             return tenants
 

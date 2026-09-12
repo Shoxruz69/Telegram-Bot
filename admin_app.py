@@ -1540,12 +1540,15 @@ def api_superadmin_tenants():
         orders_count = Order.query.filter_by(tenant_id=t.id).count()
         rev = db.session.query(db.func.sum(Order.total_amount)).filter(Order.tenant_id == t.id, Order.status.in_(['Tasdiqlandi', 'Tugatildi'])).scalar() or 0
         created_str = t.created_at.strftime("%Y-%m-%d %H:%M") if t.created_at else ""
+        has_real_token = bool(t.bot_token and not any(p in t.bot_token.upper() for p in ['YOUR_', '_HERE', 'PLACEHOLDER', 'TOKEN_HERE']))
         result.append({
             'id': t.id,
             'name': t.name,
             'slug': t.slug,
             'bot_username': t.bot_username or '',
+            'bot_token': t.bot_token if has_real_token else '',
             'bot_token_masked': t.bot_token[:8] + "..." + t.bot_token[-4:] if len(t.bot_token) > 12 else "***",
+            'has_valid_token': has_real_token,
             'admin_telegram_id': t.admin_telegram_id or '',
             'admin_username': t.admin_username,
             'is_active': bool(t.is_active),
@@ -1730,17 +1733,19 @@ def api_superadmin_tenants_update(tenant_id):
     admin_username = str(data.get('admin_username', '')).strip()
     admin_password = str(data.get('admin_password', '')).strip()
 
-    if not name or not bot_token or not admin_username:
-        return jsonify({'success': False, 'error': "Barcha majburiy maydonlarni to'ldiring!"}), 400
+    if not name or not admin_username:
+        return jsonify({'success': False, 'error': "Oshxona nomi va admin logini majburiy!"}), 400
 
     if slug and slug != tenant.slug and Tenant.query.filter_by(slug=slug).first():
         return jsonify({'success': False, 'error': f"'{slug}' identifikatori allaqachon mavjud!"}), 400
-    if bot_token != tenant.bot_token and Tenant.query.filter_by(bot_token=bot_token).first():
+    if bot_token and bot_token != tenant.bot_token and Tenant.query.filter_by(bot_token=bot_token).first():
         return jsonify({'success': False, 'error': "Ushbu bot tokeni allaqachon boshqa oshxonaga ulangan!"}), 400
     if admin_username != tenant.admin_username and (Tenant.query.filter_by(admin_username=admin_username).first() or SuperAdmin.query.filter_by(username=admin_username).first()):
         return jsonify({'success': False, 'error': f"'{admin_username}' logini allaqachon band!"}), 400
 
-    if bot_token != tenant.bot_token:
+    final_bot_token = bot_token if bot_token else tenant.bot_token
+
+    if bot_token and bot_token != tenant.bot_token:
         try:
             r = requests.get(f"https://api.telegram.org/bot{bot_token}/getMe", timeout=8)
             res = r.json()
@@ -1749,13 +1754,47 @@ def api_superadmin_tenants_update(tenant_id):
             raw_user = res.get('result', {}).get('username', '')
             if raw_user:
                 tenant.bot_username = '@' + raw_user if not raw_user.startswith('@') else raw_user
+            tenant.bot_token = bot_token
+
+            # Telegram buyruqlar va WebApp tugmasini avtomatik sozlash
+            try:
+                raw_url = os.getenv("RENDER_EXTERNAL_URL", "") or os.getenv("WEB_APP_URL", "")
+                base_url = raw_url.strip().rstrip('/') if raw_url else ""
+                if base_url and not base_url.startswith('http'):
+                    base_url = f"https://{base_url}"
+                current_slug = slug if slug else tenant.slug
+                w_url = f"{base_url}/webapp?tenant={current_slug}" if base_url else f"https://your-app.onrender.com/webapp?tenant={current_slug}"
+                requests.post(
+                    f"https://api.telegram.org/bot{bot_token}/setMyCommands",
+                    json={
+                        "commands": [
+                            {"command": "start", "description": "Botni qayta ishga tushirish"},
+                            {"command": "menu", "description": "Menyuni ochish"},
+                            {"command": "help", "description": "Yordam va bog'lanish"}
+                        ]
+                    },
+                    timeout=8
+                )
+                requests.post(
+                    f"https://api.telegram.org/bot{bot_token}/setChatMenuButton",
+                    json={
+                        "menu_button": {
+                            "type": "web_app",
+                            "text": "🍔 Menyu",
+                            "web_app": {"url": w_url}
+                        }
+                    },
+                    timeout=8
+                )
+                requests.post(f"https://api.telegram.org/bot{bot_token}/deleteWebhook", timeout=8)
+            except Exception as se:
+                print(f"[Telegram setup note]: {se}")
         except Exception as te:
             return jsonify({'success': False, 'error': f"Telegram botini tekshirib bo'lmadi: {te}"}), 400
 
     tenant.name = name
     if slug:
         tenant.slug = slug
-    tenant.bot_token = bot_token
     tenant.admin_telegram_id = admin_telegram_id
     tenant.admin_username = admin_username
     if admin_password:

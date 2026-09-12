@@ -66,17 +66,44 @@ def resolve_tenant_bot_token(tenant: dict) -> str:
     """Oshxona bot tokenini aniqlash (DB, Environment variable yoki TENANT_TOKENS)"""
     tid = tenant.get('id', 1)
     slug = str(tenant.get('slug', '')).strip().lower()
+    name = str(tenant.get('name', '')).strip().lower()
     token = str(tenant.get('bot_token', '')).strip()
 
-    # Agar token placeholder bo'lsa uni bo'sh deb hisoblaymiz
-    if any(ph in token.upper() for ph in ["YOUR_", "_HERE", "PLACEHOLDER", "TOKEN_HERE"]):
-        token = ""
+    # Agar bazadagi token haqiqiy (placeholder bo'lmagan) token bo'lsa, to'g'ridan-to'g'ri qaytarish
+    if token and not any(ph in token.upper() for ph in ["YOUR_", "_HERE", "PLACEHOLDER", "TOKEN_HERE"]):
+        return token
 
-    # 1. Environment variable: BOT_TOKEN_<SLUG> (masalan BOT_TOKEN_DILICAFE, BOT_TOKEN_EXPRESS)
+    # 1. Environment variable qidiruvi (barcha mumkin bo'lgan nomlar bo'yicha)
+    candidates = []
     if slug:
-        slug_env = re.sub(r'[^A-Z0-9_]', '_', slug.upper())
-        env_val = os.getenv(f"BOT_TOKEN_{slug_env}", "").strip()
-        if env_val:
+        slug_clean = re.sub(r'[^A-Z0-9_]', '_', slug.upper())
+        candidates.extend([
+            f"BOT_TOKEN_{slug_clean}",
+            f"{slug_clean}_BOT_TOKEN",
+            f"{slug_clean}_TOKEN"
+        ])
+        if "CAFE" in slug_clean:
+            short_slug = slug_clean.replace("CAFE", "").strip("_")
+            if short_slug:
+                candidates.extend([
+                    f"BOT_TOKEN_{short_slug}",
+                    f"{short_slug}_BOT_TOKEN",
+                    f"{short_slug}_TOKEN"
+                ])
+    if name:
+        name_clean = re.sub(r'[^A-Z0-9_]', '_', name.upper())
+        candidates.extend([
+            f"BOT_TOKEN_{name_clean}",
+            f"{name_clean}_BOT_TOKEN"
+        ])
+    candidates.extend([
+        f"BOT_TOKEN_{tid}",
+        f"TENANT_{tid}_BOT_TOKEN"
+    ])
+
+    for k in candidates:
+        env_val = os.getenv(k, "").strip()
+        if env_val and not any(ph in env_val.upper() for ph in ["YOUR_", "_HERE", "PLACEHOLDER"]):
             return env_val
 
     # 2. TENANT_TOKENS JSON env var (masalan: {"dilicafe": "...", "express": "..."})
@@ -98,7 +125,7 @@ def resolve_tenant_bot_token(tenant: dict) -> str:
         if primary_token and not any(ph in primary_token.upper() for ph in ["YOUR_", "_HERE"]):
             return primary_token
 
-    return token
+    return ""
 
 # Multi-Bot dinamik boshqaruvi
 running_bots = {}  # {tenant_id: {'bot': bot, 'token': token, 'task': task, 'username': username, 'tenant': tenant}}

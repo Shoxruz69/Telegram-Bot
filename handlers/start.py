@@ -32,6 +32,7 @@ async def resolve_tenant(bot: Bot, tenant: dict = None) -> dict:
     }
 
 @router.message(CommandStart())
+@router.message(lambda msg: bool(msg.text and msg.text.strip().lower() in ['/start', 'start', '/boshlash', 'boshlash']))
 async def cmd_start(message: Message, bot: Bot, tenant: dict = None):
     cur_tenant = await resolve_tenant(bot, tenant)
     tenant_name = cur_tenant.get('name', 'Cafe Express')
@@ -79,7 +80,7 @@ async def cmd_start(message: Message, bot: Bot, tenant: dict = None):
 
     kb = get_webapp_keyboard(message.from_user.id, tenant_slug=tenant_slug)
 
-    # Rasm: admin yuklagan maxsus rasm yoki standart logo
+    # Rasm: admin yuklagan maxsus rasm yoki faqat Cafe Express (tenant 1) uchun standart logo
     photo_target = None
     if welcome_img_custom and welcome_img_custom.strip():
         img_val = welcome_img_custom.strip()
@@ -89,7 +90,7 @@ async def cmd_start(message: Message, bot: Bot, tenant: dict = None):
             clean_local = img_val.lstrip('/')
             if os.path.exists(clean_local):
                 photo_target = FSInputFile(clean_local)
-    elif os.path.exists("static/cafe_logo.png"):
+    elif tenant_id == 1 and os.path.exists("static/cafe_logo.png"):
         photo_target = FSInputFile("static/cafe_logo.png")
 
     photo_sent = False
@@ -120,6 +121,7 @@ async def cmd_start(message: Message, bot: Bot, tenant: dict = None):
             )
 
 @router.message(Command("menu"))
+@router.message(lambda msg: bool(msg.text and msg.text.strip().lower() in ['/menu', 'menu', 'menyu', '🍴 menyu', '🍔 menyu']))
 async def cmd_menu(message: Message, bot: Bot, tenant: dict = None):
     cur_tenant = await resolve_tenant(bot, tenant)
     tenant_name = cur_tenant.get('name', 'Cafe Express')
@@ -132,18 +134,41 @@ async def cmd_menu(message: Message, bot: Bot, tenant: dict = None):
     )
 
 @router.message(Command("help"))
+@router.message(lambda msg: bool(msg.text and msg.text.strip().lower() in ['/help', 'help', 'yordam', '/yordam', '📞 yordam', 'ℹ️ yordam', "bog'lanish", 'aloqa']))
 async def cmd_help(message: Message, bot: Bot, tenant: dict = None):
     cur_tenant = await resolve_tenant(bot, tenant)
     tenant_name = cur_tenant.get('name', 'Cafe Express')
-    admin_phone = "+998 88 732 55 15"
+    tenant_slug = cur_tenant.get('slug', 'express')
+    tenant_id = cur_tenant.get('id', 1)
+
+    # Bog'lanish kontaktlari
+    admin_contact = "+998 88 732 55 15" if tenant_id == 1 else ""
+    admin_id = str(cur_tenant.get('admin_telegram_id', '')).strip()
+    admin_user = str(cur_tenant.get('admin_username', '')).strip()
+    bot_user = str(cur_tenant.get('bot_username', '')).strip().lstrip('@')
+
+    contact_lines = []
+    if admin_contact:
+        contact_lines.append(f"📞 Telefon: <b>{admin_contact}</b>")
+    if admin_id and admin_id.isdigit():
+        contact_lines.append(f"💬 Telegram: <a href=\"tg://user?id={admin_id}\">Admin bilan bog'lanish</a>")
+    elif bot_user:
+        contact_lines.append(f"🤖 Bot: @{bot_user}")
+
+    contact_block = "\n".join(contact_lines) if contact_lines else "📞 Bog'lanish: Admin paneli orqali"
+
+    help_text = (
+        f"📞 <b>{html.escape(tenant_name)} — Bog'lanish va Yordam</b>\n\n"
+        f"• 🍔 <b>Menyuni ko'rish:</b> Pastdagi <b>Menyu (Mini App)</b> tugmasini bosing va kerakli taomlarni tanlang.\n"
+        f"• 🛵 <b>Yetkazib berish:</b> Buyurtma bergach, tasdiqlash xabari to'g'ridan-to'g'ri shu yerga keladi.\n"
+        f"• 🔄 <b>Qayta ishga tushirish:</b> Agar bot to'xtab qolsa yoki menyu yangilanmasa /start buyrug'ini bosing.\n\n"
+        f"{contact_block}"
+    )
 
     await message.answer(
-        f"📞 <b>{html.escape(tenant_name)} — Bog'lanish va Yordam</b>\n\n"
-        f"• Barcha taomlarni ko'rish va xarid qilish uchun pastdagi 🍔 <b>Menyu</b> tugmasidan foydalaning.\n"
-        f"• Buyurtma bergach, xabarnoma telegram chatingizga darhol yetib boradi.\n"
-        f"• Agar xatolik kuzatilsa /start tugmasini bosing.\n\n"
-        f"📞 Bog'lanish raqami: {admin_phone}",
-        parse_mode="HTML"
+        help_text,
+        parse_mode="HTML",
+        reply_markup=get_webapp_keyboard(message.from_user.id, tenant_slug=tenant_slug)
     )
 
 @router.message(Command("myid"))

@@ -26,7 +26,7 @@ async def handle_custom_command(message: Message, bot: Bot, tenant: dict = None)
     clean_cmd = re.sub(r'[^a-z0-9_]', '', raw_cmd)
 
     # Standart bot komandalarini start/menu routerlariga qoldirish
-    if clean_cmd in ['start', 'menu', 'help', 'myid']:
+    if clean_cmd in ['start', 'menu', 'help', 'myid', 'boshlash', 'yordam']:
         return
 
     cur_tenant = await resolve_tenant(bot, tenant)

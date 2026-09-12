@@ -72,9 +72,14 @@ function renderTenantsTable(list) {
          </a>`
       : `<span style="color: var(--text-muted); font-size: 12px;">Token: ${t.bot_token_masked}</span>`;
 
-    const statusBadge = t.is_active
-      ? `<span class="status-pill active"><span class="pulse-dot" style="width: 6px; height: 6px;"></span> Faol</span>`
-      : `<span class="status-pill inactive">To'xtatilgan</span>`;
+    let statusBadge = '';
+    if (!t.has_valid_token && t.id !== 1) {
+      statusBadge = `<span class="status-pill" style="background: rgba(245,158,11,0.15); color: #F59E0B; border: 1px solid rgba(245,158,11,0.3); font-weight:600; cursor:pointer;" onclick="editTenant(${t.id})" title="Bot tokeni kiritilmagan. Bosib tokenni kiriting!">⚠️ Token yo'q</span>`;
+    } else if (t.is_active) {
+      statusBadge = `<span class="status-pill active"><span class="pulse-dot" style="width: 6px; height: 6px;"></span> Faol</span>`;
+    } else {
+      statusBadge = `<span class="status-pill inactive">To'xtatilgan</span>`;
+    }
 
     return `
       <tr>
@@ -169,7 +174,9 @@ function editTenant(id) {
   document.getElementById('edit-tenant-id').value = t.id;
   document.getElementById('tenant-name').value = t.name || '';
   document.getElementById('tenant-slug').value = t.slug || '';
-  document.getElementById('tenant-bot-token').value = t.bot_token || '';
+  const hasReal = t.has_valid_token && t.bot_token;
+  document.getElementById('tenant-bot-token').value = hasReal ? t.bot_token : '';
+  document.getElementById('tenant-bot-token').placeholder = hasReal ? (t.bot_token_masked || '••••••••') : "Bot tokenini kiriting (@BotFather dan)...";
   document.getElementById('tenant-admin-id').value = t.admin_telegram_id || '';
   document.getElementById('tenant-username').value = t.admin_username || '';
   document.getElementById('tenant-password').value = ''; 
