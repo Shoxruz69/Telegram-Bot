@@ -1344,33 +1344,69 @@ def upload_receipt(order_id):
 
 
 # --- Bitepoint Order Notification Helper ---
+def get_tenant_bot_token_for_sending(tenant_id):
+    tenant = Tenant.query.get(tenant_id) if tenant_id else None
+    bot_token = tenant.bot_token if (tenant and tenant.bot_token) else None
+    if bot_token and any(p in bot_token.upper() for p in ['YOUR_', '_HERE', 'PLACEHOLDER', 'TOKEN_HERE']):
+        bot_token = None
+    if not bot_token and tenant:
+        slug = (tenant.slug or '').upper().replace('-', '_')
+        candidates = [
+            f"BOT_TOKEN_{slug}",
+            f"BOT_TOKEN_{tenant.id}",
+            f"{slug}_BOT_TOKEN",
+        ]
+        if 'DILI' in slug:
+            candidates.extend(['BOT_TOKEN_DILICAFE', 'BOT_TOKEN_DILI', 'DILI_BOT_TOKEN'])
+        for c in candidates:
+            val = os.getenv(c)
+            if val and val.strip():
+                bot_token = val.strip()
+                break
+    if not bot_token:
+        bot_token = os.getenv("BOT_TOKEN")
+    return bot_token
+
+
 def send_telegram_order_status_update(user_id, order_id, status, payment_method, total_amount, tenant_id=1):
-    tenant = Tenant.query.get(tenant_id)
-    bot_token = tenant.bot_token if (tenant and tenant.bot_token) else os.getenv("BOT_TOKEN")
-    if not bot_token or not user_id:
+    bot_token = get_tenant_bot_token_for_sending(tenant_id)
+    target_uid = user_id
+    display_id = order_id
+
+    try:
+        ord_obj = Order.query.get(order_id)
+        if ord_obj:
+            if ord_obj.daily_id:
+                display_id = ord_obj.daily_id
+            if (not target_uid or str(target_uid) in ('0', '', 'None')) and ord_obj.user and ord_obj.user.phone:
+                found_u = User.query.filter(User.phone == ord_obj.user.phone, User.user_id != 0).first()
+                if found_u:
+                    target_uid = found_u.user_id
+    except Exception as e:
+        print("[Status notify lookup error]:", e)
+
+    if not bot_token or not target_uid or str(target_uid) in ('0', '', 'None'):
+        print(f"[Admin Notify skip] bot_token={bool(bot_token)}, target_uid={target_uid}")
         return
+
     payment = payment_method or "Naqd"
     total = total_amount or 0
-    if status == 'Tasdiqlandi':
+
+    if status in ('Tasdiqlandi', 'Tayyorlanmoqda'):
         msg = (
-            f"✅ #{order_id}-raqamli buyurtmangiz TASDIQLANDI!\n\n"
+            f"✅ #{display_id}-raqamli buyurtmangiz tasdiqlandi!\n\n"
             f"💳 To'lov turi: {payment}\n"
             f"💰 Jami: {total:,} so'm\n\n"
-            f"🚚 Buyurtmangiz tez orada yetkazib beriladi. Rahmat! 🙏"
+            f"👨‍🍳 Buyurtmangiz tayyorlanmoqda!"
         )
-    elif status == 'Tayyorlanmoqda':
+    elif status in ('Tugatildi', 'Yetkazilmoqda', 'Yetkazildi'):
         msg = (
-            f"🔥 #{order_id}-raqamli buyurtmangiz tayyorlanmoqda!\n"
-            f"Oshpazlarimiz taomingizni tayyorlashga kirishdi 👨‍🍳"
-        )
-    elif status == 'Tugatildi':
-        msg = (
-            f"🎉 #{order_id}-raqamli buyurtmangiz yetkazildi / tugatildi!\n"
-            f"Yoqimli ishtaha! Bizni tanlaganingiz uchun rahmat! ❤️"
+            f"🚚 #{display_id}-raqamli buyurtmangiz yo'lga chiqdi!\n\n"
+            f"Tez orada yetkazib beramiz. Rahmat! 🙏"
         )
     elif status == 'Bekor qilindi':
         msg = (
-            f"❌ #{order_id}-raqamli buyurtmangiz BEKOR QILINDI!\n\n"
+            f"❌ #{display_id}-raqamli buyurtmangiz bekor qilindi!\n\n"
             f"Qo'shimcha ma'lumot uchun biz bilan bog'laning."
         )
     else:
@@ -1380,10 +1416,10 @@ def send_telegram_order_status_update(user_id, order_id, status, payment_method,
         try:
             resp = requests.post(
                 f"https://api.telegram.org/bot{bot_token}/sendMessage",
-                json={"chat_id": int(user_id), "text": msg},
+                json={"chat_id": int(target_uid), "text": msg},
                 timeout=8
             )
-            print(f"[Admin Notify] Status '{status}' -> user {user_id}: {resp.status_code}")
+            print(f"[Admin Notify] Status '{status}' -> user {target_uid}: {resp.status_code}")
         except Exception as e:
             print("[Admin status notify error]:", e)
 
@@ -1519,7 +1555,7 @@ def api_superadmin_stats():
     total_tenants = Tenant.query.count()
     active_tenants = Tenant.query.filter_by(is_active=True).count()
     total_orders = Order.query.count()
-    total_revenue = db.session.query(db.func.sum(Order.total_amount)).filter(Order.status.in_(['Tasdiqlandi', 'Tugatildi'])).scalar() or 0
+    total_revenue = db.session.query(db.func.sum(Order.total_amount)).filter(Order.status.in_(['Tasdiqlandi', 'Tayyorlanmoqda', 'Tugatildi', 'Yetkazilmoqda', 'Yetkazildi'])).scalar() or 0
     return jsonify({
         'success': True,
         'stats': {
@@ -1538,7 +1574,7 @@ def api_superadmin_tenants():
     result = []
     for t in tenants:
         orders_count = Order.query.filter_by(tenant_id=t.id).count()
-        rev = db.session.query(db.func.sum(Order.total_amount)).filter(Order.tenant_id == t.id, Order.status.in_(['Tasdiqlandi', 'Tugatildi'])).scalar() or 0
+        rev = db.session.query(db.func.sum(Order.total_amount)).filter(Order.tenant_id == t.id, Order.status.in_(['Tasdiqlandi', 'Tayyorlanmoqda', 'Tugatildi', 'Yetkazilmoqda', 'Yetkazildi'])).scalar() or 0
         created_str = t.created_at.strftime("%Y-%m-%d %H:%M") if t.created_at else ""
         has_real_token = bool(t.bot_token and not any(p in t.bot_token.upper() for p in ['YOUR_', '_HERE', 'PLACEHOLDER', 'TOKEN_HERE']))
         result.append({
@@ -2817,24 +2853,29 @@ class OrderAdminView(ModelView):
                     except Exception as e:
                         print(f"[DB user update error]: {e}")
 
-            if status == 'Tasdiqlandi':
+            if status in ('Tasdiqlandi', 'Tayyorlanmoqda'):
                 if payment == 'Karta':
                     msg = (
-                        f"✅ #{order_no}-raqamli buyurtmangiz TASDIQLANDI!\n\n"
+                        f"✅ #{order_no}-raqamli buyurtmangiz tasdiqlandi!\n\n"
                         f"💳 To'lovingiz qabul qilindi!\n"
                         f"💰 Jami: {total:,} so'm\n\n"
-                        f"🚚 Buyurtmangiz tez orada yetkazib beriladi. Rahmat! 🙏"
+                        f"👨‍🍳 Buyurtmangiz tayyorlanmoqda!"
                     )
                 else:
                     msg = (
-                        f"✅ #{order_no}-raqamli buyurtmangiz TASDIQLANDI!\n\n"
+                        f"✅ #{order_no}-raqamli buyurtmangiz tasdiqlandi!\n\n"
                         f"💵 To'lov turi: Naqd\n"
                         f"💰 Jami: {total:,} so'm\n\n"
-                        f"🚚 Buyurtmangiz tez orada yetkazib beriladi. Rahmat! 🙏"
+                        f"👨‍🍳 Buyurtmangiz tayyorlanmoqda!"
                     )
+            elif status in ('Tugatildi', 'Yetkazilmoqda', 'Yetkazildi'):
+                msg = (
+                    f"🚚 #{order_no}-raqamli buyurtmangiz yo'lga chiqdi!\n\n"
+                    f"Tez orada yetkazib beramiz. Rahmat! 🙏"
+                )
             elif status == 'Bekor qilindi':
                 msg = (
-                    f"❌ #{order_no}-raqamli buyurtmangiz BEKOR QILINDI!\n\n"
+                    f"❌ #{order_no}-raqamli buyurtmangiz bekor qilindi!\n\n"
                     f"Qo'shimcha ma'lumot uchun biz bilan bog'laning."
                 )
             else:
@@ -2842,7 +2883,7 @@ class OrderAdminView(ModelView):
 
             target_uid = user_id
             def send_status_msg():
-                token = os.getenv("BOT_TOKEN")
+                token = get_tenant_bot_token_for_sending(model.tenant_id)
                 if token and target_uid and str(target_uid) not in ('0', '', 'None'):
                     try:
                         resp = requests.post(

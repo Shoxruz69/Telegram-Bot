@@ -39,6 +39,7 @@ const i18n = {
     total_lbl: "Jami:",
     see_details: "Batafsil",
     pay_bills: "To'lov / Tasdiqlash",
+    deliver_order: "Yetkazib berish",
     complete_order: "Tugatish",
     view_btn: "Ko'rish",
     receipt_attached: "Chek mavjud",
@@ -69,6 +70,7 @@ const i18n = {
     modal_need_more: "Yana",
     modal_need_more_suffix: "kerak",
     modal_pay_now: "Tasdiqlash (Mijozga xabar yuborish)",
+    modal_deliver_now: "Yetkazib berish (Mijozga xabar yuborish)",
     modal_card_receipt_alert: "Karta To'lovi Cheki Yuklangan",
     modal_view_receipt: "Chekni Ko'rish",
     view_map: "Xaritada ko'rish",
@@ -195,6 +197,7 @@ const i18n = {
     total_lbl: "Итого:",
     see_details: "Детали",
     pay_bills: "Оплата / Принять",
+    deliver_order: "Доставить",
     complete_order: "Завершить",
     view_btn: "Просмотр",
     receipt_attached: "Чек прикреплен",
@@ -225,6 +228,7 @@ const i18n = {
     modal_need_more: "Не хватает еще",
     modal_need_more_suffix: "",
     modal_pay_now: "Подтвердить (Уведомить клиента)",
+    modal_deliver_now: "Доставить (Уведомить клиента)",
     modal_card_receipt_alert: "Чек оплаты картой загружен",
     modal_view_receipt: "Посмотреть чек",
     view_map: "На карте",
@@ -351,6 +355,7 @@ const i18n = {
     total_lbl: "Total:",
     see_details: "See Details",
     pay_bills: "Pay Bills",
+    deliver_order: "Deliver",
     complete_order: "Complete",
     view_btn: "View",
     receipt_attached: "Receipt attached",
@@ -381,6 +386,7 @@ const i18n = {
     modal_need_more: "Still need",
     modal_need_more_suffix: "more",
     modal_pay_now: "Pay Now (Confirm Order)",
+    modal_deliver_now: "Deliver (Notify Customer)",
     modal_card_receipt_alert: "Card Payment Receipt Attached",
     modal_view_receipt: "View Receipt",
     view_map: "View on Map",
@@ -925,10 +931,10 @@ function updateOrderCounts() {
   state.orders.forEach(o => {
     counts.all++;
     const s = o.status;
-    if (s === 'Kutilmoqda' || s === 'Tayyorlanmoqda') {
+    if (s === 'Kutilmoqda' || s === 'Tayyorlanmoqda' || s === 'Tasdiqlandi' || s === 'Yetkazilmoqda') {
       counts.process++;
       if (s === 'Kutilmoqda') pendingCount++;
-    } else if (s === 'Tasdiqlandi' || s === 'Tugatildi') {
+    } else if (s === 'Tugatildi' || s === 'Yetkazildi') {
       counts.completed++;
     } else if (s === 'Bekor qilindi') {
       counts.cancelled++;
@@ -974,14 +980,16 @@ function getOrderBadgeInfo(order, index) {
 }
 
 function getStatusPillInfo(status) {
-  if (status === 'Tasdiqlandi' || status === 'Tugatildi') {
-    return { cls: 'ready', dotText: t('status_ready'), sub: t('status_ready_sub') };
-  } else if (status === 'Tayyorlanmoqda') {
-    return { cls: 'in-progress', dotText: t('status_cooking'), sub: t('status_cooking_sub') };
+  if (status === 'Tugatildi' || status === 'Yetkazildi') {
+    return { cls: 'ready', dotText: t('completed') || 'Bajarildi', sub: t('status_ready_sub') || 'Yetkazildi' };
+  } else if (status === 'Tayyorlanmoqda' || status === 'Tasdiqlandi') {
+    return { cls: 'in-progress', dotText: t('status_cooking_sub') || 'Tayyorlanmoqda', sub: t('on_process') || 'Jarayonda' };
+  } else if (status === 'Yetkazilmoqda') {
+    return { cls: 'in-progress', dotText: 'Yetkazilmoqda', sub: 'Yo\'lda' };
   } else if (status === 'Kutilmoqda') {
-    return { cls: 'in-progress', dotText: t('status_pending'), sub: t('status_pending_sub') };
+    return { cls: 'in-progress', dotText: t('status_pending') || 'Kutilmoqda', sub: t('status_pending_sub') || 'Tasdiqlash kerak' };
   } else if (status === 'Bekor qilindi') {
-    return { cls: 'cancelled', dotText: t('status_cancelled'), sub: t('status_cancelled_sub') };
+    return { cls: 'cancelled', dotText: t('status_cancelled') || 'Bekor qilindi', sub: t('status_cancelled_sub') || 'Rad etildi' };
   }
   return { cls: 'in-progress', dotText: status, sub: '' };
 }
@@ -994,9 +1002,9 @@ function renderOrdersGrid() {
   let filtered = state.orders.filter(order => {
     // Status Filter
     if (state.orderStatusFilter === 'process') {
-      if (order.status !== 'Kutilmoqda' && order.status !== 'Tayyorlanmoqda') return false;
+      if (order.status !== 'Kutilmoqda' && order.status !== 'Tayyorlanmoqda' && order.status !== 'Tasdiqlandi' && order.status !== 'Yetkazilmoqda') return false;
     } else if (state.orderStatusFilter === 'completed') {
-      if (order.status !== 'Tasdiqlandi' && order.status !== 'Tugatildi') return false;
+      if (order.status !== 'Tugatildi' && order.status !== 'Yetkazildi') return false;
     } else if (state.orderStatusFilter === 'cancelled') {
       if (order.status !== 'Bekor qilindi') return false;
     }
@@ -1127,7 +1135,12 @@ function renderOrdersGrid() {
           <div class="card-actions-row">
             <button class="btn-card-secondary" style="flex: 1;" onclick="openOrderDetailsModal(${order.id})">${t('see_details')}</button>
             ${order.status === 'Kutilmoqda' ? `
-              <button class="btn-card-primary" style="flex: 1;" onclick="quickUpdateStatus(${order.id}, 'Tasdiqlandi')">${t('pay_bills')}</button>
+              <button class="btn-card-primary" style="flex: 1;" onclick="quickUpdateStatus(${order.id}, 'Tayyorlanmoqda')">${t('pay_bills')}</button>
+            ` : (order.status === 'Tayyorlanmoqda' || order.status === 'Tasdiqlandi') ? `
+              <button class="btn-card-primary btn-deliver" style="flex: 1; background: linear-gradient(135deg, #10B981, #059669); border: none; color: #fff; font-weight: 700; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25); display: inline-flex; align-items: center; justify-content: center; gap: 6px;" onclick="quickUpdateStatus(${order.id}, 'Tugatildi')">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
+                <span>${t('deliver_order')}</span>
+              </button>
             ` : ''}
           </div>
         </div>
@@ -1237,16 +1250,31 @@ function openOrderDetailsModal(orderId) {
   const btnCancel = document.getElementById('modal-btn-cancel-order');
   
   if (btnPayNow) {
-    // If order is already confirmed / completed / cancelled, HIDE Tasdiqlash button
-    if (order.status !== 'Kutilmoqda') {
-      btnPayNow.style.display = 'none';
-    } else {
+    if (order.status === 'Kutilmoqda') {
       btnPayNow.style.display = 'flex';
+      btnPayNow.style.background = '';
+      btnPayNow.style.boxShadow = '';
+      btnPayNow.onclick = confirmPaymentAndClose;
+      btnPayNow.innerHTML = `
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        <span id="btn-pay-now-text">${t('modal_pay_now')}</span>
+      `;
+    } else if (order.status === 'Tayyorlanmoqda' || order.status === 'Tasdiqlandi') {
+      btnPayNow.style.display = 'flex';
+      btnPayNow.style.background = 'linear-gradient(135deg, #10B981, #059669)';
+      btnPayNow.style.boxShadow = '0 4px 14px rgba(16, 185, 129, 0.35)';
+      btnPayNow.onclick = deliverOrderAndClose;
+      btnPayNow.innerHTML = `
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
+        <span id="btn-pay-now-text">${t('modal_deliver_now')}</span>
+      `;
+    } else {
+      btnPayNow.style.display = 'none';
     }
   }
 
   if (btnCancel) {
-    if (order.status === 'Bekor qilindi') {
+    if (order.status === 'Bekor qilindi' || order.status === 'Tugatildi' || order.status === 'Yetkazildi') {
       btnCancel.style.display = 'none';
     } else {
       btnCancel.style.display = 'flex';
@@ -1267,7 +1295,14 @@ function closeOrderDetailsModal() {
 async function confirmPaymentAndClose() {
   if (!state.selectedOrder) return;
   const orderId = state.selectedOrder.id;
-  await quickUpdateStatus(orderId, 'Tasdiqlandi');
+  await quickUpdateStatus(orderId, 'Tayyorlanmoqda');
+  closeOrderDetailsModal();
+}
+
+async function deliverOrderAndClose() {
+  if (!state.selectedOrder) return;
+  const orderId = state.selectedOrder.id;
+  await quickUpdateStatus(orderId, 'Tugatildi');
   closeOrderDetailsModal();
 }
 
