@@ -1588,145 +1588,199 @@ def api_admin_pos_order():
     Admin paneldan telefon orqali yoki to'g'ridan-to'g'ri qabul qilingan yangi buyurtmani saqlaydi
     va 2 xil chek (Oshpazlar + Mijoz) ma'lumotlarini qaytaradi.
     """
-    t_id = get_current_tenant_id()
-    data = request.get_json(force=True, silent=True) or request.form.to_dict() or {}
+    import traceback
+    try:
+        t_id = get_current_tenant_id()
+        data = request.get_json(force=True, silent=True) or request.form.to_dict() or {}
 
-    phone = str(data.get('phone', '')).strip()
-    customer_name = str(data.get('customer_name', '')).strip()
-    order_type = str(data.get('order_type', 'Yetkazib berish')).strip()
-    raw_address = str(data.get('address', '')).strip()
-    payment_method = str(data.get('payment_method', 'Naqd')).strip()
-    comment = str(data.get('comment', '')).strip()
-    items_raw = data.get('items', [])
+        phone = str(data.get('phone', '')).strip()
+        customer_name = str(data.get('customer_name', '')).strip()
+        order_type = str(data.get('order_type', 'Yetkazib berish')).strip()
+        raw_address = str(data.get('address', '')).strip()
+        payment_method = str(data.get('payment_method', 'Naqd')).strip()
+        comment = str(data.get('comment', '')).strip()
+        items_raw = data.get('items', [])
 
-    if not phone:
-        return jsonify({'success': False, 'error': "Telefon raqam kiritilishi shart!"}), 400
+        if not phone:
+            return jsonify({'success': False, 'error': "Telefon raqam kiritilishi shart!"}), 400
 
-    if not items_raw or len(items_raw) == 0:
-        return jsonify({'success': False, 'error': "Savat bo'sh! Kamida bitta taom tanlang."}), 400
+        if not items_raw or len(items_raw) == 0:
+            return jsonify({'success': False, 'error': "Savat bo'sh! Kamida bitta taom tanlang."}), 400
 
-    # Foydalanuvchini topish yoki yaratish
-    user_obj = User.query.filter_by(phone=phone, tenant_id=t_id).first()
-    if not user_obj:
-        now_ts = int(datetime.utcnow().timestamp())
-        placeholder_uid = 900000000 + (now_ts % 99999999)
-        while User.query.filter_by(user_id=placeholder_uid, tenant_id=t_id).first():
-            placeholder_uid += 1
-        user_obj = User(user_id=placeholder_uid, tenant_id=t_id, phone=phone)
-        db.session.add(user_obj)
+        # Foydalanuvchini topish yoki yaratish
+        user_obj = User.query.filter_by(phone=phone, tenant_id=t_id).first()
+        if not user_obj:
+            now_ts = int(datetime.utcnow().timestamp())
+            placeholder_uid = 900000000 + (now_ts % 99999999)
+            while User.query.filter_by(user_id=placeholder_uid, tenant_id=t_id).first():
+                placeholder_uid += 1
+            user_obj = User(
+                user_id=placeholder_uid,
+                tenant_id=t_id,
+                phone=phone,
+                latitude=0.0,
+                longitude=0.0
+            )
+            db.session.add(user_obj)
+            db.session.flush()
+
+        total_amount = 0
+        order_items_objs = []
+        items_response = []
+
+        for item in items_raw:
+            item_id = int(item.get('id', 0))
+            qty = int(item.get('qty', 1))
+            if qty <= 0:
+                continue
+            menu_item = Menu.query.filter_by(id=item_id, tenant_id=t_id).first()
+            if not menu_item:
+                menu_item = Menu.query.get(item_id)
+
+            name = menu_item.name if menu_item else str(item.get('name', "Noma'lum taom"))
+            price = menu_item.price if menu_item else int(item.get('price', 0))
+            subtotal = price * qty
+            total_amount += subtotal
+
+            order_items_objs.append(OrderItem(
+                tenant_id=t_id,
+                menu_item_id=menu_item.id if menu_item else None,
+                name=name,
+                price=price,
+                quantity=qty
+            ))
+            items_response.append({
+                'name': name,
+                'price': price,
+                'quantity': qty,
+                'subtotal': subtotal
+            })
+
+        if not order_items_objs:
+            return jsonify({'success': False, 'error': "Savatda yaroqli taomlar yo'q!"}), 400
+
+        # Kunlik/soatlik tartib raqam (daily_id)
+        setting = Setting.query.filter_by(tenant_id=t_id).first()
+        reset_hours = getattr(setting, 'order_reset_hours', 24) or 24
+        last_order = Order.query.filter_by(tenant_id=t_id).order_by(Order.id.desc()).first()
+        now_utc = datetime.utcnow()
+
+        if not last_order:
+            next_daily_id = 1
+        elif reset_hours == 0:
+            next_daily_id = (getattr(last_order, 'daily_id', None) or last_order.id) + 1
+        else:
+            last_dt = getattr(last_order, 'created_at', None)
+            if last_dt:
+                if isinstance(last_dt, str):
+                    try:
+                        last_dt = datetime.strptime(last_dt.split('.')[0], "%Y-%m-%d %H:%M:%S")
+                    except Exception:
+                        last_dt = None
+                elif hasattr(last_dt, 'tzinfo') and last_dt.tzinfo is not None:
+                    last_dt = last_dt.replace(tzinfo=None)
+
+            if last_dt and isinstance(last_dt, datetime):
+                diff_hours = (now_utc - last_dt).total_seconds() / 3600.0
+                if diff_hours >= reset_hours:
+                    next_daily_id = 1
+                else:
+                    next_daily_id = (getattr(last_order, 'daily_id', None) or last_order.id) + 1
+            else:
+                next_daily_id = (getattr(last_order, 'daily_id', None) or last_order.id) + 1
+
+        # Format address string
+        addr_parts = []
+        if customer_name:
+            addr_parts.append(f"Mijoz: {customer_name}")
+        addr_parts.append(f"[{order_type}]")
+        if raw_address:
+            addr_parts.append(raw_address)
+        else:
+            addr_parts.append("Olib ketish / Zalda")
+        if comment:
+            addr_parts.append(f"Izoh: {comment}")
+
+        full_address = " | ".join(addr_parts)
+
+        new_order = Order(
+            tenant_id=t_id,
+            daily_id=next_daily_id,
+            user_id=user_obj.user_id,
+            status="Tayyorlanmoqda",
+            payment_method=payment_method,
+            total_amount=total_amount,
+            address=full_address
+        )
+        db.session.add(new_order)
         db.session.flush()
 
-    total_amount = 0
-    order_items_objs = []
-    items_response = []
+        for oi in order_items_objs:
+            oi.order_id = new_order.id
+            db.session.add(oi)
 
-    for item in items_raw:
-        item_id = int(item.get('id', 0))
-        qty = int(item.get('qty', 1))
-        if qty <= 0:
-            continue
-        menu_item = Menu.query.filter_by(id=item_id, tenant_id=t_id).first()
-        if not menu_item:
-            menu_item = Menu.query.get(item_id)
+        db.session.commit()
 
-        name = menu_item.name if menu_item else str(item.get('name', "Noma'lum taom"))
-        price = menu_item.price if menu_item else int(item.get('price', 0))
-        subtotal = price * qty
-        total_amount += subtotal
+        # Tashkent timezone (+5)
+        now_tashkent = datetime.utcnow() + timedelta(hours=5)
+        date_str = now_tashkent.strftime("%d.%m.%Y")
+        time_str = now_tashkent.strftime("%H:%M")
 
-        order_items_objs.append(OrderItem(
-            menu_item_id=menu_item.id if menu_item else None,
-            name=name,
-            price=price,
-            quantity=qty
-        ))
-        items_response.append({
-            'name': name,
-            'price': price,
-            'quantity': qty,
-            'subtotal': subtotal
+        t_obj = Tenant.query.get(t_id) or Tenant.query.first()
+        restaurant_name = t_obj.name if t_obj else "Cafe Express"
+        contact_phone = getattr(setting, 'contact_phone', None) or getattr(t_obj, 'contact_phone', None) or os.getenv('ADMIN_PHONE', '')
+
+        # Telegram xabarnoma (Orqa fonda)
+        def notify_pos_order():
+            try:
+                bot_token = t_obj.bot_token if (t_obj and t_obj.bot_token) else os.getenv("BOT_TOKEN")
+                admin_id = t_obj.admin_telegram_id if (t_obj and t_obj.admin_telegram_id) else os.getenv("ADMIN_ID")
+                if bot_token and admin_id and str(admin_id) not in ("YOUR_ADMIN_ID_HERE", "", "None"):
+                    order_items_text = "".join([f"  • {it['name']} x {it['quantity']} = {it['subtotal']:,} so'm\n" for it in items_response])
+                    msg = (
+                        f"📞 <b>Yangi Telefon Buyurtma! #{next_daily_id}</b>\n\n"
+                        f"👤 Mijoz: <b>{customer_name or 'Mijoz'}</b>\n"
+                        f"📱 Tel: <b>{phone}</b>\n"
+                        f"📦 Turi: <b>{order_type}</b>\n"
+                        f"📍 Manzil: {raw_address or 'Olib ketish / Zalda'}\n"
+                        f"💳 To'lov: {payment_method}\n"
+                        f"{f'💬 Izoh: {comment}\n' if comment else ''}\n"
+                        f"🛒 <b>Tarkib:</b>\n{order_items_text}"
+                        f"💰 <b>Jami: {total_amount:,} so'm</b>"
+                    )
+                    requests.post(
+                        f"https://api.telegram.org/bot{bot_token}/sendMessage",
+                        json={'chat_id': admin_id, 'text': msg, 'parse_mode': 'HTML'},
+                        timeout=10
+                    )
+            except Exception as ne:
+                print(f"[POS notify error]: {ne}")
+
+        threading.Thread(target=notify_pos_order, daemon=True).start()
+
+        return jsonify({
+            'success': True,
+            'order': {
+                'id': new_order.id,
+                'daily_id': next_daily_id,
+                'customer_name': customer_name or "Mijoz",
+                'phone': phone,
+                'order_type': order_type,
+                'address': raw_address or "Olib ketish / Zalda",
+                'payment_method': payment_method,
+                'comment': comment,
+                'total_amount': total_amount,
+                'items': items_response,
+                'date_str': date_str,
+                'time_str': time_str,
+                'restaurant_name': restaurant_name,
+                'restaurant_phone': contact_phone or ""
+            }
         })
-
-    if not order_items_objs:
-        return jsonify({'success': False, 'error': "Savatda yaroqli taomlar yo'q!"}), 400
-
-    # Kunlik/soatlik tartib raqam (daily_id)
-    setting = Setting.query.filter_by(tenant_id=t_id).first()
-    reset_hours = getattr(setting, 'order_reset_hours', 24) or 24
-    last_order = Order.query.filter_by(tenant_id=t_id).order_by(Order.id.desc()).first()
-    if not last_order:
-        next_daily_id = 1
-    elif reset_hours == 0:
-        next_daily_id = (getattr(last_order, 'daily_id', None) or last_order.id) + 1
-    else:
-        now_utc = datetime.utcnow()
-        last_time = last_order.created_at or now_utc
-        diff_hours = (now_utc - last_time).total_seconds() / 3600.0
-        if diff_hours >= reset_hours:
-            next_daily_id = 1
-        else:
-            next_daily_id = (getattr(last_order, 'daily_id', None) or last_order.id) + 1
-
-    # Format address string
-    addr_parts = []
-    if customer_name:
-        addr_parts.append(f"Mijoz: {customer_name}")
-    addr_parts.append(f"[{order_type}]")
-    if raw_address:
-        addr_parts.append(raw_address)
-    else:
-        addr_parts.append("Olib ketish / Zalda")
-    if comment:
-        addr_parts.append(f"Izoh: {comment}")
-
-    full_address = " | ".join(addr_parts)
-
-    new_order = Order(
-        tenant_id=t_id,
-        daily_id=next_daily_id,
-        user_id=user_obj.user_id,
-        status="Tayyorlanmoqda",
-        payment_method=payment_method,
-        total_amount=total_amount,
-        address=full_address
-    )
-    db.session.add(new_order)
-    db.session.flush()
-
-    for oi in order_items_objs:
-        oi.order_id = new_order.id
-        db.session.add(oi)
-
-    db.session.commit()
-
-    # Tashkent timezone (+5)
-    now_tashkent = datetime.utcnow() + timedelta(hours=5)
-    date_str = now_tashkent.strftime("%d.%m.%Y")
-    time_str = now_tashkent.strftime("%H:%M")
-
-    t_obj = Tenant.query.get(t_id) or Tenant.query.first()
-    restaurant_name = t_obj.name if t_obj else "Cafe Express"
-    contact_phone = (setting.contact_phone if setting and setting.contact_phone else "")
-
-    return jsonify({
-        'success': True,
-        'order': {
-            'id': new_order.id,
-            'daily_id': next_daily_id,
-            'customer_name': customer_name or "Mijoz",
-            'phone': phone,
-            'order_type': order_type,
-            'address': raw_address or "Olib ketish / Zalda",
-            'payment_method': payment_method,
-            'comment': comment,
-            'total_amount': total_amount,
-            'items': items_response,
-            'date_str': date_str,
-            'time_str': time_str,
-            'restaurant_name': restaurant_name,
-            'restaurant_phone': contact_phone
-        }
-    })
+    except Exception as e:
+        traceback.print_exc()
+        db.session.rollback()
+        return jsonify({'success': False, 'error': f"Buyurtma yaratishda xatolik: {str(e)}"}), 500
 
 
 @app.route('/api/admin/orders/<int:order_id>/receipt')
@@ -1735,77 +1789,91 @@ def api_admin_order_receipt(order_id):
     """
     Istalgan buyurtma uchun 2 xil (Oshpazlar va Mijoz) chek ma'lumotlarini qaytaradi.
     """
-    t_id = get_current_tenant_id()
-    order = Order.query.filter_by(id=order_id, tenant_id=t_id).first()
-    if not order:
-        return jsonify({'success': False, 'error': 'Buyurtma topilmadi'}), 404
+    import traceback
+    try:
+        t_id = get_current_tenant_id()
+        order = Order.query.filter_by(id=order_id, tenant_id=t_id).first()
+        if not order:
+            return jsonify({'success': False, 'error': 'Buyurtma topilmadi'}), 404
 
-    setting = Setting.query.filter_by(tenant_id=t_id).first()
-    t_obj = Tenant.query.get(t_id) or Tenant.query.first()
-    restaurant_name = t_obj.name if t_obj else "Cafe Express"
-    contact_phone = (setting.contact_phone if setting and setting.contact_phone else "")
+        setting = Setting.query.filter_by(tenant_id=t_id).first()
+        t_obj = Tenant.query.get(t_id) or Tenant.query.first()
+        restaurant_name = t_obj.name if t_obj else "Cafe Express"
+        contact_phone = getattr(setting, 'contact_phone', None) or getattr(t_obj, 'contact_phone', None) or os.getenv('ADMIN_PHONE', '')
 
-    created_dt = order.created_at
-    if created_dt:
-        tashkent_dt = created_dt + timedelta(hours=5)
-        date_str = tashkent_dt.strftime("%d.%m.%Y")
-        time_str = tashkent_dt.strftime("%H:%M")
-    else:
-        date_str = "--.--.----"
-        time_str = "--:--"
+        created_dt = order.created_at
+        if created_dt:
+            if isinstance(created_dt, str):
+                try:
+                    created_dt = datetime.strptime(created_dt.split('.')[0], "%Y-%m-%d %H:%M:%S")
+                except:
+                    created_dt = None
+            elif hasattr(created_dt, 'tzinfo') and created_dt.tzinfo is not None:
+                created_dt = created_dt.replace(tzinfo=None)
 
-    phone = order.user.phone if order.user else ""
-    addr_str = order.address or ""
-    cust_name = "Mijoz"
-    order_type = "Yetkazib berish"
-    clean_addr = addr_str
-    comment = ""
+        if created_dt and isinstance(created_dt, datetime):
+            tashkent_dt = created_dt + timedelta(hours=5)
+            date_str = tashkent_dt.strftime("%d.%m.%Y")
+            time_str = tashkent_dt.strftime("%H:%M")
+        else:
+            date_str = "--.--.----"
+            time_str = "--:--"
 
-    if "|" in addr_str:
-        try:
-            parts = [p.strip() for p in addr_str.split("|")]
-            for p in parts:
-                if p.startswith("Mijoz:"):
-                    cust_name = p.replace("Mijoz:", "").strip()
-                elif p.startswith("[") and p.endswith("]"):
-                    order_type = p[1:-1].strip()
-                elif p.startswith("Izoh:"):
-                    comment = p.replace("Izoh:", "").strip()
-                elif "Tel:" in p and not phone:
-                    phone = p.replace("Tel:", "").strip().replace("(", "").replace(")", "")
-                else:
-                    clean_addr = p
-        except:
-            pass
+        phone = order.user.phone if order.user else ""
+        addr_str = order.address or ""
+        cust_name = "Mijoz"
+        order_type = "Yetkazib berish"
+        clean_addr = addr_str
+        comment = ""
 
-    items_list = []
-    for it in order.items:
-        items_list.append({
-            'name': it.name,
-            'price': it.price or 0,
-            'quantity': it.quantity or 1,
-            'subtotal': (it.price or 0) * (it.quantity or 1)
+        if "|" in addr_str:
+            try:
+                parts = [p.strip() for p in addr_str.split("|")]
+                for p in parts:
+                    if p.startswith("Mijoz:"):
+                        cust_name = p.replace("Mijoz:", "").strip()
+                    elif p.startswith("[") and p.endswith("]"):
+                        order_type = p[1:-1].strip()
+                    elif p.startswith("Izoh:"):
+                        comment = p.replace("Izoh:", "").strip()
+                    elif "Tel:" in p and not phone:
+                        phone = p.replace("Tel:", "").strip().replace("(", "").replace(")", "")
+                    else:
+                        clean_addr = p
+            except:
+                pass
+
+        items_list = []
+        for it in order.items:
+            items_list.append({
+                'name': it.name,
+                'price': it.price or 0,
+                'quantity': it.quantity or 1,
+                'subtotal': (it.price or 0) * (it.quantity or 1)
+            })
+
+        return jsonify({
+            'success': True,
+            'order': {
+                'id': order.id,
+                'daily_id': order.daily_id or order.id,
+                'customer_name': cust_name,
+                'phone': phone or "—",
+                'order_type': order_type,
+                'address': clean_addr or "Olib ketish / Zalda",
+                'payment_method': order.payment_method or "Naqd",
+                'comment': comment,
+                'total_amount': order.total_amount or 0,
+                'items': items_list,
+                'date_str': date_str,
+                'time_str': time_str,
+                'restaurant_name': restaurant_name,
+                'restaurant_phone': contact_phone or ""
+            }
         })
-
-    return jsonify({
-        'success': True,
-        'order': {
-            'id': order.id,
-            'daily_id': order.daily_id or order.id,
-            'customer_name': cust_name,
-            'phone': phone or "—",
-            'order_type': order_type,
-            'address': clean_addr or "Olib ketish / Zalda",
-            'payment_method': order.payment_method or "Naqd",
-            'comment': comment,
-            'total_amount': order.total_amount or 0,
-            'items': items_list,
-            'date_str': date_str,
-            'time_str': time_str,
-            'restaurant_name': restaurant_name,
-            'restaurant_phone': contact_phone
-        }
-    })
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': f"Chek ma'lumotlarini yuklashda xatolik: {str(e)}"}), 500
 
 
 @app.route('/api/admin/menu')

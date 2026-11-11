@@ -3032,8 +3032,17 @@ async function submitPosOrder(e) {
         items: itemsPayload
       })
     });
-    const data = await res.json();
-    if (data.success && data.order) {
+
+    let data;
+    try {
+      data = await res.json();
+    } catch (parseErr) {
+      console.error("POS order non-JSON response:", res.status, parseErr);
+      showToast(`Server xatosi (${res.status})! Iltimos qaytadan urinib ko'ring.`, "error");
+      return;
+    }
+
+    if (res.ok && data.success && data.order) {
       showToast("Buyurtma muvaffaqiyatli saqlandi! 🧾", "success");
       closePosCheckoutModal();
 
@@ -3051,7 +3060,7 @@ async function submitPosOrder(e) {
       // Refresh background orders
       fetchOrders(false);
     } else {
-      showToast(data.error || "Xatolik yuz berdi", "error");
+      showToast(data.error || `Xatolik yuz berdi (${res.status})`, "error");
     }
   } catch (err) {
     console.error("POS order submit error:", err);
