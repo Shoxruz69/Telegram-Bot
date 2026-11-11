@@ -116,6 +116,7 @@ class Menu(db.Model):
     old_price = db.Column(db.Integer, default=0) # Eski narx (ustidan chizilgan)
     calories = db.Column(db.Integer, default=0) # Kaloriya (kkal)
     image_url = db.Column(db.String(500))
+    is_available = db.Column(db.Boolean, default=True)
 
     def __repr__(self):
         return self.name
@@ -291,6 +292,13 @@ with app.app_context():
             db.session.execute(text("ALTER TABLE menu ADD COLUMN description_ru TEXT"))
         if 'description_en' not in menu_cols:
             db.session.execute(text("ALTER TABLE menu ADD COLUMN description_en TEXT"))
+        if 'is_available' not in menu_cols:
+            try:
+                db.session.execute(text("ALTER TABLE menu ADD COLUMN is_available BOOLEAN DEFAULT TRUE"))
+            except Exception:
+                db.session.rollback()
+                db.session.execute(text("ALTER TABLE menu ADD COLUMN is_available BOOLEAN DEFAULT 1"))
+            db.session.execute(text("UPDATE menu SET is_available = TRUE WHERE is_available IS NULL"))
 
         # Promotions migration
         promo_cols = [col['name'] for col in inspector.get_columns('promotions')]
@@ -892,7 +900,8 @@ def api_data():
             'price': m.price, 
             'old_price': getattr(m, 'old_price', 0) or 0,
             'calories': getattr(m, 'calories', 0) or 0,
-            'image_url': m.image_url
+            'image_url': m.image_url,
+            'is_available': getattr(m, 'is_available', True) if getattr(m, 'is_available', True) is not None else True
         } for m in menus],
         'promotions': [{
             'id': p.id,
@@ -1896,8 +1905,35 @@ def api_admin_menu():
             'price': m.price or 0,
             'old_price': m.old_price or 0,
             'calories': getattr(m, 'calories', 0) or 0,
-            'image_url': m.image_url or ''
+            'image_url': m.image_url or '',
+            'is_available': getattr(m, 'is_available', True) if getattr(m, 'is_available', True) is not None else True
         } for m in menus]
+    })
+
+
+@app.route('/api/admin/menu/<int:item_id>/toggle_available', methods=['POST'])
+@login_required
+def api_admin_menu_toggle_available(item_id):
+    """
+    Taom mavjudligi holatini (Bor / Tugadi) o'zgartiradi
+    """
+    t_id = get_current_tenant_id()
+    menu = Menu.query.filter_by(id=item_id, tenant_id=t_id).first()
+    if not menu:
+        return jsonify({'success': False, 'error': 'Taom topilmadi'}), 404
+
+    current_val = getattr(menu, 'is_available', True)
+    if current_val is None:
+        current_val = True
+    new_val = not current_val
+    menu.is_available = new_val
+    db.session.commit()
+
+    return jsonify({
+        'success': True,
+        'item_id': menu.id,
+        'is_available': new_val,
+        'message': "Taom mavjud deb belgilandi" if new_val else "Taom tugagan deb belgilandi"
     })
 
 

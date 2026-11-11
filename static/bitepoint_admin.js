@@ -1426,15 +1426,19 @@ function renderMenuGridFiltered(catId) {
     const dName = getDishName(dish);
     const dDesc = getDishDesc(dish);
     const cName = cat ? getCategoryName(cat) : 'Umumiy';
+    const isAvail = dish.is_available !== false;
     return `
-      <div class="menu-card">
-        <div class="menu-img-wrap">
-          <img src="${dish.image_url || 'https://via.placeholder.com/300x200?text=No+Photo'}" alt="${dName}" onerror="this.src='https://via.placeholder.com/300x200?text=Food'">
+      <div class="menu-card ${!isAvail ? 'out-of-stock' : ''}">
+        <div class="menu-img-wrap" style="position: relative;">
+          <img src="${dish.image_url || 'https://via.placeholder.com/300x200?text=No+Photo'}" alt="${dName}" onerror="this.src='https://via.placeholder.com/300x200?text=Food'" style="${!isAvail ? 'filter: grayscale(40%); opacity: 0.82;' : ''}">
           <span class="menu-category-tag">${cName}</span>
+          ${!isAvail ? `
+            <span style="position: absolute; top: 10px; right: 10px; background: #EF4444; color: #FFFFFF; font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.4); letter-spacing: 0.5px;">Tugagan</span>
+          ` : ''}
         </div>
         <div class="menu-body">
           <div>
-            <h4 class="menu-name">${dName}</h4>
+            <h4 class="menu-name" style="${!isAvail ? 'color: var(--text-muted);' : ''}">${dName}</h4>
             <p class="menu-desc">${dDesc || ''}</p>
           </div>
           <div>
@@ -1443,12 +1447,23 @@ function renderMenuGridFiltered(catId) {
               <span class="price-current">${formatPrice(dish.price)}</span>
               ${dish.old_price && dish.old_price > 0 ? `<span class="price-old">${formatPrice(dish.old_price)}</span>` : ''}
             </div>
-            <div class="menu-card-actions">
-              <button class="btn-card-secondary" style="flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px;" onclick="openDishModal(${dish.id})">
+            <div class="menu-card-actions" style="gap: 6px;">
+              <button class="btn-card-secondary" style="flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 7px 8px;" onclick="openDishModal(${dish.id})">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                 <span>${t('edit_btn')}</span>
               </button>
-              <button class="btn-card-secondary" style="color: #DC2626; display: inline-flex; align-items: center; justify-content: center; padding: 6px 12px;" onclick="deleteDish(${dish.id})" title="${t('delete_btn')}">
+              ${isAvail ? `
+                <button class="btn-card-secondary" style="background: rgba(239, 68, 68, 0.1); color: #EF4444; border-color: rgba(239, 68, 68, 0.35); font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 7px 10px;" onclick="toggleDishAvailability(${dish.id})" title="Taom tugagan deb belgilash">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
+                  <span>Tugadi</span>
+                </button>
+              ` : `
+                <button class="btn-card-secondary" style="background: rgba(16, 185, 129, 0.15); color: #10B981; border-color: rgba(16, 185, 129, 0.4); font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 7px 10px;" onclick="toggleDishAvailability(${dish.id})" title="Yana bor (mavjud) qilish">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  <span>Bor</span>
+                </button>
+              `}
+              <button class="btn-card-secondary" style="color: #DC2626; display: inline-flex; align-items: center; justify-content: center; padding: 6px 10px;" onclick="deleteDish(${dish.id})" title="${t('delete_btn')}">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
               </button>
             </div>
@@ -1735,6 +1750,34 @@ async function deleteDish(dishId) {
     }
   } catch (err) {
     showToast("Error deleting dish", "error");
+  }
+}
+
+async function toggleDishAvailability(dishId) {
+  try {
+    const res = await fetch(`/api/admin/menu/${dishId}/toggle_available`, { method: 'POST' });
+    const data = await res.json();
+    if (data.success) {
+      const dish = (state.menuItems || []).find(d => d.id === dishId);
+      if (dish) {
+        dish.is_available = data.is_available;
+      }
+      showToast(
+        data.is_available 
+          ? "Taom yana mavjud (bor) deb belgilandi! ✅" 
+          : "Taom tugagan deb belgilandi! ⛔",
+        data.is_available ? "success" : "info"
+      );
+      renderMenuView();
+      if (state.currentTab === 'pos') {
+        renderPosMenuGrid();
+      }
+    } else {
+      showToast(data.error || "Xatolik yuz berdi", "error");
+    }
+  } catch (err) {
+    console.error("toggleDishAvailability error:", err);
+    showToast("Server xatosi!", "error");
   }
 }
 
@@ -2815,17 +2858,23 @@ function renderPosMenuGrid() {
     const inCart = state.posCart[dish.id];
     const qty = inCart ? inCart.qty : 0;
     const imgUrl = dish.image_url || '/static/placeholder_food.png';
+    const isAvail = dish.is_available !== false;
 
     return `
-      <div class="pos-dish-card" id="pos-card-${dish.id}">
-        <img src="${imgUrl}" class="pos-dish-img" alt="${dName}" onerror="this.src='/static/placeholder_food.png'">
+      <div class="pos-dish-card" id="pos-card-${dish.id}" style="position: relative;">
+        <img src="${imgUrl}" class="pos-dish-img" alt="${dName}" onerror="this.src='/static/placeholder_food.png'" style="${!isAvail ? 'filter: grayscale(40%); opacity: 0.82;' : ''}">
+        ${!isAvail ? `<span style="position: absolute; top: 18px; right: 18px; background: #EF4444; color: #fff; font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 4px; box-shadow: 0 2px 6px rgba(0,0,0,0.5);">Tugagan</span>` : ''}
         <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
           <div>
-            <div class="pos-dish-title" title="${dName}">${dName}</div>
+            <div class="pos-dish-title" title="${dName}" style="${!isAvail ? 'color: var(--text-muted);' : ''}">${dName}</div>
             <div class="pos-dish-price" style="margin-top: 4px;">${formatPrice(dish.price)}</div>
           </div>
           <div style="margin-top: 10px;">
-            ${qty > 0 ? `
+            ${!isAvail ? `
+              <div style="width: 100%; text-align: center; color: #EF4444; font-size: 12px; font-weight: 800; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.35); padding: 7px; border-radius: 8px;">
+                Tugagan
+              </div>
+            ` : qty > 0 ? `
               <div class="pos-stepper">
                 <button type="button" class="pos-stepper-btn" onclick="posRemoveFromCart(${dish.id})">−</button>
                 <span class="pos-stepper-val">${qty}</span>
@@ -2847,6 +2896,10 @@ function renderPosMenuGrid() {
 function posAddToCart(dishId) {
   const dish = (state.menuItems || []).find(d => d.id === dishId);
   if (!dish) return;
+  if (dish.is_available === false) {
+    showToast("Bu taom hozirda tugagan!", "warning");
+    return;
+  }
   if (!state.posCart[dishId]) {
     state.posCart[dishId] = { dish, qty: 1 };
   } else {
