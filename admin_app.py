@@ -1737,6 +1737,7 @@ def api_admin_pos_order():
                 admin_id = t_obj.admin_telegram_id if (t_obj and t_obj.admin_telegram_id) else os.getenv("ADMIN_ID")
                 if bot_token and admin_id and str(admin_id) not in ("YOUR_ADMIN_ID_HERE", "", "None"):
                     order_items_text = "".join([f"  • {it['name']} x {it['quantity']} = {it['subtotal']:,} so'm\n" for it in items_response])
+                    comment_line = f"💬 Izoh: {comment}\n" if comment else ""
                     msg = (
                         f"📞 <b>Yangi Telefon Buyurtma! #{next_daily_id}</b>\n\n"
                         f"👤 Mijoz: <b>{customer_name or 'Mijoz'}</b>\n"
@@ -1744,7 +1745,7 @@ def api_admin_pos_order():
                         f"📦 Turi: <b>{order_type}</b>\n"
                         f"📍 Manzil: {raw_address or 'Olib ketish / Zalda'}\n"
                         f"💳 To'lov: {payment_method}\n"
-                        f"{f'💬 Izoh: {comment}\n' if comment else ''}\n"
+                        f"{comment_line}\n"
                         f"🛒 <b>Tarkib:</b>\n{order_items_text}"
                         f"💰 <b>Jami: {total_amount:,} so'm</b>"
                     )
