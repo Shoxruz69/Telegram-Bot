@@ -3,6 +3,7 @@ import requests
 import json
 import threading
 import uuid
+import urllib.parse
 from datetime import datetime, timezone, timedelta
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
@@ -655,26 +656,46 @@ def broadcast_to_users(text, photo_url_or_path=None, parse_mode='HTML', tenant_i
 def translate_text(text, target_lang):
     """
     O'zbekcha matnni avtomatik ravishda rus (ru) yoki ingliz (en) tiliga tarjima qiladi.
+    Clients5 Google Translate, MyMemory API va Google GTX yordamida ko'p bosqichli tarjima.
     """
     if not text or not str(text).strip():
         return ""
     text_str = str(text).strip()
+    encoded = urllib.parse.quote(text_str)
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'}
+
     # 1. Clients5 Google Translate API (Juda tez va ishonchli)
     try:
-        url = f"https://clients5.google.com/translate_a/t?client=dict-chrome-ex&sl=uz&tl={target_lang}&q={requests.utils.quote(text_str)}"
-        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+        url = f"https://clients5.google.com/translate_a/t?client=dict-chrome-ex&sl=uz&tl={target_lang}&q={encoded}"
         res = requests.get(url, headers=headers, timeout=5)
         res.encoding = 'utf-8'
         if res.status_code == 200:
             data = res.json()
             if isinstance(data, list) and len(data) > 0 and data[0]:
-                return str(data[0]).strip()
+                res_str = str(data[0]).strip()
+                if res_str and res_str.lower() != text_str.lower():
+                    return res_str
             elif isinstance(data, str) and data.strip():
-                return data.strip()
+                if data.strip().lower() != text_str.lower():
+                    return data.strip()
     except Exception as e:
         pass
 
-    # 2. Google GTX Translate Fallback
+    # 2. MyMemory Translated API (Juda barqaror va bepul)
+    try:
+        url = f"https://api.mymemory.translated.net/get?q={encoded}&langpair=uz|{target_lang}"
+        res = requests.get(url, headers=headers, timeout=5)
+        res.encoding = 'utf-8'
+        if res.status_code == 200:
+            data = res.json()
+            if data and isinstance(data, dict):
+                translated = (data.get('responseData') or {}).get('translatedText', '')
+                if translated and translated.strip() and translated.strip().lower() != text_str.lower():
+                    return translated.strip()
+    except Exception as e:
+        pass
+
+    # 3. Google GTX Translate Fallback
     try:
         url = "https://translate.googleapis.com/translate_a/single"
         params = {
@@ -684,7 +705,6 @@ def translate_text(text, target_lang):
             'dt': 't',
             'q': text_str
         }
-        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
         res = requests.get(url, params=params, headers=headers, timeout=5)
         res.encoding = 'utf-8'
         if res.status_code == 200:

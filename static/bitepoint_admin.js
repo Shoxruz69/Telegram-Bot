@@ -1436,12 +1436,42 @@ function renderMenuGridFiltered(catId) {
 }
 
 // Auto-Translation Functions
+async function clientTranslate(text, targetLang) {
+  if (!text || !text.trim()) return '';
+  const clean = text.trim();
+  // 1. MyMemory Translated API
+  try {
+    const res = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(clean)}&langpair=uz|${targetLang}`);
+    const data = await res.json();
+    if (data && data.responseData && data.responseData.translatedText) {
+      const trans = data.responseData.translatedText.trim();
+      if (trans && trans.toLowerCase() !== clean.toLowerCase()) {
+        return trans;
+      }
+    }
+  } catch (e) {}
+
+  // 2. Google GTX Single Fallback
+  try {
+    const res2 = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=uz&tl=${targetLang}&dt=t&q=${encodeURIComponent(clean)}`);
+    const data2 = await res2.json();
+    if (data2 && data2[0] && Array.isArray(data2[0])) {
+      const trans2 = data2[0].map(s => (s && s[0]) ? s[0] : '').join('').trim();
+      if (trans2) return trans2;
+    }
+  } catch (e) {}
+
+  return clean;
+}
+
 async function autoTranslateDishName() {
   const name = document.getElementById('dish-name') ? document.getElementById('dish-name').value.trim() : '';
   if (!name) return;
   const nameRuEl = document.getElementById('dish-name-ru');
   const nameEnEl = document.getElementById('dish-name-en');
   if (nameRuEl && nameEnEl && (!nameRuEl.value || !nameEnEl.value)) {
+    let ruVal = '';
+    let enVal = '';
     try {
       const res = await fetch('/api/admin/translate', {
         method: 'POST',
@@ -1450,12 +1480,20 @@ async function autoTranslateDishName() {
       });
       const data = await res.json();
       if (data.success && data.translations) {
-        if (!nameRuEl.value && data.translations.ru) nameRuEl.value = data.translations.ru;
-        if (!nameEnEl.value && data.translations.en) nameEnEl.value = data.translations.en;
+        ruVal = data.translations.ru;
+        enVal = data.translations.en;
       }
-    } catch (err) {
-      console.error("Auto translate name error:", err);
+    } catch (err) {}
+
+    if (!ruVal || ruVal.toLowerCase() === name.toLowerCase()) {
+      ruVal = await clientTranslate(name, 'ru');
     }
+    if (!enVal || enVal.toLowerCase() === name.toLowerCase()) {
+      enVal = await clientTranslate(name, 'en');
+    }
+
+    if (!nameRuEl.value && ruVal) nameRuEl.value = ruVal;
+    if (!nameEnEl.value && enVal) nameEnEl.value = enVal;
   }
 }
 
@@ -1465,6 +1503,8 @@ async function autoTranslateDishDesc() {
   const descRuEl = document.getElementById('dish-description-ru');
   const descEnEl = document.getElementById('dish-description-en');
   if (descRuEl && descEnEl && (!descRuEl.value || !descEnEl.value)) {
+    let ruVal = '';
+    let enVal = '';
     try {
       const res = await fetch('/api/admin/translate', {
         method: 'POST',
@@ -1473,12 +1513,20 @@ async function autoTranslateDishDesc() {
       });
       const data = await res.json();
       if (data.success && data.translations) {
-        if (!descRuEl.value && data.translations.ru) descRuEl.value = data.translations.ru;
-        if (!descEnEl.value && data.translations.en) descEnEl.value = data.translations.en;
+        ruVal = data.translations.ru;
+        enVal = data.translations.en;
       }
-    } catch (err) {
-      console.error("Auto translate desc error:", err);
+    } catch (err) {}
+
+    if (!ruVal || ruVal.toLowerCase() === desc.toLowerCase()) {
+      ruVal = await clientTranslate(desc, 'ru');
     }
+    if (!enVal || enVal.toLowerCase() === desc.toLowerCase()) {
+      enVal = await clientTranslate(desc, 'en');
+    }
+
+    if (!descRuEl.value && ruVal) descRuEl.value = ruVal;
+    if (!descEnEl.value && enVal) descEnEl.value = enVal;
   }
 }
 
@@ -1498,6 +1546,8 @@ async function autoTranslateDish() {
   showToast(state.lang === 'ru' ? "Перевод выполняется..." : state.lang === 'en' ? "Translating..." : "Tarjima qilinmoqda...", "info");
 
   if (name && nameRuEl && nameEnEl) {
+    let ruVal = '';
+    let enVal = '';
     try {
       const res = await fetch('/api/admin/translate', {
         method: 'POST',
@@ -1506,13 +1556,24 @@ async function autoTranslateDish() {
       });
       const data = await res.json();
       if (data.success && data.translations) {
-        nameRuEl.value = data.translations.ru || name;
-        nameEnEl.value = data.translations.en || name;
+        ruVal = data.translations.ru;
+        enVal = data.translations.en;
       }
     } catch (e) {}
+
+    if (!ruVal || ruVal.toLowerCase() === name.toLowerCase()) {
+      ruVal = await clientTranslate(name, 'ru');
+    }
+    if (!enVal || enVal.toLowerCase() === name.toLowerCase()) {
+      enVal = await clientTranslate(name, 'en');
+    }
+    nameRuEl.value = ruVal || name;
+    nameEnEl.value = enVal || name;
   }
 
   if (desc && descRuEl && descEnEl) {
+    let ruDesc = '';
+    let enDesc = '';
     try {
       const res = await fetch('/api/admin/translate', {
         method: 'POST',
@@ -1521,10 +1582,19 @@ async function autoTranslateDish() {
       });
       const data = await res.json();
       if (data.success && data.translations) {
-        descRuEl.value = data.translations.ru || desc;
-        descEnEl.value = data.translations.en || desc;
+        ruDesc = data.translations.ru;
+        enDesc = data.translations.en;
       }
     } catch (e) {}
+
+    if (!ruDesc || ruDesc.toLowerCase() === desc.toLowerCase()) {
+      ruDesc = await clientTranslate(desc, 'ru');
+    }
+    if (!enDesc || enDesc.toLowerCase() === desc.toLowerCase()) {
+      enDesc = await clientTranslate(desc, 'en');
+    }
+    descRuEl.value = ruDesc || desc;
+    descEnEl.value = enDesc || desc;
   }
 
   showToast(state.lang === 'ru' ? "Автоматически переведено!" : state.lang === 'en' ? "Auto translated!" : "Avtomatik tarjima qilindi!", "success");
@@ -1749,6 +1819,8 @@ async function autoTranslateCategory(isExplicit = false) {
   const nameEnEl = document.getElementById('category-name-en-input');
   if (nameRuEl && nameEnEl && (isExplicit || !nameRuEl.value || !nameEnEl.value)) {
     if (isExplicit) showToast("Tarjima qilinmoqda... ⏳", "info");
+    let ruVal = '';
+    let enVal = '';
     try {
       const res = await fetch('/api/admin/translate', {
         method: 'POST',
@@ -1757,13 +1829,21 @@ async function autoTranslateCategory(isExplicit = false) {
       });
       const data = await res.json();
       if (data.success && data.translations) {
-        if (isExplicit || !nameRuEl.value) nameRuEl.value = data.translations.ru || name;
-        if (isExplicit || !nameEnEl.value) nameEnEl.value = data.translations.en || name;
-        if (isExplicit) showToast("Avtomatik tarjima qilindi!", "success");
+        ruVal = data.translations.ru;
+        enVal = data.translations.en;
       }
-    } catch (err) {
-      console.error("Auto translate category error:", err);
+    } catch (err) {}
+
+    if (!ruVal || ruVal.toLowerCase() === name.toLowerCase()) {
+      ruVal = await clientTranslate(name, 'ru');
     }
+    if (!enVal || enVal.toLowerCase() === name.toLowerCase()) {
+      enVal = await clientTranslate(name, 'en');
+    }
+
+    if (isExplicit || !nameRuEl.value) nameRuEl.value = ruVal || name;
+    if (isExplicit || !nameEnEl.value) nameEnEl.value = enVal || name;
+    if (isExplicit) showToast("Avtomatik tarjima qilindi!", "success");
   }
 }
 

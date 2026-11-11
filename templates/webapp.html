@@ -923,8 +923,8 @@
             <div class="payment-method">
                 <p id="lbl-payment-title">To'lov turini tanlang:</p>
                 <div class="payment-options">
-                    <div class="pay-opt active" onclick="setPayment('Karta')" id="pay-karta"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 4px;"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg> Karta</div>
-                    <div class="pay-opt" onclick="setPayment('Naqd')" id="pay-naqd"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 4px;"><rect x="2" y="6" width="20" height="12" rx="2"></rect><circle cx="12" cy="12" r="2"></circle><path d="M6 12h.01M18 12h.01"></path></svg> Naqd</div>
+                    <div class="pay-opt active" onclick="setPayment('Karta')" id="pay-karta"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 4px;"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg> <span id="pay-karta-text">Karta</span></div>
+                    <div class="pay-opt" onclick="setPayment('Naqd')" id="pay-naqd"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 4px;"><rect x="2" y="6" width="20" height="12" rx="2"></rect><circle cx="12" cy="12" r="2"></circle><path d="M6 12h.01M18 12h.01"></path></svg> <span id="pay-naqd-text">Naqd</span></div>
                 </div>
             </div>
 
@@ -932,7 +932,7 @@
                 <input type="tel" id="form-phone" placeholder="Telefon raqam (+998901234567)" class="form-input">
                 <input type="text" id="form-address" placeholder="Manzil (Tuman, ko'cha, uy...)" class="form-input">
                 <button type="button" class="loc-btn" id="loc-btn" onclick="getLocation(false)">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 4px;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> Lokatsiyani aniqlash
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 4px;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> <span id="lbl-loc-btn">Lokatsiyani aniqlash</span>
                 </button>
                 <small id="loc-status" style="display:block;margin-top:2px;font-size:11px;color:var(--text-muted);text-align:center;"></small>
 
@@ -950,11 +950,12 @@
 
                 <div id="card-details" class="card-details">
                     <p id="lbl-card-transfer">Karta raqamiga pul o'tkazing:</p>
-                    <div class="card-box">
+                    <div class="card-box" onclick="copyCardNumber()" style="cursor: pointer;" title="Nusxalash uchun bosing">
                         <strong id="card-num-text">8600 0000 0000 0000</strong><br>
                         <small id="card-name-text">Ism Familiya</small>
+                        <div style="font-size: 10.5px; color: var(--gold); margin-top: 3px;">📋 Nusxalash uchun ustiga bosing</div>
                     </div>
-                    <p id="lbl-card-receipt" style="margin-top:10px;">To'lov chekini yuklang:</p>
+                    <p id="lbl-card-receipt" style="margin-top:10px;">To'lov chekini yuklang (ixtiyoriy):</p>
                     <input type="file" id="form-receipt" accept="image/*" class="form-input">
                 </div>
             </div>
@@ -995,7 +996,7 @@
                 loc_btn: "Lokatsiyani aniqlash",
                 loc_done: "Lokatsiya aniqlandi!",
                 card_transfer: "Karta raqamiga pul o'tkazing:",
-                card_receipt: "To'lov chekini yuklang:",
+                card_receipt: "To'lov chekini yuklang (ixtiyoriy):",
                 order_submit: "Buyurtma berish",
                 discounts_tab: "Chegirmalar",
                 empty_cat: "Ushbu bo'limda taomlar mavjud emas",
@@ -1025,7 +1026,7 @@
                 loc_btn: "Определить локацию",
                 loc_done: "Локация определена!",
                 card_transfer: "Переведите на номер карты:",
-                card_receipt: "Загрузите чек оплаты:",
+                card_receipt: "Загрузите чек оплаты (необязательно):",
                 order_submit: "Оформить заказ",
                 discounts_tab: "Акции",
                 empty_cat: "В этом разделе пока нет блюд",
@@ -1055,7 +1056,7 @@
                 loc_btn: "Detect Location",
                 loc_done: "Location detected!",
                 card_transfer: "Transfer to card number:",
-                card_receipt: "Upload payment receipt:",
+                card_receipt: "Upload payment receipt (optional):",
                 order_submit: "Place Order",
                 discounts_tab: "Discounts",
                 empty_cat: "No items available in this category",
@@ -1517,8 +1518,8 @@
             setTxt('cart-count-lbl', t('cart_items'));
             setTxt('modal-cart-title', t('cart_title'));
             setTxt('lbl-payment-title', t('payment_title'));
-            setTxt('pay-karta', t('pay_card'));
-            setTxt('pay-naqd', t('pay_cash'));
+            setTxt('pay-karta-text', t('pay_card'));
+            setTxt('pay-naqd-text', t('pay_cash'));
             setTxt('lbl-card-transfer', t('card_transfer'));
             setTxt('lbl-card-receipt', t('card_receipt'));
             setTxt('btn-submit-text', t('order_submit'));
@@ -2015,14 +2016,14 @@
                 const maxAmt = appliedPromo.max_order_amount || 0;
 
                 if (minAmt > 0 && total < minAmt) {
-                    if (badgeText) badgeText.innerText = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2" style="vertical-align: middle; margin-right: 4px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg> ${appliedPromo.code} (Min: ${minAmt.toLocaleString()} ${t('currency')})`;
+                    if (badgeText) badgeText.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2" style="vertical-align: middle; margin-right: 4px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg> ${appliedPromo.code} (Min: ${minAmt.toLocaleString()} ${t('currency')})`;
                     if (badge) {
                         badge.style.background = 'rgba(239, 68, 68, 0.15)';
                         badge.style.borderColor = '#EF4444';
                         badge.style.color = '#EF4444';
                     }
                 } else if (maxAmt > 0 && total > maxAmt) {
-                    if (badgeText) badgeText.innerText = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2" style="vertical-align: middle; margin-right: 4px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg> ${appliedPromo.code} (Maks: ${maxAmt.toLocaleString()} ${t('currency')})`;
+                    if (badgeText) badgeText.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2" style="vertical-align: middle; margin-right: 4px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg> ${appliedPromo.code} (Maks: ${maxAmt.toLocaleString()} ${t('currency')})`;
                     if (badge) {
                         badge.style.background = 'rgba(239, 68, 68, 0.15)';
                         badge.style.borderColor = '#EF4444';
@@ -2031,7 +2032,7 @@
                 } else if (appliedPromo.discount_percent > 0) {
                     const promoDiscount = Math.round(total * (appliedPromo.discount_percent / 100.0));
                     discountedTotal = Math.max(0, total - promoDiscount);
-                    if (badgeText) badgeText.innerText = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="3" style="vertical-align: middle; margin-right: 4px;"><polyline points="20 6 9 17 4 12"></polyline></svg> ${appliedPromo.code} (-${appliedPromo.discount_percent}% ${t('promo_applied')})`;
+                    if (badgeText) badgeText.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="3" style="vertical-align: middle; margin-right: 4px;"><polyline points="20 6 9 17 4 12"></polyline></svg> ${appliedPromo.code} (-${appliedPromo.discount_percent}% ${t('promo_applied')})`;
                     if (badge) {
                         badge.style.background = 'rgba(16, 185, 129, 0.15)';
                         badge.style.borderColor = '#10B981';
@@ -2191,38 +2192,54 @@
         }
 
         function compressAndGetBase64(file) {
-            return new Promise((resolve, reject) => {
+            return new Promise((resolve) => {
+                if (!file) {
+                    resolve(null);
+                    return;
+                }
                 const reader = new FileReader();
                 reader.onload = (e) => {
+                    const rawData = e.target.result;
                     const img = new Image();
                     img.onload = () => {
-                        setTimeout(() => {
-                            try {
-                                const canvas = document.createElement('canvas');
-                                const MAX_SIZE = 600;
-                                let w = img.width, h = img.height;
-                                if (w > MAX_SIZE || h > MAX_SIZE) {
-                                    if (w > h) { h = Math.round(h * MAX_SIZE / w); w = MAX_SIZE; }
-                                    else { w = Math.round(w * MAX_SIZE / h); h = MAX_SIZE; }
-                                }
-                                canvas.width = w;
-                                canvas.height = h;
-                                const ctx = canvas.getContext('2d');
-                                ctx.fillStyle = "#FFFFFF";
-                                ctx.fillRect(0, 0, w, h);
-                                ctx.drawImage(img, 0, 0, w, h);
-                                resolve(canvas.toDataURL('image/jpeg', 0.5));
-                            } catch(err) {
-                                reject(err);
+                        try {
+                            const canvas = document.createElement('canvas');
+                            const MAX_SIZE = 800;
+                            let w = img.width, h = img.height;
+                            if (w > MAX_SIZE || h > MAX_SIZE) {
+                                if (w > h) { h = Math.round(h * MAX_SIZE / w); w = MAX_SIZE; }
+                                else { w = Math.round(w * MAX_SIZE / h); h = MAX_SIZE; }
                             }
-                        }, 20);
+                            canvas.width = w;
+                            canvas.height = h;
+                            const ctx = canvas.getContext('2d');
+                            ctx.fillStyle = "#FFFFFF";
+                            ctx.fillRect(0, 0, w, h);
+                            ctx.drawImage(img, 0, 0, w, h);
+                            resolve(canvas.toDataURL('image/jpeg', 0.6));
+                        } catch(err) {
+                            resolve(rawData);
+                        }
                     };
-                    img.onerror = () => reject(new Error("Rasm o'qib bo'lmadi"));
-                    img.src = e.target.result;
+                    img.onerror = () => resolve(rawData);
+                    img.src = rawData;
                 };
-                reader.onerror = () => reject(new Error("Fayl xatosi"));
+                reader.onerror = () => resolve(null);
                 reader.readAsDataURL(file);
             });
+        }
+
+        function copyCardNumber() {
+            const numEl = document.getElementById('card-num-text');
+            const num = numEl ? numEl.innerText.replace(/\s+/g, '') : '';
+            if (num) {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(num);
+                }
+                const msg = (currentLang === 'ru') ? "Номер карты скопирован!" : (currentLang === 'en') ? "Card number copied!" : "Karta raqami nusxalandi!";
+                if (tg && tg.showAlert) tg.showAlert(msg);
+                else alert(msg);
+            }
         }
 
         async function checkout() {
@@ -2253,19 +2270,22 @@
             let receiptBase64 = null;
 
             if (selectedPayment === 'Karta') {
-                if (!receiptInput || receiptInput.files.length === 0) {
-                    if (tg && tg.showAlert) tg.showAlert(t('upload_receipt'));
-                    else alert(t('upload_receipt'));
-                    btn.disabled = false;
-                    return;
-                }
-                btn.innerText = "...";
-                try {
-                    receiptBase64 = await compressAndGetBase64(receiptInput.files[0]);
-                } catch(e) {
-                    btn.disabled = false;
-                    btn.innerHTML = originalBtnText;
-                    return;
+                if (receiptInput && receiptInput.files && receiptInput.files.length > 0) {
+                    btn.innerText = "⏳ Chek yuklanmoqda...";
+                    try {
+                        receiptBase64 = await compressAndGetBase64(receiptInput.files[0]);
+                    } catch(e) {
+                        try {
+                            receiptBase64 = await new Promise((res) => {
+                                const r = new FileReader();
+                                r.onload = (ev) => res(ev.target.result);
+                                r.onerror = () => res(null);
+                                r.readAsDataURL(receiptInput.files[0]);
+                            });
+                        } catch(err2) {
+                            receiptBase64 = null;
+                        }
+                    }
                 }
             }
 
