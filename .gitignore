@@ -1,4 +1,4 @@
-﻿__pycache__/
+__pycache__/
 **/__pycache__/
 *.py[cod]
 *$py.class
@@ -10,3 +10,5 @@ env/
 database/*.db-shm
 database/*.db-wal
 scratch/
+emoji_lines.txt
+emojis_found.txt

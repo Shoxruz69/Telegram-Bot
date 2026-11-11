@@ -9,7 +9,7 @@ from aiogram.types import BotCommand, MenuButtonWebApp, WebAppInfo
 from aiogram.fsm.storage.memory import MemoryStorage
 from dotenv import load_dotenv
 
-from database.db import init_db, get_all_active_tenants, add_user, get_tenant_by_bot_token, get_all_custom_commands
+from database.db import init_db, get_all_active_tenants, add_user, get_tenant_by_id, get_all_custom_commands
 from handlers import start, menu, order, custom_commands
 
 # Logger sozlamalari
@@ -62,241 +62,55 @@ async def keep_alive():
 
         await asyncio.sleep(120)
 
-def resolve_tenant_bot_token(tenant: dict) -> str:
-    """Oshxona bot tokenini aniqlash (DB, Environment variable yoki TENANT_TOKENS)"""
-    tid = tenant.get('id', 1)
-    slug = str(tenant.get('slug', '')).strip().lower()
-    name = str(tenant.get('name', '')).strip().lower()
-    token = str(tenant.get('bot_token', '')).strip()
+async def main():
+    # 1. Ma'lumotlar bazasini initsializatsiya qilish
+    await init_db()
 
-    # Agar bazadagi token haqiqiy (placeholder bo'lmagan) token bo'lsa, to'g'ridan-to'g'ri qaytarish
-    if token and not any(ph in token.upper() for ph in ["YOUR_", "_HERE", "PLACEHOLDER", "TOKEN_HERE"]):
-        return token
-
-    # 1. Environment variable qidiruvi (barcha mumkin bo'lgan nomlar bo'yicha)
-    candidates = []
-    if slug:
-        slug_clean = re.sub(r'[^A-Z0-9_]', '_', slug.upper())
-        candidates.extend([
-            f"BOT_TOKEN_{slug_clean}",
-            f"{slug_clean}_BOT_TOKEN",
-            f"{slug_clean}_TOKEN"
-        ])
-        if "CAFE" in slug_clean:
-            short_slug = slug_clean.replace("CAFE", "").strip("_")
-            if short_slug:
-                candidates.extend([
-                    f"BOT_TOKEN_{short_slug}",
-                    f"{short_slug}_BOT_TOKEN",
-                    f"{short_slug}_TOKEN"
-                ])
-    if name:
-        name_clean = re.sub(r'[^A-Z0-9_]', '_', name.upper())
-        candidates.extend([
-            f"BOT_TOKEN_{name_clean}",
-            f"{name_clean}_BOT_TOKEN"
-        ])
-    candidates.extend([
-        f"BOT_TOKEN_{tid}",
-        f"TENANT_{tid}_BOT_TOKEN"
-    ])
-
-    for k in candidates:
-        env_val = os.getenv(k, "").strip()
-        if env_val and not any(ph in env_val.upper() for ph in ["YOUR_", "_HERE", "PLACEHOLDER"]):
-            return env_val
-
-    # 2. TENANT_TOKENS JSON env var (masalan: {"dilicafe": "...", "express": "..."})
-    json_tokens = os.getenv("TENANT_TOKENS", "").strip()
-    if json_tokens:
-        try:
-            import json as _json
-            mapping = _json.loads(json_tokens)
-            if slug in mapping and mapping[slug]:
-                return str(mapping[slug]).strip()
-            if str(tid) in mapping and mapping[str(tid)]:
-                return str(mapping[str(tid)]).strip()
-        except Exception:
-            pass
-
-    # 3. 1-oshxona uchun asosiy BOT_TOKEN
-    if tid == 1 or slug == "express":
-        primary_token = os.getenv("BOT_TOKEN", "").strip()
-        if primary_token and not any(ph in primary_token.upper() for ph in ["YOUR_", "_HERE"]):
-            return primary_token
-
-    return ""
-
-# Multi-Bot dinamik boshqaruvi
-running_bots = {}  # {tenant_id: {'bot': bot, 'token': token, 'task': task, 'username': username, 'tenant': tenant}}
-
-async def start_single_bot(tenant: dict, dp: Dispatcher):
-    tid = tenant['id']
-    slug = tenant.get('slug', 'express')
-    token = resolve_tenant_bot_token(tenant)
-
-    if not token:
-        logging.warning(f"Tenant {tid} ({tenant.get('name')}, slug: {slug}) uchun yaroqli BOT_TOKEN topilmadi (bo'sh yoki placeholder). Qidirilgan env: BOT_TOKEN_{slug.upper()}")
-        return
+    # 2. Token va Oshxona profili ma'lumotlarini aniqlash
+    token = os.getenv("BOT_TOKEN", "").strip()
+    tenant_info = None
 
     try:
-        bot = Bot(token=token)
-        bot.tenant = tenant
-        me = await bot.get_me()
-        bot_username = me.username or "Bot"
-
-        raw_url = os.getenv("RENDER_EXTERNAL_URL", "") or os.getenv("WEB_APP_URL", "")
-        base_url = format_url(raw_url)
-        slug = tenant.get('slug', 'express')
-        web_app_url = f"{base_url}/webapp?tenant={slug}" if base_url else f"https://your-app.onrender.com/webapp?tenant={slug}"
-
-        # Komandalar va WebApp tugmasini sozlash
-        try:
-            base_cmds = [
-                BotCommand(command="start", description="Botni qayta ishga tushirish"),
-                BotCommand(command="menu", description="Menyuni ochish"),
-                BotCommand(command="help", description="Yordam va qoidalar")
-            ]
-            try:
-                custom_cmds = await get_all_custom_commands(tid)
-                for cc in custom_cmds:
-                    c_name = cc['command'].strip().lstrip('/').lower()
-                    if c_name not in ['start', 'menu', 'help', 'myid']:
-                        desc = cc.get('description', '') or c_name
-                        safe_c_name = re.sub(r'[^a-z0-9_]', '_', c_name)[:32]
-                        if safe_c_name:
-                            base_cmds.append(BotCommand(command=safe_c_name, description=desc[:255]))
-            except Exception as dbe:
-                logging.warning(f"Custom commands yuklashda ogohlantirish ({tid}): {dbe}")
-
-            await bot.set_my_commands(base_cmds)
-            await bot.set_chat_menu_button(
-                menu_button=MenuButtonWebApp(text="🍔 Menyu", web_app=WebAppInfo(url=web_app_url))
-            )
-            await bot.delete_webhook(drop_pending_updates=False)
-            logging.info(f"Bot @{bot_username} (Tenant {tid}: {tenant.get('name')}) muvaffaqiyatli sozlandi. WebApp: {web_app_url}")
-        except Exception as ce:
-            logging.warning(f"Komandalarni sozlashda ogohlantirish (@{bot_username}): {ce}")
-
-        # Har bir bot uchun to'liq mustaqil, ishonchli polling sikli
-        async def run_bot_polling(b: Bot, username: str, t_id: int, current_tenant: dict):
-            logging.info(f"🚀 Polling boshlandi: @{username} (Tenant ID: {t_id}, Oshxona: {current_tenant.get('name')})")
-            offset = None
-            allowed_updates = dp.resolve_used_update_types()
-
-            async def process_single_update(upd):
-                try:
-                    await dp.feed_update(bot=b, update=upd, tenant=current_tenant)
-                except Exception as ex:
-                    logging.error(f"feed_update xatosi (@{username}): {ex}", exc_info=True)
-
-            while True:
-                try:
-                    updates = await b.get_updates(offset=offset, timeout=15, allowed_updates=allowed_updates)
-                    for update in updates:
-                        offset = update.update_id + 1
-                        asyncio.create_task(process_single_update(update))
-                except asyncio.CancelledError:
-                    logging.info(f"🛑 Polling to'xtatildi: @{username} (Tenant ID: {t_id})")
-                    break
-                except Exception as pe:
-                    logging.error(f"Polling xatosi (@{username}): {pe}. 5 soniyadan so'ng qayta ulanadi...")
-                    if "conflict" in str(pe).lower():
-                        try:
-                            await b.delete_webhook(drop_pending_updates=False)
-                        except Exception:
-                            pass
-                    await asyncio.sleep(5)
-
-            try:
-                await b.session.close()
-            except Exception:
-                pass
-
-        task = asyncio.create_task(run_bot_polling(bot, bot_username, tid, tenant))
-        running_bots[tid] = {
-            'bot': bot,
-            'token': token,
-            'task': task,
-            'username': bot_username,
-            'tenant': tenant
-        }
+        active_tenants = await get_all_active_tenants()
+        if active_tenants:
+            tenant_info = active_tenants[0]
+            if (not token or any(ph in token.upper() for ph in ["YOUR_", "_HERE", "PLACEHOLDER"])) and tenant_info.get('bot_token'):
+                db_t = tenant_info['bot_token'].strip()
+                if db_t and not any(ph in db_t.upper() for ph in ["YOUR_", "_HERE", "PLACEHOLDER"]):
+                    token = db_t
     except Exception as e:
-        logging.error(f"Botni ishga tushirishda xatolik ({tenant.get('name')}): {e}")
-        try:
-            await bot.session.close()
-        except Exception:
-            pass
+        logging.warning(f"Baza tenant ma'lumotlarini olishda ogohlantirish: {e}")
 
-async def dynamic_bot_watcher(dp: Dispatcher):
-    """Bazada yangi qo'shilgan, tahrirlangan yoki to'xtatilgan oshxonalarni kuzatib boradi"""
-    last_known_count = -1
-    while True:
-        try:
-            active_tenants = await get_all_active_tenants()
-            active_ids = {t['id'] for t in active_tenants}
+    if not tenant_info:
+        tenant_info = {
+            'id': 1,
+            'name': 'Cafe Express',
+            'slug': 'express',
+            'admin_telegram_id': os.getenv("ADMIN_ID", "")
+        }
 
-            if len(active_tenants) != last_known_count:
-                logging.info(f"[BotWatcher] Faol botlar soni: {len(active_tenants)} ta: {[t['name'] + ' (#' + str(t['id']) + ')' for t in active_tenants]}")
-                last_known_count = len(active_tenants)
+    # Agar token hali kiritilmagan bo'lsa
+    if not token or any(ph in token.upper() for ph in ["YOUR_", "_HERE", "PLACEHOLDER"]):
+        logging.error("❌ BOT_TOKEN topilmadi yoki placeholder holatida! Iltimos, .env fayliga haqiqiy BOT_TOKEN ni kiriting.")
+        asyncio.create_task(keep_alive())
+        while True:
+            await asyncio.sleep(3600)
 
-            # 1. Yangi, o'zgargan tokenli yoki to'xtab qolgan botlarni ishga tushirish
-            for t in active_tenants:
-                tid = t['id']
-                token = resolve_tenant_bot_token(t)
-                if not token:
-                    continue
-
-                is_not_running = tid not in running_bots
-                is_task_dead = (not is_not_running) and running_bots[tid]['task'].done()
-
-                if is_not_running or is_task_dead:
-                    if is_task_dead:
-                        logging.warning(f"Bot @{running_bots[tid].get('username')} to'xtab qolgan, qaytadan ishga tushirilmoqda...")
-                        del running_bots[tid]
-                    await start_single_bot(t, dp)
-                elif running_bots[tid]['token'] != token:
-                    logging.info(f"Bot tokeni yangilandi (ID {tid}). Qayta ishga tushirilmoqda...")
-                    running_bots[tid]['task'].cancel()
-                    del running_bots[tid]
-                    await start_single_bot(t, dp)
-
-            # 2. Bloklangan yoki o'chirilgan botlarni to'xtatish
-            stopped_ids = [tid for tid in list(running_bots.keys()) if tid not in active_ids]
-            for tid in stopped_ids:
-                logging.info(f"Bot to'xtatilmoqda: Tenant ID {tid}")
-                running_bots[tid]['task'].cancel()
-                del running_bots[tid]
-
-        except Exception as ex:
-            logging.error(f"dynamic_bot_watcher xatosi: {ex}")
-
-        await asyncio.sleep(5)
-
-async def main():
-    # Ma'lumotlar bazasini initsializatsiya qilish
-    await init_db()
+    bot = Bot(token=token)
+    bot.tenant = tenant_info
 
     dp = Dispatcher(storage=MemoryStorage())
 
-    # Avtomatik foydalanuvchini bazaga qo'shish middleware
+    # Avtomatik foydalanuvchini ro'yxatga olish middleware
     @dp.message.outer_middleware()
     async def auto_register_middleware(handler, event, data):
         try:
             u = getattr(event, 'from_user', None)
-            bot_obj = data.get('bot')
-            tenant_data = data.get('tenant')
             if u and u.id and not u.is_bot:
                 t_id = 1
+                tenant_data = data.get('tenant')
                 if tenant_data and isinstance(tenant_data, dict):
                     t_id = tenant_data.get('id', 1)
-                elif bot_obj:
-                    t = getattr(bot_obj, 'tenant', None)
-                    if t and isinstance(t, dict):
-                        t_id = t.get('id', 1)
-                    else:
-                        db_t = await get_tenant_by_bot_token(bot_obj.token)
-                        t_id = db_t['id'] if db_t else 1
                 await add_user(u.id, "", 0.0, 0.0, tenant_id=t_id)
         except Exception as ex:
             logging.warning(f"auto_register_middleware error: {ex}")
@@ -308,21 +122,53 @@ async def main():
     dp.include_router(menu.router)
     dp.include_router(order.router)
 
-    # Dispatcher startup
-    await dp.emit_startup()
+    # WebApp URL va bot komandalarini sozlash
+    try:
+        me = await bot.get_me()
+        bot_username = me.username or "Bot"
+        logging.info(f"🤖 Bot muvaffaqiyatli tanildi: @{bot_username} (ID: {me.id})")
 
-    # Keep-alive va Bot Watcher ni ishga tushirish
+        raw_url = os.getenv("RENDER_EXTERNAL_URL", "") or os.getenv("WEB_APP_URL", "")
+        base_url = format_url(raw_url)
+        web_app_url = f"{base_url}/webapp" if base_url else "https://your-app.onrender.com/webapp"
+
+        base_cmds = [
+            BotCommand(command="start", description="Botni qayta ishga tushirish"),
+            BotCommand(command="menu", description="Menyuni ochish"),
+            BotCommand(command="help", description="Yordam va qoidalar")
+        ]
+        try:
+            custom_cmds = await get_all_custom_commands(tenant_info.get('id', 1))
+            for cc in custom_cmds:
+                c_name = cc['command'].strip().lstrip('/').lower()
+                if c_name not in ['start', 'menu', 'help', 'myid']:
+                    desc = cc.get('description', '') or c_name
+                    safe_c_name = re.sub(r'[^a-z0-9_]', '_', c_name)[:32]
+                    if safe_c_name:
+                        base_cmds.append(BotCommand(command=safe_c_name, description=desc[:255]))
+        except Exception as dbe:
+            logging.warning(f"Custom commands yuklashda ogohlantirish: {dbe}")
+
+        await bot.set_my_commands(base_cmds)
+        await bot.set_chat_menu_button(
+            menu_button=MenuButtonWebApp(text="🍔 Menyu", web_app=WebAppInfo(url=web_app_url))
+        )
+        await bot.delete_webhook(drop_pending_updates=False)
+        logging.info(f"✅ Bot @{bot_username} muvaffaqiyatli sozlandi. WebApp: {web_app_url}")
+    except Exception as se:
+        logging.warning(f"Bot komandalarini sozlashda ogohlantirish: {se}")
+
+    # Keep-alive ni fonda ishga tushirish
     asyncio.create_task(keep_alive())
-    asyncio.create_task(dynamic_bot_watcher(dp))
 
-    logging.info("Multi-Bot Dynamic Manager to'liq ishga tushdi!")
-
-    # Event loopni ushlab turish
-    while True:
-        await asyncio.sleep(3600)
+    logging.info(f"🚀 Telegram Bot (@{getattr(bot, 'username', 'Bot')}) polling rejimida ishga tushdi!")
+    try:
+        await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types(), tenant=tenant_info)
+    finally:
+        await bot.session.close()
 
 if __name__ == "__main__":
     try:
         asyncio.run(main())
     except (KeyboardInterrupt, SystemExit):
-        logging.info("Botlar to'xtatildi!")
+        logging.info("Bot to'xtatildi!")

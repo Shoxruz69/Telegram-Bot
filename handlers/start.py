@@ -176,6 +176,6 @@ async def cmd_myid(message: Message):
     """Admin ID sini bilish uchun"""
     await message.answer(
         f"🆔 Sizning Telegram ID: <code>{message.from_user.id}</code>\n\n"
-        f"Ushbu ID ni Super Admin panelida yangi oshxona qo'shganda <b>Admin Telegram ID</b> maydoniga kiritishingiz mumkin.",
+        f"Ushbu ID ni buyurtmalar haqida xabarnoma olish uchun .env faylidagi <b>ADMIN_ID</b> maydoniga kiritishingiz mumkin.",
         parse_mode="HTML"
     )

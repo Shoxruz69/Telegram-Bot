@@ -75,22 +75,6 @@ class Tenant(db.Model):
     def __repr__(self):
         return f"<Tenant {self.name} ({self.slug})>"
 
-class SuperAdmin(db.Model):
-    __tablename__ = 'super_admins'
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    username = db.Column(db.String(50), unique=True, nullable=False)
-    password_hash = db.Column(db.String(255), nullable=False)
-    created_at = db.Column(db.DateTime, server_default=db.func.now())
-
-    def set_password(self, password):
-        self.password_hash = generate_password_hash(password)
-
-    def check_password(self, password):
-        return check_password_hash(self.password_hash, password)
-
-    def __repr__(self):
-        return f"<SuperAdmin {self.username}>"
-
 class User(db.Model):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -374,18 +358,15 @@ with app.app_context():
 
         db.session.commit()
 
-        # Seed SuperAdmin if empty
+        # Eski super admin jadvalini tozalash (agar mavjud bo'lsa)
         try:
-            if SuperAdmin.query.count() == 0:
-                sa = SuperAdmin(username='superadmin')
-                sa.set_password('admin777')
-                db.session.add(sa)
-                db.session.commit()
-                print("[SuperAdmin seeded]: superadmin / admin777")
-        except Exception as sae:
-            print("[SuperAdmin seed error]:", sae)
+            db.session.execute(text("DROP TABLE IF EXISTS super_admins"))
+            db.session.execute(text("DELETE FROM tenants WHERE id > 1"))
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
 
-        # Seed Tenant #1 (Cafe Express) or sync with env
+        # Seed Admin / Oshxona profili (Cafe Express) or sync with env
         try:
             env_token = os.getenv("BOT_TOKEN", "").strip()
             env_admin_id = os.getenv("ADMIN_ID", "").strip()
@@ -403,7 +384,7 @@ with app.app_context():
                 t1.set_password("admin123")
                 db.session.add(t1)
                 db.session.commit()
-                print("[Tenant 1 seeded]: Cafe Express (admin / admin123)")
+                print("[Admin seeded]: Cafe Express (admin / admin123)")
             else:
                 t1 = Tenant.query.get(1)
                 if t1:
@@ -417,53 +398,6 @@ with app.app_context():
                         db.session.commit()
         except Exception as te:
             print("[Tenant seed error]:", te)
-
-        # Restore tenants from tenants_backup.json if needed (anti-wipe protection)
-        try:
-            backup_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'database', 'tenants_backup.json')
-            if os.path.exists(backup_file):
-                with open(backup_file, 'r', encoding='utf-8') as f:
-                    bk_list = json.load(f)
-                for bt in bk_list:
-                    t_slug = bt.get('slug', '').strip().lower()
-                    if not t_slug:
-                        continue
-
-                    env_token_key = f"BOT_TOKEN_{t_slug.upper()}"
-                    env_token_val = os.getenv(env_token_key, "").strip()
-                    if not env_token_val and (bt.get('id') == 1 or t_slug == 'express'):
-                        env_token_val = os.getenv("BOT_TOKEN", "").strip()
-
-                    token_to_use = env_token_val or bt.get('bot_token', '').strip()
-
-                    existing = Tenant.query.filter_by(slug=t_slug).first()
-                    if not existing:
-                        new_t = Tenant(
-                            name=bt.get('name', 'Oshxona'),
-                            slug=t_slug,
-                            bot_token=token_to_use,
-                            bot_username=bt.get('bot_username', ''),
-                            admin_telegram_id=bt.get('admin_telegram_id', ''),
-                            admin_username=bt.get('admin_username', f"{t_slug}_admin"),
-                            is_active=bool(bt.get('is_active', 1))
-                        )
-                        if bt.get('admin_password_hash'):
-                            new_t.admin_password_hash = bt.get('admin_password_hash')
-                        else:
-                            new_t.set_password('admin123')
-                        db.session.add(new_t)
-                        db.session.commit()
-                        print(f"[SQLAlchemy Startup]: Restored tenant {bt.get('name')} ({t_slug}) from backup")
-                    else:
-                        is_current_placeholder = any(p in (existing.bot_token or '').upper() for p in ['YOUR_', '_HERE', 'PLACEHOLDER']) or not existing.bot_token
-                        is_new_real = token_to_use and not any(p in token_to_use.upper() for p in ['YOUR_', '_HERE', 'PLACEHOLDER'])
-                        if is_current_placeholder and is_new_real:
-                            existing.bot_token = token_to_use
-                            existing.is_active = True
-                            db.session.commit()
-                            print(f"[SQLAlchemy Startup]: Updated bot token for {t_slug} from env/backup")
-        except Exception as s_bke:
-            print(f"[SQLAlchemy Startup backup restore error]: {s_bke}")
 
         # Seed initial sample promo code if table is empty
         try:
@@ -1431,22 +1365,12 @@ def send_telegram_order_status_update(user_id, order_id, status, payment_method,
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if 'user_type' not in session:
+        if not session.get('logged_in') and not session.get('user_type'):
             return redirect(url_for('login_view', next=request.path))
         return f(*args, **kwargs)
     return decorated_function
 
-def super_admin_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if session.get('user_type') != 'super_admin':
-            return redirect('/login')
-        return f(*args, **kwargs)
-    return decorated_function
-
 def get_current_tenant():
-    if session.get('user_type') == 'super_admin' and not session.get('tenant_id'):
-        return Tenant.query.first()
     t_id = session.get('tenant_id')
     if t_id:
         t = Tenant.query.get(t_id)
@@ -1459,7 +1383,7 @@ def get_current_tenant_id():
     return t.id if t else 1
 
 def sync_tenants_backup_json():
-    """Barcha oshxonalarni tenants_backup.json fayliga avtomatik zaxiralash"""
+    """Oshxona ma'lumotlarini tenants_backup.json fayliga zaxiralash"""
     try:
         backup_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'database', 'tenants_backup.json')
         tenants = Tenant.query.all()
@@ -1478,7 +1402,6 @@ def sync_tenants_backup_json():
             })
         with open(backup_file, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
-        print(f"[sync_tenants_backup_json]: {len(data)} ta oshxona zaxiralandi")
     except Exception as ex:
         print(f"[sync_tenants_backup_json error]: {ex}")
 
@@ -1488,9 +1411,7 @@ def sync_tenants_backup_json():
 @app.route('/login', methods=['GET', 'POST'])
 def login_view():
     if request.method == 'GET':
-        if session.get('user_type') == 'super_admin':
-            return redirect('/superadmin')
-        elif session.get('user_type') == 'tenant_admin':
+        if session.get('logged_in') or session.get('user_type'):
             return redirect('/admin')
         return render_template('login.html')
 
@@ -1501,26 +1422,24 @@ def login_view():
     if not username or not password:
         return jsonify({'success': False, 'error': 'Login va parolni kiriting!'}), 400
 
-    # 1. Super Admin tekshiruvi
-    sa = SuperAdmin.query.filter_by(username=username).first()
-    if sa and sa.check_password(password):
-        session.clear()
-        session['user_type'] = 'super_admin'
-        session['username'] = sa.username
-        return jsonify({'success': True, 'redirect': '/superadmin', 'user_type': 'super_admin'})
-
-    # 2. Oshxona Admin tekshiruvi
+    # Bot / Oshxona Admin tekshiruvi
     t = Tenant.query.filter_by(admin_username=username).first()
+    if not t:
+        first_t = Tenant.query.first()
+        if first_t and first_t.admin_username == username:
+            t = first_t
+
     if t and t.check_password(password):
         if not t.is_active:
-            return jsonify({'success': False, 'error': "Ushbu oshxona faoliyati to'xtatilgan yoki bloklangan!"}), 403
+            return jsonify({'success': False, 'error': "Ushbu admin hisobi faoliyati to'xtatilgan yoki bloklangan!"}), 403
         session.clear()
-        session['user_type'] = 'tenant_admin'
+        session['logged_in'] = True
+        session['user_type'] = 'admin'
         session['tenant_id'] = t.id
         session['tenant_slug'] = t.slug
         session['tenant_name'] = t.name
         session['username'] = t.admin_username
-        return jsonify({'success': True, 'redirect': '/admin', 'user_type': 'tenant_admin'})
+        return jsonify({'success': True, 'redirect': '/admin', 'user_type': 'admin'})
 
     return jsonify({'success': False, 'error': 'Login yoki parol noto\'g\'ri!'}), 401
 
@@ -1531,374 +1450,10 @@ def logout_view():
     return redirect('/login')
 
 
-@app.route('/superadmin/exit-impersonate')
-def exit_impersonate():
-    if session.get('is_impersonating'):
-        session.clear()
-        session['user_type'] = 'super_admin'
-        session['username'] = 'superadmin'
-        return redirect('/superadmin')
-    return redirect('/login')
-
-
-# --- Super Admin Panel Routes & APIs ---
-
-@app.route('/superadmin')
-@super_admin_required
-def super_admin_dashboard():
-    return render_template('admin/super_admin.html')
-
-
-@app.route('/api/superadmin/stats')
-@super_admin_required
-def api_superadmin_stats():
-    total_tenants = Tenant.query.count()
-    active_tenants = Tenant.query.filter_by(is_active=True).count()
-    total_orders = Order.query.count()
-    total_revenue = db.session.query(db.func.sum(Order.total_amount)).filter(Order.status.in_(['Tasdiqlandi', 'Tayyorlanmoqda', 'Tugatildi', 'Yetkazilmoqda', 'Yetkazildi'])).scalar() or 0
-    return jsonify({
-        'success': True,
-        'stats': {
-            'total_tenants': total_tenants,
-            'active_tenants': active_tenants,
-            'total_orders': total_orders,
-            'total_revenue': total_revenue
-        }
-    })
-
-
-@app.route('/api/superadmin/tenants')
-@super_admin_required
-def api_superadmin_tenants():
-    tenants = Tenant.query.order_by(Tenant.id.desc()).all()
-    result = []
-    for t in tenants:
-        orders_count = Order.query.filter_by(tenant_id=t.id).count()
-        rev = db.session.query(db.func.sum(Order.total_amount)).filter(Order.tenant_id == t.id, Order.status.in_(['Tasdiqlandi', 'Tayyorlanmoqda', 'Tugatildi', 'Yetkazilmoqda', 'Yetkazildi'])).scalar() or 0
-        created_str = t.created_at.strftime("%Y-%m-%d %H:%M") if t.created_at else ""
-        has_real_token = bool(t.bot_token and not any(p in t.bot_token.upper() for p in ['YOUR_', '_HERE', 'PLACEHOLDER', 'TOKEN_HERE']))
-        result.append({
-            'id': t.id,
-            'name': t.name,
-            'slug': t.slug,
-            'bot_username': t.bot_username or '',
-            'bot_token': t.bot_token if has_real_token else '',
-            'bot_token_masked': t.bot_token[:8] + "..." + t.bot_token[-4:] if len(t.bot_token) > 12 else "***",
-            'has_valid_token': has_real_token,
-            'admin_telegram_id': t.admin_telegram_id or '',
-            'admin_username': t.admin_username,
-            'is_active': bool(t.is_active),
-            'orders_count': orders_count,
-            'total_revenue': rev,
-            'created_at': created_str
-        })
-    return jsonify({'success': True, 'tenants': result})
-
-
-@app.route('/api/superadmin/verify-token', methods=['POST'])
-@super_admin_required
-def api_superadmin_verify_token():
-    data = request.get_json(silent=True) or request.form.to_dict() or {}
-    token = str(data.get('token', '')).strip()
-    if not token:
-        return jsonify({'success': False, 'error': 'Token kiritilmadi'}), 400
-    try:
-        r = requests.get(f"https://api.telegram.org/bot{token}/getMe", timeout=8)
-        res = r.json()
-        if res.get('ok'):
-            return jsonify({'success': True, 'bot': res.get('result')})
-        else:
-            return jsonify({'success': False, 'error': res.get('description', 'Yaroqsiz token')})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-
-@app.route('/api/superadmin/tenants/create', methods=['POST'])
-@super_admin_required
-def api_superadmin_tenants_create():
-    data = request.get_json(silent=True) or request.form.to_dict() or {}
-    name = str(data.get('name', '')).strip()
-    slug = str(data.get('slug', '')).strip().lower()
-    bot_token = str(data.get('bot_token', '')).strip()
-    admin_telegram_id = str(data.get('admin_telegram_id', '')).strip()
-    admin_username = str(data.get('admin_username', '')).strip()
-    admin_password = str(data.get('admin_password', '')).strip()
-    clone_menu = bool(data.get('clone_menu', True))
-
-    if not name:
-        return jsonify({'success': False, 'error': 'Oshxona nomi kiritilmadi!'}), 400
-    if not bot_token:
-        return jsonify({'success': False, 'error': 'Telegram bot tokeni kiritilmadi!'}), 400
-    if not admin_username or not admin_password:
-        return jsonify({'success': False, 'error': 'Admin logini va paroli kiritilmadi!'}), 400
-
-    if not slug:
-        slug = re.sub(r'[^a-zA-Z0-9_]', '', name.lower().replace(' ', '_'))[:20]
-
-    # Unikallikni tekshirish
-    if Tenant.query.filter_by(slug=slug).first():
-        return jsonify({'success': False, 'error': f"'{slug}' identifikatori allaqachon mavjud!"}), 400
-    if Tenant.query.filter_by(bot_token=bot_token).first():
-        return jsonify({'success': False, 'error': "Ushbu bot tokeni allaqachon boshqa oshxonaga ulangan!"}), 400
-    if Tenant.query.filter_by(admin_username=admin_username).first() or SuperAdmin.query.filter_by(username=admin_username).first():
-        return jsonify({'success': False, 'error': f"'{admin_username}' logini allaqachon band!"}), 400
-
-    # Telegram bot tokenini tekshirish va @username ni olish
-    bot_username = ''
-    try:
-        r = requests.get(f"https://api.telegram.org/bot{bot_token}/getMe", timeout=8)
-        res = r.json()
-        if not res.get('ok'):
-            return jsonify({'success': False, 'error': f"Telegram API xatosi: {res.get('description', 'Yaroqsiz token')}"}), 400
-        raw_user = res.get('result', {}).get('username', '')
-        if raw_user:
-            bot_username = '@' + raw_user if not raw_user.startswith('@') else raw_user
-    except Exception as te:
-        return jsonify({'success': False, 'error': f"Telegram botini tekshirib bo'lmadi: {te}"}), 400
-
-    # Yangi Tenant yaratish
-    new_tenant = Tenant(
-        name=name,
-        slug=slug,
-        bot_token=bot_token,
-        bot_username=bot_username,
-        admin_telegram_id=admin_telegram_id,
-        admin_username=admin_username,
-        is_active=True
-    )
-    new_tenant.set_password(admin_password)
-    db.session.add(new_tenant)
-    db.session.flush()
-
-    # Yangi oshxona uchun standart Sozlamalar (Setting) yaratish
-    new_setting = Setting(
-        tenant_id=new_tenant.id,
-        card_number="8600 0000 0000 0000",
-        card_name=name,
-        work_time_start="09:00",
-        work_time_end="22:00"
-    )
-    db.session.add(new_setting)
-
-    # Agar menyuni klonlash tanlangan bo'lsa, 1-oshxonadan ko'chiramiz
-    if clone_menu:
-        try:
-            base_cats = Category.query.filter_by(tenant_id=1).all()
-            for cat in base_cats:
-                new_cat = Category(
-                    tenant_id=new_tenant.id,
-                    name=cat.name,
-                    name_ru=cat.name_ru,
-                    name_en=cat.name_en
-                )
-                db.session.add(new_cat)
-                db.session.flush()
-
-                cat_menus = Menu.query.filter_by(category_id=cat.id, tenant_id=1).all()
-                for m in cat_menus:
-                    new_menu = Menu(
-                        tenant_id=new_tenant.id,
-                        category_id=new_cat.id,
-                        name=m.name,
-                        name_ru=m.name_ru,
-                        name_en=m.name_en,
-                        description=m.description,
-                        description_ru=m.description_ru,
-                        description_en=m.description_en,
-                        price=m.price,
-                        old_price=m.old_price,
-                        calories=m.calories,
-                        image_url=m.image_url
-                    )
-                    db.session.add(new_menu)
-        except Exception as ce:
-            print(f"[Clone menu error]: {ce}")
-
-    db.session.commit()
-
-    # Telegram bot komandalari va WebApp tugmasini avtomatik sozlash
-    try:
-        raw_url = os.getenv("RENDER_EXTERNAL_URL", "") or os.getenv("WEB_APP_URL", "")
-        base_url = raw_url.strip().rstrip('/') if raw_url else ""
-        if base_url and not base_url.startswith('http'):
-            base_url = f"https://{base_url}"
-        web_app_url = f"{base_url}/webapp?tenant={slug}" if base_url else f"https://your-app.onrender.com/webapp?tenant={slug}"
-
-        requests.post(
-            f"https://api.telegram.org/bot{bot_token}/setMyCommands",
-            json={
-                "commands": [
-                    {"command": "start", "description": "Botni qayta ishga tushirish"},
-                    {"command": "menu", "description": "Menyuni ochish"},
-                    {"command": "help", "description": "Yordam va bog'lanish"}
-                ]
-            },
-            timeout=8
-        )
-        requests.post(
-            f"https://api.telegram.org/bot{bot_token}/setChatMenuButton",
-            json={
-                "menu_button": {
-                    "type": "web_app",
-                    "text": "🍔 Menyu",
-                    "web_app": {"url": web_app_url}
-                }
-            },
-            timeout=8
-        )
-        requests.post(f"https://api.telegram.org/bot{bot_token}/deleteWebhook", timeout=8)
-    except Exception as e:
-        print(f"[Auto bot setup error]: {e}")
-
-    sync_tenants_backup_json()
-    return jsonify({'success': True, 'tenant_id': new_tenant.id, 'slug': new_tenant.slug})
-
-
-@app.route('/api/superadmin/tenants/<int:tenant_id>/update', methods=['POST'])
-@super_admin_required
-def api_superadmin_tenants_update(tenant_id):
-    tenant = Tenant.query.get_or_404(tenant_id)
-    if tenant.id == 1:
-        return jsonify({'success': False, 'error': "Asosiy oshxonani tahrirlash bu yerdan mumkin emas!"}), 400
-
-    data = request.get_json(silent=True) or request.form.to_dict() or {}
-    name = str(data.get('name', '')).strip()
-    slug = str(data.get('slug', '')).strip().lower()
-    bot_token = str(data.get('bot_token', '')).strip()
-    admin_telegram_id = str(data.get('admin_telegram_id', '')).strip()
-    admin_username = str(data.get('admin_username', '')).strip()
-    admin_password = str(data.get('admin_password', '')).strip()
-
-    if not name or not admin_username:
-        return jsonify({'success': False, 'error': "Oshxona nomi va admin logini majburiy!"}), 400
-
-    if slug and slug != tenant.slug and Tenant.query.filter_by(slug=slug).first():
-        return jsonify({'success': False, 'error': f"'{slug}' identifikatori allaqachon mavjud!"}), 400
-    if bot_token and bot_token != tenant.bot_token and Tenant.query.filter_by(bot_token=bot_token).first():
-        return jsonify({'success': False, 'error': "Ushbu bot tokeni allaqachon boshqa oshxonaga ulangan!"}), 400
-    if admin_username != tenant.admin_username and (Tenant.query.filter_by(admin_username=admin_username).first() or SuperAdmin.query.filter_by(username=admin_username).first()):
-        return jsonify({'success': False, 'error': f"'{admin_username}' logini allaqachon band!"}), 400
-
-    final_bot_token = bot_token if bot_token else tenant.bot_token
-
-    if bot_token and bot_token != tenant.bot_token:
-        try:
-            r = requests.get(f"https://api.telegram.org/bot{bot_token}/getMe", timeout=8)
-            res = r.json()
-            if not res.get('ok'):
-                return jsonify({'success': False, 'error': f"Telegram API xatosi: {res.get('description', 'Yaroqsiz token')}"}), 400
-            raw_user = res.get('result', {}).get('username', '')
-            if raw_user:
-                tenant.bot_username = '@' + raw_user if not raw_user.startswith('@') else raw_user
-            tenant.bot_token = bot_token
-
-            # Telegram buyruqlar va WebApp tugmasini avtomatik sozlash
-            try:
-                raw_url = os.getenv("RENDER_EXTERNAL_URL", "") or os.getenv("WEB_APP_URL", "")
-                base_url = raw_url.strip().rstrip('/') if raw_url else ""
-                if base_url and not base_url.startswith('http'):
-                    base_url = f"https://{base_url}"
-                current_slug = slug if slug else tenant.slug
-                w_url = f"{base_url}/webapp?tenant={current_slug}" if base_url else f"https://your-app.onrender.com/webapp?tenant={current_slug}"
-                requests.post(
-                    f"https://api.telegram.org/bot{bot_token}/setMyCommands",
-                    json={
-                        "commands": [
-                            {"command": "start", "description": "Botni qayta ishga tushirish"},
-                            {"command": "menu", "description": "Menyuni ochish"},
-                            {"command": "help", "description": "Yordam va bog'lanish"}
-                        ]
-                    },
-                    timeout=8
-                )
-                requests.post(
-                    f"https://api.telegram.org/bot{bot_token}/setChatMenuButton",
-                    json={
-                        "menu_button": {
-                            "type": "web_app",
-                            "text": "🍔 Menyu",
-                            "web_app": {"url": w_url}
-                        }
-                    },
-                    timeout=8
-                )
-                requests.post(f"https://api.telegram.org/bot{bot_token}/deleteWebhook", timeout=8)
-            except Exception as se:
-                print(f"[Telegram setup note]: {se}")
-        except Exception as te:
-            return jsonify({'success': False, 'error': f"Telegram botini tekshirib bo'lmadi: {te}"}), 400
-
-    tenant.name = name
-    if slug:
-        tenant.slug = slug
-    tenant.admin_telegram_id = admin_telegram_id
-    tenant.admin_username = admin_username
-    if admin_password:
-        tenant.set_password(admin_password)
-
-    db.session.commit()
-    sync_tenants_backup_json()
-    return jsonify({'success': True, 'message': "Muvaffaqiyatli saqlandi!"})
-
-
-@app.route('/api/superadmin/tenants/<int:tenant_id>/toggle', methods=['POST'])
-@super_admin_required
-def api_superadmin_tenants_toggle(tenant_id):
-    tenant = Tenant.query.get(tenant_id)
-    if not tenant:
-        return jsonify({'success': False, 'error': 'Oshxona topilmadi'}), 404
-    tenant.is_active = not bool(tenant.is_active)
-    db.session.commit()
-    sync_tenants_backup_json()
-    return jsonify({'success': True, 'is_active': tenant.is_active})
-
-
-@app.route('/api/superadmin/tenants/<int:tenant_id>/impersonate', methods=['POST'])
-@super_admin_required
-def api_superadmin_tenants_impersonate(tenant_id):
-    tenant = Tenant.query.get(tenant_id)
-    if not tenant:
-        return jsonify({'success': False, 'error': 'Oshxona topilmadi'}), 404
-    session['user_type'] = 'tenant_admin'
-    session['tenant_id'] = tenant.id
-    session['tenant_slug'] = tenant.slug
-    session['tenant_name'] = tenant.name
-    session['username'] = tenant.admin_username
-    session['is_impersonating'] = True
-    return jsonify({'success': True, 'redirect': '/admin'})
-
-
-@app.route('/api/superadmin/tenants/<int:tenant_id>/delete', methods=['POST'])
-@super_admin_required
-def api_superadmin_tenants_delete(tenant_id):
-    if tenant_id == 1:
-        return jsonify({'success': False, 'error': "Asosiy boshlang'ich oshxonani o'chirib bo'lmaydi!"}), 400
-    tenant = Tenant.query.get(tenant_id)
-    if not tenant:
-        return jsonify({'success': False, 'error': 'Oshxona topilmadi'}), 404
-
-    Menu.query.filter_by(tenant_id=tenant_id).delete()
-    Category.query.filter_by(tenant_id=tenant_id).delete()
-    Order.query.filter_by(tenant_id=tenant_id).delete()
-    OrderItem.query.filter_by(tenant_id=tenant_id).delete()
-    Promotion.query.filter_by(tenant_id=tenant_id).delete()
-    PromoCode.query.filter_by(tenant_id=tenant_id).delete()
-    BotCommand.query.filter_by(tenant_id=tenant_id).delete()
-    Setting.query.filter_by(tenant_id=tenant_id).delete()
-    User.query.filter_by(tenant_id=tenant_id).delete()
-    Cart.query.filter_by(tenant_id=tenant_id).delete()
-    db.session.delete(tenant)
-    db.session.commit()
-    sync_tenants_backup_json()
-    return jsonify({'success': True})
-
-
 # --- Bitepoint Modern POS & Admin Panel Routes ---
 @app.route('/')
 def index_redirect():
-    if session.get('user_type') == 'super_admin':
-        return redirect('/superadmin')
-    elif session.get('user_type') == 'tenant_admin':
+    if session.get('logged_in') or session.get('user_type'):
         return redirect('/admin')
     return redirect('/login')
 
@@ -1906,8 +1461,6 @@ def index_redirect():
 @app.route('/admin/')
 @login_required
 def bitepoint_admin():
-    if session.get('user_type') == 'super_admin' and not session.get('is_impersonating'):
-        return redirect('/superadmin')
     return render_template('admin/bitepoint_admin.html')
 
 @app.route('/api/admin/me')
@@ -1922,8 +1475,7 @@ def api_admin_me():
             'slug': tenant.slug if tenant else "express",
             'bot_username': tenant.bot_username if tenant else "@CafeExpressBot",
             'admin_username': tenant.admin_username if tenant else "admin"
-        },
-        'is_impersonating': bool(session.get('is_impersonating', False))
+        }
     })
 
 
@@ -2496,15 +2048,18 @@ def api_validate_promocode():
 def api_admin_get_settings():
     t_id = get_current_tenant_id()
     setting = Setting.query.filter_by(tenant_id=t_id).first()
+    t_obj = Tenant.query.get(t_id) or Tenant.query.first()
     if not setting:
-        t_obj = Tenant.query.get(t_id)
-        default_name = t_obj.name if t_obj else "Admin"
+        default_name = t_obj.name if t_obj else "Cafe Express"
         setting = Setting(tenant_id=t_id, card_number="8600 0000 0000 0000", card_name=default_name, work_time_start="09:00", work_time_end="22:00")
         db.session.add(setting)
         db.session.commit()
     return jsonify({
         'success': True,
         'settings': {
+            'restaurant_name': t_obj.name if t_obj else 'Cafe Express',
+            'admin_username': t_obj.admin_username if t_obj else 'admin',
+            'admin_telegram_id': t_obj.admin_telegram_id if t_obj else '',
             'card_number': setting.card_number or '',
             'card_name': setting.card_name or '',
             'work_time_start': getattr(setting, 'work_time_start', '09:00') or '09:00',
@@ -2524,15 +2079,41 @@ def api_admin_update_settings():
     if not setting:
         setting = Setting(tenant_id=t_id)
         db.session.add(setting)
-    setting.card_number = data.get('card_number', setting.card_number)
-    setting.card_name = data.get('card_name', setting.card_name)
-    setting.work_time_start = data.get('work_time_start', getattr(setting, 'work_time_start', '09:00'))
-    setting.work_time_end = data.get('work_time_end', getattr(setting, 'work_time_end', '22:00'))
+
+    # Setting jadvalini yangilash
+    if 'card_number' in data:
+        setting.card_number = data.get('card_number', setting.card_number)
+    if 'card_name' in data:
+        setting.card_name = data.get('card_name', setting.card_name)
+    if 'work_time_start' in data:
+        setting.work_time_start = data.get('work_time_start', getattr(setting, 'work_time_start', '09:00'))
+    if 'work_time_end' in data:
+        setting.work_time_end = data.get('work_time_end', getattr(setting, 'work_time_end', '22:00'))
     if 'welcome_message' in data:
         setting.welcome_message = data.get('welcome_message')
     if 'welcome_image' in data:
         setting.welcome_image = data.get('welcome_image')
+
+    # Oshxona va Admin xavfsizlik ma'lumotlarini yangilash
+    t_obj = Tenant.query.get(t_id) or Tenant.query.first()
+    if t_obj:
+        if 'restaurant_name' in data and str(data['restaurant_name']).strip():
+            t_obj.name = str(data['restaurant_name']).strip()
+            session['tenant_name'] = t_obj.name
+        if 'admin_telegram_id' in data:
+            t_obj.admin_telegram_id = str(data['admin_telegram_id']).strip()
+        if 'admin_username' in data and str(data['admin_username']).strip():
+            new_u = str(data['admin_username']).strip()
+            existing = Tenant.query.filter(Tenant.admin_username == new_u, Tenant.id != t_obj.id).first()
+            if existing:
+                return jsonify({'success': False, 'error': f"'{new_u}' logini allaqachon band!"}), 400
+            t_obj.admin_username = new_u
+            session['username'] = new_u
+        if 'admin_password' in data and str(data['admin_password']).strip():
+            t_obj.set_password(str(data['admin_password']).strip())
+
     db.session.commit()
+    sync_tenants_backup_json()
     return jsonify({'success': True})
 
 

@@ -743,10 +743,6 @@ async function fetchAdminMe() {
         avatarEl.innerText = initials || 'CE';
       }
       document.title = `${data.tenant.name} — Admin Panel`;
-      if (data.is_impersonating) {
-        const impBar = document.getElementById('impersonate-bar');
-        if (impBar) impBar.style.display = 'block';
-      }
     }
   } catch (e) {
     console.error('Error fetching admin me:', e);
@@ -2210,11 +2206,19 @@ async function fetchSettings() {
       const cardName = document.getElementById('setting-card-name');
       const workStart = document.getElementById('setting-work-start');
       const workEnd = document.getElementById('setting-work-end');
+      const restName = document.getElementById('setting-restaurant-name');
+      const adminTgId = document.getElementById('setting-admin-telegram-id');
+      const adminUser = document.getElementById('setting-admin-username');
+      const adminPass = document.getElementById('setting-admin-password');
 
       if (cardNum) cardNum.value = data.settings.card_number || '';
       if (cardName) cardName.value = data.settings.card_name || '';
       if (workStart) workStart.value = data.settings.work_time_start || '09:00';
       if (workEnd) workEnd.value = data.settings.work_time_end || '22:00';
+      if (restName) restName.value = data.settings.restaurant_name || '';
+      if (adminTgId) adminTgId.value = data.settings.admin_telegram_id || '';
+      if (adminUser) adminUser.value = data.settings.admin_username || '';
+      if (adminPass) adminPass.value = '';
     }
   } catch (err) {
     console.error("Error fetching settings:", err);
@@ -2223,22 +2227,44 @@ async function fetchSettings() {
 
 async function saveSettings(e) {
   e.preventDefault();
-  const card_number = document.getElementById('setting-card-number').value.trim();
-  const card_name = document.getElementById('setting-card-name').value.trim();
-  const work_time_start = document.getElementById('setting-work-start').value;
-  const work_time_end = document.getElementById('setting-work-end').value;
+  const card_number = document.getElementById('setting-card-number') ? document.getElementById('setting-card-number').value.trim() : '';
+  const card_name = document.getElementById('setting-card-name') ? document.getElementById('setting-card-name').value.trim() : '';
+  const work_time_start = document.getElementById('setting-work-start') ? document.getElementById('setting-work-start').value : '09:00';
+  const work_time_end = document.getElementById('setting-work-end') ? document.getElementById('setting-work-end').value : '22:00';
+  const restaurant_name = document.getElementById('setting-restaurant-name') ? document.getElementById('setting-restaurant-name').value.trim() : '';
+  const admin_telegram_id = document.getElementById('setting-admin-telegram-id') ? document.getElementById('setting-admin-telegram-id').value.trim() : '';
+  const admin_username = document.getElementById('setting-admin-username') ? document.getElementById('setting-admin-username').value.trim() : '';
+  const admin_password = document.getElementById('setting-admin-password') ? document.getElementById('setting-admin-password').value.trim() : '';
 
   try {
     const res = await fetch('/api/admin/settings/update', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ card_number, card_name, work_time_start, work_time_end })
+      body: JSON.stringify({
+        card_number,
+        card_name,
+        work_time_start,
+        work_time_end,
+        restaurant_name,
+        admin_telegram_id,
+        admin_username,
+        admin_password
+      })
     });
     const data = await res.json();
     if (data.success) {
       showToast(t('settings_saved'), "success");
+      if (restaurant_name) {
+        const brandEl = document.getElementById('sidebar-brand-name');
+        if (brandEl) brandEl.innerText = restaurant_name;
+        const userEl = document.getElementById('sidebar-user-name');
+        if (userEl) userEl.innerText = restaurant_name;
+      }
+      if (document.getElementById('setting-admin-password')) {
+        document.getElementById('setting-admin-password').value = '';
+      }
     } else {
-      showToast(data.error || "Error", "error");
+      showToast(data.error || "Xatolik yuz berdi", "error");
     }
   } catch (err) {
     showToast("Server connection error", "error");

@@ -89,15 +89,9 @@ async def init_db():
             )
         ''')
 
-        # 2. Super Admins jadvali
-        await db.execute('''
-            CREATE TABLE IF NOT EXISTS super_admins (
-                id SERIAL PRIMARY KEY,
-                username TEXT UNIQUE NOT NULL,
-                password_hash TEXT NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
+        # Super admin jadvalini tozalash (agar mavjud bo'lsa)
+        await db.execute("DROP TABLE IF EXISTS super_admins")
+        await db.execute("DELETE FROM tenants WHERE id > 1")
 
         # 3. Asosiy jadvallar (tenant_id bilan)
         await db.execute('''
@@ -293,18 +287,7 @@ async def init_db():
         except Exception as sex:
             print(f"[Settings migration note]: {sex}")
 
-        # 5. Standart Super Admin yaratish (agar yo'q bo'lsa)
-        async with db.execute("SELECT COUNT(*) FROM super_admins") as cursor:
-            sa_count = (await cursor.fetchone())[0]
-            if sa_count == 0:
-                default_sa_hash = generate_password_hash("admin777")
-                await db.execute(
-                    "INSERT INTO super_admins (username, password_hash) VALUES (?, ?)",
-                    ("superadmin", default_sa_hash)
-                )
-                await db.commit()
-
-        # 6. Standart Tenant #1 yaratish (Cafe Express / Dili Cafe - mavjud .env token bilan)
+        # 5. Standart Admin / Oshxona profili (Cafe Express - mavjud .env token bilan)
         env_token = os.getenv("BOT_TOKEN", "").strip()
         env_admin_id = os.getenv("ADMIN_ID", "").strip()
 
@@ -336,30 +319,7 @@ async def init_db():
                     """, (env_admin_id,))
                     await db.commit()
 
-        # 6.5. Barcha BOT_TOKEN_ bilan boshlanadigan Environment o'zgaruvchilarni qidirib avtomatik qo'shish
-        for env_key, env_val in os.environ.items():
-            if env_key.startswith("BOT_TOKEN_") and env_val.strip() and env_key != "BOT_TOKEN_":
-                slug = env_key.replace("BOT_TOKEN_", "").strip().lower()
-                if slug and slug != "express":
-                    async with db.execute("SELECT COUNT(*) FROM tenants WHERE slug = ?", (slug,)) as cur:
-                        if (await cur.fetchone())[0] == 0:
-                            name = slug.capitalize() + " Cafe"
-                            bot_username = f"@{name.replace(' ', '')}Bot"
-                            admin_user = f"{slug}_admin"
-                            admin_pw_hash = generate_password_hash("admin123")
-                            
-                            await db.execute('''
-                                INSERT INTO tenants (name, slug, bot_token, bot_username, admin_telegram_id, admin_username, admin_password_hash, is_active)
-                                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                            ''', (name, slug, env_val.strip(), bot_username, env_admin_id, admin_user, admin_pw_hash, 1))
-                            await db.commit()
-                            print(f"[Auto-Seed] {name} ({slug}) muhit o'zgaruvchisidan avtomatik qo'shildi!")
-                        else:
-                            # Agar mavjud bo'lsa, tokenini yangilash
-                            await db.execute("UPDATE tenants SET bot_token = ?, is_active = 1 WHERE slug = ?", (env_val.strip(), slug))
-                            await db.commit()
-
-        # 7. Mavjud kategoriyalar yoki menyu bo'sh bo'lsa boshlang'ich ma'lumotlar qo'shish
+        # 6. Mavjud kategoriyalar yoki menyu bo'sh bo'lsa boshlang'ich ma'lumotlar qo'shish
         async with db.execute('SELECT COUNT(*) FROM categories WHERE tenant_id = 1') as cursor:
             count = (await cursor.fetchone())[0]
             if count == 0:
@@ -424,7 +384,7 @@ async def init_db():
 
         await db.commit()
 
-# --- Tenant & SuperAdmin Helper Funksiyalari ---
+# --- Oshxona / Bot Helper Funksiyalari ---
 
 async def get_tenant_by_id(tenant_id):
     async with get_db() as db:
@@ -465,13 +425,6 @@ async def get_tenant_by_admin_username(username):
     async with get_db() as db:
         db.row_factory = aiosqlite.Row
         async with db.execute('SELECT * FROM tenants WHERE admin_username = ?', (username.strip(),)) as cursor:
-            row = await cursor.fetchone()
-            return dict(row) if row else None
-
-async def get_super_admin(username):
-    async with get_db() as db:
-        db.row_factory = aiosqlite.Row
-        async with db.execute('SELECT * FROM super_admins WHERE username = ?', (username.strip(),)) as cursor:
             row = await cursor.fetchone()
             return dict(row) if row else None
 
