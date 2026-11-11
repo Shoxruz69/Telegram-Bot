@@ -1770,3 +1770,371 @@ body {
   .search-box { width: 100%; }
   .content-body { padding: 16px; }
 }
+
+/* ==========================================================================
+   POS / TELEFON BUYURTMA & THERMAL RECEIPT STYLES
+   ========================================================================== */
+
+.pos-layout {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  min-height: calc(100vh - 130px);
+}
+
+.pos-catalog-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.pos-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pos-search-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.pos-search-wrapper svg {
+  position: absolute;
+  left: 14px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.pos-search-wrapper input {
+  padding-left: 40px !important;
+  width: 100%;
+}
+
+.pos-menu-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 14px;
+}
+
+.pos-dish-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: var(--transition);
+  position: relative;
+}
+
+.pos-dish-card:hover {
+  border-color: var(--border-gold);
+  transform: translateY(-2px);
+}
+
+.pos-dish-img {
+  width: 100%;
+  height: 110px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: var(--bg-input);
+}
+
+.pos-dish-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-main);
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 35px;
+}
+
+.pos-dish-price {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--gold-primary);
+}
+
+.pos-add-btn {
+  width: 100%;
+  padding: 8px;
+  border-radius: 8px;
+  background: rgba(212, 175, 55, 0.15);
+  border: 1px solid var(--border-gold);
+  color: var(--gold-primary);
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: var(--transition);
+}
+
+.pos-add-btn:hover {
+  background: var(--gold-primary);
+  color: #0A0A0B;
+}
+
+.pos-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-input);
+  border: 1px solid var(--gold-primary);
+  border-radius: 8px;
+  padding: 2px;
+}
+
+.pos-stepper-btn {
+  width: 30px;
+  height: 30px;
+  background: transparent;
+  border: none;
+  color: var(--gold-primary);
+  font-weight: 800;
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+}
+
+.pos-stepper-btn:hover {
+  background: rgba(212, 175, 55, 0.2);
+}
+
+.pos-stepper-val {
+  font-weight: 800;
+  font-size: 14px;
+  color: var(--text-main);
+}
+
+/* POS Cart Column */
+.pos-cart-col {
+  width: 360px;
+  min-width: 340px;
+  position: sticky;
+  top: 90px;
+}
+
+.pos-cart-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-gold);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 130px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+}
+
+.pos-cart-header {
+  padding: 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.btn-clear-pos {
+  background: transparent;
+  border: none;
+  color: #EF4444;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: var(--transition);
+}
+
+.btn-clear-pos:hover {
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.pos-cart-items-list {
+  padding: 12px;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 180px;
+}
+
+.pos-cart-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 16px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+  gap: 10px;
+}
+
+.pos-cart-item {
+  background: var(--bg-hover);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pos-cart-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.pos-cart-item-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-main);
+  line-height: 1.2;
+}
+
+.pos-cart-item-del {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 4px;
+  display: flex;
+}
+
+.pos-cart-item-del:hover {
+  color: #EF4444;
+}
+
+.pos-cart-item-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pos-cart-item-price {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.pos-cart-item-subtotal {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--gold-primary);
+}
+
+.pos-cart-footer {
+  padding: 16px;
+  border-top: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+
+/* Thermal Paper Styling */
+.thermal-paper-slip {
+  width: 300px;
+  background: #FFFFFF;
+  color: #000000;
+  padding: 18px 14px;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 12px;
+  line-height: 1.35;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.7);
+  border-radius: 2px;
+  margin-bottom: 20px;
+}
+
+.thermal-paper-slip * {
+  color: #000000 !important;
+}
+
+.thermal-slip-title {
+  text-align: center;
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+
+.thermal-slip-sub {
+  text-align: center;
+  font-size: 11px;
+  margin-bottom: 8px;
+}
+
+.thermal-divider {
+  border-top: 1px dashed #000000;
+  margin: 8px 0;
+}
+
+.thermal-divider-double {
+  border-top: 2px dashed #000000;
+  margin: 10px 0;
+}
+
+.thermal-cut-mark {
+  text-align: center;
+  font-size: 10px;
+  margin: 16px 0 10px;
+  color: #666 !important;
+  letter-spacing: 2px;
+}
+
+/* Print CSS */
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+  #thermal-receipt-print-area, #thermal-receipt-print-area * {
+    visibility: visible !important;
+    color: #000000 !important;
+  }
+  #thermal-receipt-print-area {
+    display: block !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 78mm !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 2mm !important;
+    background: #FFFFFF !important;
+    font-family: 'Courier New', Courier, monospace !important;
+    font-size: 12px !important;
+    line-height: 1.3 !important;
+  }
+  .receipt-page-break {
+    page-break-after: always;
+    break-after: page;
+    height: 15px;
+  }
+  @page {
+    margin: 0;
+    size: auto;
+  }
+}
+
+@media (max-width: 1024px) {
+  .pos-layout { flex-direction: column; }
+  .pos-cart-col { width: 100%; min-width: auto; position: static; }
+}

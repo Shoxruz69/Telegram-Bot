@@ -10,6 +10,8 @@ const i18n = {
     orders: "Buyurtmalar",
     menu: "Menyu",
     categories: "Kategoriyalar",
+    nav_pos: "Telefon Buyurtma",
+    pos_title: "Telefon orqali buyurtma (Kassa)",
     discounts: "Chegirmalar",
     accounting: "Hisobot",
     settings: "Sozlamalar",
@@ -168,6 +170,8 @@ const i18n = {
     orders: "Заказы",
     menu: "Меню",
     categories: "Категории",
+    nav_pos: "Телефон заказы",
+    pos_title: "Заказы по телефону (Касса)",
     discounts: "Акции",
     accounting: "Бухгалтерия",
     settings: "Настройки",
@@ -326,6 +330,8 @@ const i18n = {
     orders: "Orders",
     menu: "Menu",
     categories: "Categories",
+    nav_pos: "Phone Orders",
+    pos_title: "Phone Orders (POS)",
     discounts: "Discounts",
     accounting: "Accounting",
     settings: "Settings",
@@ -500,7 +506,13 @@ const state = {
   audioEnabled: true,
   lastKnownOrderCount: 0,
   pollTimer: null,
-  expandedOrders: new Set()
+  expandedOrders: new Set(),
+  posCart: {},              // { [dishId]: { dish, qty } }
+  posSelectedCat: null,
+  posSearch: '',
+  posOrderType: 'Yetkazib berish',
+  posPaymentMethod: 'Naqd',
+  currentReceiptOrder: null
 };
 
 // Translation Helper
@@ -681,6 +693,7 @@ function applyTranslationsToStaticElements() {
   };
 
   mapText('#nav-orders-text', t('orders'));
+  mapText('#nav-pos-text', t('nav_pos'));
   mapText('#nav-menu-text', t('menu'));
   mapText('#nav-categories-text', t('categories'));
   mapText('#nav-promotions-text', t('discounts'));
@@ -815,6 +828,11 @@ function switchTab(tab) {
     filterTabs.style.display = 'flex';
     actionBtn.style.display = 'none';
     fetchOrders(false);
+  } else if (tab === 'pos') {
+    titleEl.textContent = t('pos_title');
+    filterTabs.style.display = 'none';
+    actionBtn.style.display = 'none';
+    initPosView();
   } else if (tab === 'menu') {
     titleEl.textContent = t('menu_management_title');
     filterTabs.style.display = 'none';
@@ -863,6 +881,9 @@ function initSearchAndFilters() {
         renderOrdersGrid();
       } else if (state.currentTab === 'menu') {
         renderMenuView();
+      } else if (state.currentTab === 'pos') {
+        state.posSearch = state.searchQuery;
+        renderPosMenuGrid();
       }
     });
   }
@@ -1130,6 +1151,9 @@ function renderOrdersGrid() {
           </div>
           <div class="card-actions-row">
             <button class="btn-card-secondary" style="flex: 1;" onclick="openOrderDetailsModal(${order.id})">${t('see_details')}</button>
+            <button class="btn-card-secondary" style="padding: 6px 10px; display: inline-flex; align-items: center; justify-content: center;" onclick="printOrderReceipt(${order.id})" title="Chek chiqarish (Printer)">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+            </button>
             ${order.status === 'Kutilmoqda' ? `
               <button class="btn-card-primary" style="flex: 1;" onclick="quickUpdateStatus(${order.id}, 'Tayyorlanmoqda')">${t('pay_bills')}</button>
             ` : (order.status === 'Tayyorlanmoqda' || order.status === 'Tasdiqlandi') ? `
@@ -2714,4 +2738,514 @@ async function deleteCommand(id, cmdName) {
     console.error("deleteCommand error:", err);
     showToast("Server bilan aloqa uzildi", "error");
   }
+}
+
+// ==========================================================================
+// POS / TELEFON BUYURTMA (KASSA) & THERMAL RECEIPT PRINTING
+// ==========================================================================
+
+function initPosView() {
+  if (!state.categories || state.categories.length === 0 || !state.menuItems || state.menuItems.length === 0) {
+    fetchMenuAndCategories().then(() => {
+      renderPosCategories();
+      renderPosMenuGrid();
+      updatePosCartUI();
+    });
+  } else {
+    renderPosCategories();
+    renderPosMenuGrid();
+    updatePosCartUI();
+  }
+}
+
+function renderPosCategories() {
+  const container = document.getElementById('pos-category-pills');
+  if (!container) return;
+  const activeAll = state.posSelectedCat === null ? 'active' : '';
+  let html = `<button type="button" class="tab-btn ${activeAll}" onclick="filterPosByCategory(null, this)">${t('all') || 'Barchasi'}</button>`;
+  html += (state.categories || []).map(c => {
+    const active = state.posSelectedCat === c.id ? 'active' : '';
+    return `<button type="button" class="tab-btn ${active}" onclick="filterPosByCategory(${c.id}, this)">${getCategoryName(c)}</button>`;
+  }).join('');
+  container.innerHTML = html;
+}
+
+function filterPosByCategory(catId, btn) {
+  state.posSelectedCat = catId;
+  const pills = document.getElementById('pos-category-pills');
+  if (pills) {
+    pills.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+  }
+  renderPosMenuGrid();
+}
+
+function handlePosSearch(val) {
+  state.posSearch = (val || '').toLowerCase().trim();
+  renderPosMenuGrid();
+}
+
+function renderPosMenuGrid() {
+  const container = document.getElementById('pos-menu-grid');
+  if (!container) return;
+
+  let items = state.menuItems || [];
+  if (state.posSelectedCat) {
+    items = items.filter(i => i.category_id === state.posSelectedCat);
+  }
+  if (state.posSearch) {
+    items = items.filter(i => {
+      const name = (getDishName(i) || '').toLowerCase();
+      const desc = (getDishDesc(i) || '').toLowerCase();
+      return name.includes(state.posSearch) || desc.includes(state.posSearch);
+    });
+  }
+
+  if (items.length === 0) {
+    container.innerHTML = `
+      <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-muted);">
+        <p>Hech qanday taom topilmadi.</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = items.map(dish => {
+    const dName = getDishName(dish);
+    const inCart = state.posCart[dish.id];
+    const qty = inCart ? inCart.qty : 0;
+    const imgUrl = dish.image_url || '/static/placeholder_food.png';
+
+    return `
+      <div class="pos-dish-card" id="pos-card-${dish.id}">
+        <img src="${imgUrl}" class="pos-dish-img" alt="${dName}" onerror="this.src='/static/placeholder_food.png'">
+        <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+          <div>
+            <div class="pos-dish-title" title="${dName}">${dName}</div>
+            <div class="pos-dish-price" style="margin-top: 4px;">${formatPrice(dish.price)}</div>
+          </div>
+          <div style="margin-top: 10px;">
+            ${qty > 0 ? `
+              <div class="pos-stepper">
+                <button type="button" class="pos-stepper-btn" onclick="posRemoveFromCart(${dish.id})">−</button>
+                <span class="pos-stepper-val">${qty}</span>
+                <button type="button" class="pos-stepper-btn" onclick="posAddToCart(${dish.id})">+</button>
+              </div>
+            ` : `
+              <button type="button" class="pos-add-btn" onclick="posAddToCart(${dish.id})">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                <span>Qo'shish</span>
+              </button>
+            `}
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function posAddToCart(dishId) {
+  const dish = (state.menuItems || []).find(d => d.id === dishId);
+  if (!dish) return;
+  if (!state.posCart[dishId]) {
+    state.posCart[dishId] = { dish, qty: 1 };
+  } else {
+    state.posCart[dishId].qty += 1;
+  }
+  renderPosMenuGrid();
+  updatePosCartUI();
+}
+
+function posRemoveFromCart(dishId) {
+  if (state.posCart[dishId]) {
+    state.posCart[dishId].qty -= 1;
+    if (state.posCart[dishId].qty <= 0) {
+      delete state.posCart[dishId];
+    }
+  }
+  renderPosMenuGrid();
+  updatePosCartUI();
+}
+
+function posDeleteItem(dishId) {
+  delete state.posCart[dishId];
+  renderPosMenuGrid();
+  updatePosCartUI();
+}
+
+function clearPosCart() {
+  if (Object.keys(state.posCart).length === 0) return;
+  if (!confirm("Savatni tozalashni xohlaysizmi?")) return;
+  state.posCart = {};
+  renderPosMenuGrid();
+  updatePosCartUI();
+}
+
+function updatePosCartUI() {
+  const itemsContainer = document.getElementById('pos-cart-items');
+  const badgeEl = document.getElementById('pos-cart-badge');
+  const qtyEl = document.getElementById('pos-summary-qty');
+  const totalEl = document.getElementById('pos-summary-total');
+  const checkoutBtn = document.getElementById('pos-checkout-btn');
+
+  const cartEntries = Object.values(state.posCart);
+  let totalQty = 0;
+  let totalPrice = 0;
+
+  cartEntries.forEach(item => {
+    totalQty += item.qty;
+    totalPrice += item.dish.price * item.qty;
+  });
+
+  if (badgeEl) badgeEl.textContent = totalQty;
+  if (qtyEl) qtyEl.textContent = `${totalQty} ta`;
+  if (totalEl) totalEl.textContent = formatPrice(totalPrice);
+  if (checkoutBtn) checkoutBtn.disabled = (totalQty === 0);
+
+  if (!itemsContainer) return;
+
+  if (cartEntries.length === 0) {
+    itemsContainer.innerHTML = `
+      <div class="pos-cart-empty">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity: 0.35;"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+        <p>Savat bo'sh.<br>Menyudan taomlarni qo'shing.</p>
+      </div>
+    `;
+    return;
+  }
+
+  itemsContainer.innerHTML = cartEntries.map(entry => {
+    const d = entry.dish;
+    const subtotal = d.price * entry.qty;
+    const dName = getDishName(d);
+
+    return `
+      <div class="pos-cart-item">
+        <div class="pos-cart-item-header">
+          <span class="pos-cart-item-name">${dName}</span>
+          <button type="button" class="pos-cart-item-del" onclick="posDeleteItem(${d.id})" title="O'chirish">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+        </div>
+        <div class="pos-cart-item-bottom">
+          <div class="pos-stepper" style="width: 95px; height: 28px;">
+            <button type="button" class="pos-stepper-btn" onclick="posRemoveFromCart(${d.id})" style="width: 26px; height: 24px; font-size: 14px;">−</button>
+            <span class="pos-stepper-val" style="font-size: 13px;">${entry.qty}</span>
+            <button type="button" class="pos-stepper-btn" onclick="posAddToCart(${d.id})" style="width: 26px; height: 24px; font-size: 14px;">+</button>
+          </div>
+          <div style="text-align: right;">
+            <div class="pos-cart-item-subtotal">${formatPrice(subtotal)}</div>
+            <div class="pos-cart-item-price">${formatPrice(d.price)} / dona</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function openPosCheckoutModal() {
+  const entries = Object.values(state.posCart);
+  if (entries.length === 0) {
+    showToast("Savat bo'sh!", "error");
+    return;
+  }
+  let totalQty = 0;
+  let totalPrice = 0;
+  entries.forEach(e => {
+    totalQty += e.qty;
+    totalPrice += e.dish.price * e.qty;
+  });
+
+  const sumItems = document.getElementById('pos-modal-summary-items');
+  const sumTotal = document.getElementById('pos-modal-summary-total');
+  if (sumItems) sumItems.textContent = `${totalQty} ta`;
+  if (sumTotal) sumTotal.textContent = formatPrice(totalPrice);
+
+  const modal = document.getElementById('pos-checkout-modal');
+  if (modal) modal.classList.add('active');
+  setTimeout(() => {
+    const phoneInput = document.getElementById('pos-cust-phone');
+    if (phoneInput) phoneInput.focus();
+  }, 100);
+}
+
+function closePosCheckoutModal() {
+  const modal = document.getElementById('pos-checkout-modal');
+  if (modal) modal.classList.remove('active');
+}
+
+function setPosOrderType(type) {
+  state.posOrderType = type;
+  const btnDel = document.getElementById('pos-type-delivery');
+  const btnPick = document.getElementById('pos-type-pickup');
+  const addrGroup = document.getElementById('pos-address-group');
+  if (btnDel) btnDel.classList.toggle('active', type === 'Yetkazib berish');
+  if (btnPick) btnPick.classList.toggle('active', type !== 'Yetkazib berish');
+  if (addrGroup) addrGroup.style.display = (type === 'Yetkazib berish') ? 'block' : 'none';
+}
+
+function setPosPaymentMethod(method) {
+  state.posPaymentMethod = method;
+  const btnCash = document.getElementById('pos-pay-cash');
+  const btnCard = document.getElementById('pos-pay-card');
+  if (btnCash) btnCash.classList.toggle('active', method === 'Naqd');
+  if (btnCard) btnCard.classList.toggle('active', method === 'Karta');
+}
+
+async function submitPosOrder(e) {
+  e.preventDefault();
+  const phone = (document.getElementById('pos-cust-phone')?.value || '').trim();
+  const customer_name = (document.getElementById('pos-cust-name')?.value || '').trim();
+  const address = (document.getElementById('pos-cust-address')?.value || '').trim();
+  const comment = (document.getElementById('pos-order-comment')?.value || '').trim();
+
+  if (!phone) {
+    showToast("Mijoz telefon raqamini kiriting!", "error");
+    return;
+  }
+
+  const itemsPayload = Object.values(state.posCart).map(item => ({
+    id: item.dish.id,
+    name: item.dish.name,
+    price: item.dish.price,
+    qty: item.qty
+  }));
+
+  const btn = document.getElementById('pos-submit-order-btn');
+  const origBtnText = btn ? btn.innerHTML : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerText = "⏳ Saqlanmoqda...";
+  }
+
+  try {
+    const res = await fetch('/api/admin/pos/order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        phone,
+        customer_name,
+        order_type: state.posOrderType,
+        address: state.posOrderType === 'Yetkazib berish' ? address : 'Olib ketish / Zalda',
+        payment_method: state.posPaymentMethod,
+        comment,
+        items: itemsPayload
+      })
+    });
+    const data = await res.json();
+    if (data.success && data.order) {
+      showToast("Buyurtma muvaffaqiyatli saqlandi! 🧾", "success");
+      closePosCheckoutModal();
+
+      // Clear pos inputs
+      if (document.getElementById('pos-cust-phone')) document.getElementById('pos-cust-phone').value = '';
+      if (document.getElementById('pos-cust-name')) document.getElementById('pos-cust-name').value = '';
+      if (document.getElementById('pos-cust-address')) document.getElementById('pos-cust-address').value = '';
+      if (document.getElementById('pos-order-comment')) document.getElementById('pos-order-comment').value = '';
+      state.posCart = {};
+      renderPosMenuGrid();
+      updatePosCartUI();
+
+      // Open receipt modal directly for printing
+      openPrintReceiptModal(data.order);
+      // Refresh background orders
+      fetchOrders(false);
+    } else {
+      showToast(data.error || "Xatolik yuz berdi", "error");
+    }
+  } catch (err) {
+    console.error("POS order submit error:", err);
+    showToast("Server bilan aloqa xatosi!", "error");
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = origBtnText;
+    }
+  }
+}
+
+function openPrintReceiptModal(order) {
+  state.currentReceiptOrder = order;
+  const modal = document.getElementById('print-receipt-modal-overlay');
+  const preview = document.getElementById('receipt-preview-content');
+  if (!modal || !preview) return;
+
+  const kitchenHtml = generateKitchenTicketHtml(order);
+  const customerHtml = generateCustomerReceiptHtml(order);
+
+  preview.innerHTML = `
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 20px;">
+      <div>
+        <div style="text-align: center; color: #F59E0B; font-size: 12px; font-weight: 700; margin-bottom: 6px;">🍳 OSHXONA CHEKI (1-NUSXA)</div>
+        <div class="thermal-paper-slip">
+          ${kitchenHtml}
+        </div>
+      </div>
+      <div>
+        <div style="text-align: center; color: #10B981; font-size: 12px; font-weight: 700; margin-bottom: 6px;">🧾 MIJOZ CHEKI (2-NUSXA)</div>
+        <div class="thermal-paper-slip">
+          ${customerHtml}
+        </div>
+      </div>
+    </div>
+  `;
+
+  modal.classList.add('active');
+}
+
+function closePrintReceiptModal() {
+  const modal = document.getElementById('print-receipt-modal-overlay');
+  if (modal) modal.classList.remove('active');
+}
+
+function generateKitchenTicketHtml(order) {
+  const items = order.items || [];
+  let totalDishes = 0;
+  items.forEach(it => { totalDishes += (it.quantity || 1); });
+
+  return `
+    <div class="thermal-slip-title">🔥 OSHXONA CHEKI 🔥</div>
+    <div class="thermal-divider-double"></div>
+    <div style="display: flex; justify-content: space-between; font-weight: 800; font-size: 14px;">
+      <span>BUYURTMA №:</span>
+      <span>#${order.daily_id || order.id}</span>
+    </div>
+    <div>Sana: ${order.date_str}   Vaqt: ${order.time_str}</div>
+    <div>Turi: <b>${order.order_type || 'Yetkazib berish'}</b></div>
+    <div>Mijoz: <b>${order.customer_name || 'Mijoz'}</b></div>
+    <div>Tel: ${order.phone || '—'}</div>
+    ${order.address ? `<div>Manzil: ${order.address}</div>` : ''}
+    <div class="thermal-divider"></div>
+    <div style="display: flex; justify-content: space-between; font-weight: 800; border-bottom: 1px solid #000; padding-bottom: 2px;">
+      <span>TAOM NOMI</span>
+      <span>SONI</span>
+    </div>
+    <div style="padding-top: 4px;">
+      ${items.map((it, idx) => `
+        <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; margin-bottom: 4px;">
+          <span>${idx + 1}. ${it.name}</span>
+          <span>x ${it.quantity}</span>
+        </div>
+      `).join('')}
+    </div>
+    <div class="thermal-divider"></div>
+    <div style="display: flex; justify-content: space-between; font-weight: 800;">
+      <span>JAMI TAOMLAR:</span>
+      <span>${totalDishes} ta</span>
+    </div>
+    ${order.comment ? `
+      <div class="thermal-divider"></div>
+      <div style="font-weight: 700;">⚠️ IZOH: ${order.comment}</div>
+    ` : ''}
+    <div class="thermal-divider-double"></div>
+    <div style="text-align: center; font-weight: 800; font-size: 11px;">*** TAYYORLASH UCHUN ***</div>
+  `;
+}
+
+function generateCustomerReceiptHtml(order) {
+  const items = order.items || [];
+  let totalDishes = 0;
+  items.forEach(it => { totalDishes += (it.quantity || 1); });
+
+  return `
+    <div class="thermal-slip-title">${order.restaurant_name || 'CAFE EXPRESS'}</div>
+    ${order.restaurant_phone ? `<div class="thermal-slip-sub">Tel: ${order.restaurant_phone}</div>` : ''}
+    <div class="thermal-divider-double"></div>
+    <div style="display: flex; justify-content: space-between; font-weight: 800; font-size: 14px;">
+      <span>BUYURTMA №:</span>
+      <span>#${order.daily_id || order.id}</span>
+    </div>
+    <div>Sana: ${order.date_str}   Vaqt: ${order.time_str}</div>
+    <div>Turi: ${order.order_type || 'Yetkazib berish'}</div>
+    <div>Mijoz: ${order.customer_name || 'Mijoz'} (${order.phone || '—'})</div>
+    ${order.address ? `<div>Manzil: ${order.address}</div>` : ''}
+    <div>To'lov: <b>${order.payment_method || 'Naqd'}</b></div>
+    <div class="thermal-divider"></div>
+    <div style="display: flex; justify-content: space-between; font-weight: 700; border-bottom: 1px solid #000; padding-bottom: 2px;">
+      <span>MAHSULOT</span>
+      <span>JAMI</span>
+    </div>
+    <div style="padding-top: 4px;">
+      ${items.map(it => {
+        const sub = (it.price || 0) * (it.quantity || 1);
+        return `
+          <div style="margin-bottom: 4px;">
+            <div style="font-weight: 700;">${it.name}</div>
+            <div style="display: flex; justify-content: space-between; font-size: 11px; padding-left: 6px;">
+              <span>${it.quantity} x ${(it.price || 0).toLocaleString()}</span>
+              <span style="font-weight: 700;">${sub.toLocaleString()}</span>
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+    <div class="thermal-divider"></div>
+    <div style="display: flex; justify-content: space-between; font-size: 12px;">
+      <span>Taomlar soni:</span>
+      <span>${totalDishes} ta</span>
+    </div>
+    <div style="display: flex; justify-content: space-between; font-size: 15px; font-weight: 900; margin-top: 4px;">
+      <span>JAMI TO'LOV:</span>
+      <span>${(order.total_amount || 0).toLocaleString()} so'm</span>
+    </div>
+    <div class="thermal-divider-double"></div>
+    <div style="text-align: center; font-size: 11.5px; line-height: 1.4;">
+      Xaridingiz uchun rahmat!<br>
+      <b>Yoqimli ishtaha!</b>
+    </div>
+  `;
+}
+
+function printThermalReceipt(which = 'both') {
+  if (!state.currentReceiptOrder) {
+    showToast("Chek ma'lumotlari topilmadi", "error");
+    return;
+  }
+  const order = state.currentReceiptOrder;
+  const printArea = document.getElementById('thermal-receipt-print-area');
+  if (!printArea) return;
+
+  const kitchenHtml = generateKitchenTicketHtml(order);
+  const customerHtml = generateCustomerReceiptHtml(order);
+
+  let printContent = '';
+  if (which === 'both') {
+    printContent = `
+      <div class="thermal-paper-slip" style="box-shadow: none; margin: 0 auto 10px; width: 100%;">${kitchenHtml}</div>
+      <div class="thermal-cut-mark">✂ - - - - - - - - - - - - - - - - ✂</div>
+      <div class="receipt-page-break"></div>
+      <div class="thermal-paper-slip" style="box-shadow: none; margin: 0 auto; width: 100%;">${customerHtml}</div>
+    `;
+  } else if (which === 'kitchen') {
+    printContent = `<div class="thermal-paper-slip" style="box-shadow: none; margin: 0 auto; width: 100%;">${kitchenHtml}</div>`;
+  } else if (which === 'customer') {
+    printContent = `<div class="thermal-paper-slip" style="box-shadow: none; margin: 0 auto; width: 100%;">${customerHtml}</div>`;
+  }
+
+  printArea.innerHTML = printContent;
+
+  setTimeout(() => {
+    window.print();
+  }, 150);
+}
+
+async function printOrderReceipt(orderId) {
+  try {
+    showToast("Chek tayyorlanmoqda... ⏳", "info");
+    const res = await fetch(`/api/admin/orders/${orderId}/receipt`);
+    const data = await res.json();
+    if (data.success && data.order) {
+      openPrintReceiptModal(data.order);
+    } else {
+      showToast(data.error || "Chekni yuklab bo'lmadi", "error");
+    }
+  } catch (err) {
+    console.error("Print order error:", err);
+    showToast("Server xatosi!", "error");
+  }
+}
+
+function printSelectedOrderReceipt() {
+  if (!state.selectedOrder) return;
+  printOrderReceipt(state.selectedOrder.id);
 }
