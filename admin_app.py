@@ -421,10 +421,9 @@ with app.app_context():
                         t1.is_active = True
                         db.session.commit()
                         print(f"[Tenant 1 token auto-synced from env]: {env_token[:8]}...")
-                    if env_admin_id and env_admin_id != "YOUR_ADMIN_ID_HERE" and t1.admin_telegram_id != env_admin_id:
+                    if env_admin_id and env_admin_id != "YOUR_ADMIN_ID_HERE" and (not t1.admin_telegram_id or t1.admin_telegram_id == "YOUR_ADMIN_ID_HERE"):
                         t1.admin_telegram_id = env_admin_id
                         db.session.commit()
-                        print(f"[Tenant 1 admin ID synced from env]: {env_admin_id}")
         except Exception as te:
             print("[Tenant seed error]:", te)
 
@@ -565,9 +564,10 @@ def broadcast_to_users(text, photo_url_or_path=None, parse_mode='HTML', tenant_i
             except Exception as e:
                 print(f"[Broadcast orders query error]: {e}")
 
-            # 3. Admin ID lar
-            for a_id in get_all_admin_ids(t_obj):
-                target_ids.add(a_id)
+            # 3. Admin ID
+            admin_id = t_obj.admin_telegram_id if (t_obj and t_obj.admin_telegram_id) else os.getenv("ADMIN_ID")
+            if admin_id and str(admin_id).isdigit() and int(admin_id) > 1000:
+                target_ids.add(int(admin_id))
 
             print(f"[Broadcast tenant={t_id}]: Jami {len(target_ids)} ta mijozga reklama yuborilmoqda: {target_ids}")
 
@@ -943,38 +943,6 @@ def api_data():
         'user': user_data
     })
 
-
-def get_all_admin_ids(tenant=None):
-    """
-    Tenant va .env dan barcha admin Telegram ID larini ajratib oladi.
-    Vergul yoki bo'sh joy bilan ajratilgan bir nechta ID larni qo'llab-quvvatlaydi.
-    Masalan: '264625389, 6715367177'
-    """
-    ids = []
-    candidates = []
-    if tenant:
-        if isinstance(tenant, dict):
-            val = tenant.get('admin_telegram_id', '')
-        else:
-            val = getattr(tenant, 'admin_telegram_id', '')
-        if val:
-            candidates.append(str(val))
-    env_admin = os.getenv("ADMIN_ID", "")
-    if env_admin:
-        candidates.append(str(env_admin))
-
-    for cand in candidates:
-        if not cand or any(ph in str(cand).upper() for ph in ['YOUR_', '_HERE', 'NONE', 'NULL']):
-            continue
-        for part in str(cand).replace(";", ",").replace(" ", ",").split(","):
-            part = part.strip()
-            if part.isdigit() and int(part) > 1000:
-                int_id = int(part)
-                if int_id not in ids:
-                    ids.append(int_id)
-    return ids
-
-
 @app.route('/api/checkout', methods=['POST'])
 def api_checkout():
     """1-qadam: Buyurtmani tezda saqlash va javob qaytarish (UI qotib qolmaydi)"""
@@ -1221,8 +1189,7 @@ def api_checkout():
                 return
 
             # Admin xabari
-            admin_ids = get_all_admin_ids(tenant_obj)
-            for admin_id in admin_ids:
+            if admin_id and admin_id not in ("YOUR_ADMIN_ID_HERE", "", None):
                 try:
                     if receipt_filename:
                         photo_path = os.path.join(receipts_dir, receipt_filename)
@@ -1253,7 +1220,7 @@ def api_checkout():
                             timeout=12
                         )
                 except Exception as e:
-                    print(f"[Admin notify error for {admin_id}]: {e}")
+                    print(f"[Admin notify error]: {e}")
 
             # Mijoz xabari
             if user_id and str(user_id) not in ('0', '', 'None'):
@@ -1325,14 +1292,14 @@ def upload_receipt(order_id):
     tenant_id = order.tenant_id or 1
     tenant_obj = Tenant.query.get(tenant_id) if tenant_id else Tenant.query.first()
     bot_token = tenant_obj.bot_token if (tenant_obj and tenant_obj.bot_token) else os.getenv("BOT_TOKEN")
-    admin_ids = get_all_admin_ids(tenant_obj)
+    admin_id = tenant_obj.admin_telegram_id if (tenant_obj and tenant_obj.admin_telegram_id) else os.getenv("ADMIN_ID")
 
     items_text = ""
     for oi in order.items:
         items_text += f"• {oi.name} x{oi.quantity} = {oi.price * oi.quantity:,} so'm\n"
 
     def send_receipt_to_admin():
-        if not bot_token or not admin_ids:
+        if not bot_token or not admin_id or admin_id in ("YOUR_ADMIN_ID_HERE", ""):
             return
         caption = (
             f"💳 KARTA TO'LOVI CHEKI\n"
@@ -1342,18 +1309,17 @@ def upload_receipt(order_id):
             f"🛒 Tarkib:\n{items_text}"
             f"💰 Jami: {order_total:,} so'm"
         )
-        for admin_id in admin_ids:
-            try:
-                with open(file_path, 'rb') as photo:
-                    requests.post(
-                        f"https://api.telegram.org/bot{bot_token}/sendPhoto",
-                        data={'chat_id': admin_id, 'caption': caption},
-                        files={'photo': photo},
-                        timeout=15
-                    )
-                print(f"[upload_receipt] Chek adminga ({admin_id}) yuborildi")
-            except Exception as e:
-                print(f"[Receipt upload error for {admin_id}]: {e}")
+        try:
+            with open(file_path, 'rb') as photo:
+                requests.post(
+                    f"https://api.telegram.org/bot{bot_token}/sendPhoto",
+                    data={'chat_id': admin_id, 'caption': caption},
+                    files={'photo': photo},
+                    timeout=15
+                )
+            print(f"[upload_receipt] Chek adminga yuborildi")
+        except Exception as e:
+            print(f"[Receipt upload error]: {e}")
 
     threading.Thread(target=send_receipt_to_admin, daemon=True).start()
     return jsonify({'success': True})
@@ -1713,7 +1679,7 @@ def check_and_send_debt_reminders(force=False, tenant_id=None):
                 db.session.commit()
 
         bot_token = tenant.bot_token if (tenant and tenant.bot_token) else os.getenv("BOT_TOKEN")
-        admin_ids = get_all_admin_ids(tenant)
+        admin_id = tenant.admin_telegram_id if (tenant and tenant.admin_telegram_id) else os.getenv("ADMIN_ID")
         restaurant_name = tenant.name if tenant else "Cafe Express"
         contact_phone = getattr(setting, 'contact_phone', None) or getattr(tenant, 'contact_phone', None) or os.getenv('ADMIN_PHONE', '')
 
@@ -1726,22 +1692,21 @@ def check_and_send_debt_reminders(force=False, tenant_id=None):
 
         if not debt_orders:
             # Qarzdorlik yo'q
-            if admin_ids and bot_token:
+            if admin_id and bot_token and str(admin_id) not in ('', 'None', 'YOUR_ADMIN_ID_HERE'):
                 msg = (
                     f"📊 <b>KUNLIK QARZDORLIK ESLATMASI (19:00)</b>\n"
                     f"🏢 Oshxona: <b>{restaurant_name}</b>\n"
                     f"📅 Sana: <b>{now_tashkent.strftime('%d.%m.%Y %H:%M')}</b>\n\n"
                     f"✅ <b>Ajoyib xabar!</b> Hozirda to'lanmagan qarzdorliklar mavjud emas. Barcha hisob-kitoblar to'liq yopilgan. 🎉"
                 )
-                for admin_id in admin_ids:
-                    try:
-                        requests.post(
-                            f"https://api.telegram.org/bot{bot_token}/sendMessage",
-                            json={'chat_id': admin_id, 'text': msg, 'parse_mode': 'HTML'},
-                            timeout=10
-                        )
-                    except Exception as ex:
-                        print(f"[Debt zero notify error for {admin_id}]: {ex}")
+                try:
+                    requests.post(
+                        f"https://api.telegram.org/bot{bot_token}/sendMessage",
+                        json={'chat_id': int(admin_id), 'text': msg, 'parse_mode': 'HTML'},
+                        timeout=10
+                    )
+                except Exception as ex:
+                    print(f"[Debt zero notify error]: {ex}")
 
             summary_results.append({
                 'tenant_id': t_id,
@@ -1872,7 +1837,7 @@ def check_and_send_debt_reminders(force=False, tenant_id=None):
                 })
 
         # Adminga to'liq hisobot yuborish
-        if admin_ids and bot_token:
+        if admin_id and bot_token and str(admin_id) not in ('', 'None', 'YOUR_ADMIN_ID_HERE'):
             grand_total_str = f"{grand_total_debt:,}".replace(",", " ")
             admin_report_lines = [
                 f"📊 <b>KUNLIK QARZDORLIK ESLATMASI (19:00)</b>",
@@ -1896,15 +1861,14 @@ def check_and_send_debt_reminders(force=False, tenant_id=None):
                 admin_report_lines.append(f"\n💡 <i>Eslatma: Xabar bormagan mijozlarga telefon orqali qo'ng'iroq qilib eslatishingiz mumkin.</i>")
 
             admin_full_msg = "\n".join(admin_report_lines)
-            for admin_id in admin_ids:
-                try:
-                    requests.post(
-                        f"https://api.telegram.org/bot{bot_token}/sendMessage",
-                        json={'chat_id': admin_id, 'text': admin_full_msg, 'parse_mode': 'HTML'},
-                        timeout=10
-                    )
-                except Exception as ae:
-                    print(f"[Admin debt report error for {admin_id}]: {ae}")
+            try:
+                requests.post(
+                    f"https://api.telegram.org/bot{bot_token}/sendMessage",
+                    json={'chat_id': int(admin_id), 'text': admin_full_msg, 'parse_mode': 'HTML'},
+                    timeout=10
+                )
+            except Exception as ae:
+                print(f"[Admin debt report error]: {ae}")
 
         summary_results.append({
             'tenant_id': t_id,
@@ -2107,8 +2071,8 @@ def api_admin_pos_order():
         def notify_pos_order():
             try:
                 bot_token = t_obj.bot_token if (t_obj and t_obj.bot_token) else os.getenv("BOT_TOKEN")
-                admin_ids = get_all_admin_ids(t_obj)
-                if bot_token and admin_ids:
+                admin_id = t_obj.admin_telegram_id if (t_obj and t_obj.admin_telegram_id) else os.getenv("ADMIN_ID")
+                if bot_token and admin_id and str(admin_id) not in ("YOUR_ADMIN_ID_HERE", "", "None"):
                     order_items_text = "".join([f"  • {it['name']} x {it['quantity']} = {it['subtotal']:,} so'm\n" for it in items_response])
                     comment_line = f"💬 Izoh: {comment}\n" if comment else ""
                     pay_display = f"⚠️ <b>Qarz (Nasiya)</b>" if payment_method in ('Qarz', 'Nasiya') else payment_method
@@ -2123,15 +2087,11 @@ def api_admin_pos_order():
                         f"🛒 <b>Tarkib:</b>\n{order_items_text}"
                         f"💰 <b>Jami: {total_amount:,} so'm</b>"
                     )
-                    for admin_id in admin_ids:
-                        try:
-                            requests.post(
-                                f"https://api.telegram.org/bot{bot_token}/sendMessage",
-                                json={'chat_id': admin_id, 'text': msg, 'parse_mode': 'HTML'},
-                                timeout=10
-                            )
-                        except Exception as ne_s:
-                            print(f"[POS notify error for {admin_id}]: {ne_s}")
+                    requests.post(
+                        f"https://api.telegram.org/bot{bot_token}/sendMessage",
+                        json={'chat_id': admin_id, 'text': msg, 'parse_mode': 'HTML'},
+                        timeout=10
+                    )
             except Exception as ne:
                 print(f"[POS notify error]: {ne}")
 

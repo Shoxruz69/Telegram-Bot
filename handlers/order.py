@@ -9,28 +9,6 @@ load_dotenv()
 
 router = Router()
 
-def get_all_admin_ids(tenant=None):
-    ids = []
-    candidates = []
-    if tenant and isinstance(tenant, dict):
-        val = tenant.get('admin_telegram_id')
-        if val:
-            candidates.append(str(val))
-    env_admin = os.getenv("ADMIN_ID", "")
-    if env_admin:
-        candidates.append(str(env_admin))
-    for cand in candidates:
-        if not cand or any(ph in str(cand).upper() for ph in ['YOUR_', '_HERE', 'NONE', 'NULL']):
-            continue
-        for part in str(cand).replace(";", ",").replace(" ", ",").split(","):
-            part = part.strip()
-            if part.isdigit() and int(part) > 1000:
-                int_id = int(part)
-                if int_id not in ids:
-                    ids.append(int_id)
-    return ids
-
-
 async def finalize_order(message: Message, payment_method: str = "Aniqlanmadi", receipt_image: str = None):
     bot: Bot = message.bot
     tenant = getattr(bot, 'tenant', None)
@@ -38,7 +16,7 @@ async def finalize_order(message: Message, payment_method: str = "Aniqlanmadi", 
         tenant = await get_tenant_by_bot_token(bot.token)
     tenant_id = tenant['id'] if tenant else 1
     tenant_slug = tenant['slug'] if tenant else "express"
-    admin_ids = get_all_admin_ids(tenant)
+    admin_id = tenant.get('admin_telegram_id') if (tenant and tenant.get('admin_telegram_id')) else os.getenv("ADMIN_ID")
 
     user_id = message.from_user.id
     cart_items = await get_cart(user_id, tenant_id=tenant_id)
@@ -66,22 +44,22 @@ async def finalize_order(message: Message, payment_method: str = "Aniqlanmadi", 
         
     order_text += f"\nJami: {total_sum} so'm"
     
-    for a_id in admin_ids:
+    if admin_id and str(admin_id) not in ("YOUR_ADMIN_ID_HERE", "", "None"):
         try:
             if receipt_image:
                 file_path = os.path.join('static', 'uploads', 'receipts', receipt_image)
                 from aiogram.types import FSInputFile
                 if os.path.exists(file_path):
-                    await bot.send_photo(a_id, FSInputFile(file_path), caption=order_text)
+                    await bot.send_photo(admin_id, FSInputFile(file_path), caption=order_text)
                 else:
-                    await bot.send_message(a_id, order_text)
+                    await bot.send_message(admin_id, order_text)
             else:
-                await bot.send_message(a_id, order_text)
+                await bot.send_message(admin_id, order_text)
                 
             if user[2] and user[3] and user[2] != 0.0:
-                await bot.send_location(a_id, latitude=user[2], longitude=user[3])
+                await bot.send_location(admin_id, latitude=user[2], longitude=user[3])
         except Exception as e:
-            print(f"Error sending to admin {a_id}: {e}")
+            print(f"Error sending to admin: {e}")
             
     await clear_cart(user_id, tenant_id=tenant_id)
     await message.answer(
