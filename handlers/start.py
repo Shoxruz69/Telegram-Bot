@@ -143,15 +143,26 @@ async def cmd_help(message: Message, bot: Bot, tenant: dict = None):
 
     # Bog'lanish kontaktlari
     admin_contact = "+998 88 732 55 15" if tenant_id == 1 else ""
-    admin_id = str(cur_tenant.get('admin_telegram_id', '')).strip()
+    raw_admin_ids = str(cur_tenant.get('admin_telegram_id', '')).strip()
     admin_user = str(cur_tenant.get('admin_username', '')).strip()
     bot_user = str(cur_tenant.get('bot_username', '')).strip().lstrip('@')
 
     contact_lines = []
     if admin_contact:
         contact_lines.append(f"📞 Telefon: <b>{admin_contact}</b>")
-    if admin_id and admin_id.isdigit():
-        contact_lines.append(f"💬 Telegram: <a href=\"tg://user?id={admin_id}\">Admin bilan bog'lanish</a>")
+
+    admin_id_list = []
+    for part in raw_admin_ids.replace(";", ",").replace(" ", ",").split(","):
+        part = part.strip()
+        if part.isdigit() and int(part) > 1000 and part not in admin_id_list:
+            admin_id_list.append(part)
+
+    if admin_id_list:
+        if len(admin_id_list) == 1:
+            contact_lines.append(f"💬 Telegram: <a href=\"tg://user?id={admin_id_list[0]}\">Admin bilan bog'lanish</a>")
+        else:
+            links = [f"<a href=\"tg://user?id={aid}\">Admin {i+1}</a>" for i, aid in enumerate(admin_id_list)]
+            contact_lines.append(f"💬 Telegram: {' | '.join(links)}")
     elif bot_user:
         contact_lines.append(f"🤖 Bot: @{bot_user}")
 

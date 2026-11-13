@@ -334,8 +334,8 @@ async def init_db():
                     await db.execute("""
                         UPDATE tenants 
                         SET admin_telegram_id = ? 
-                        WHERE id = 1 AND (admin_telegram_id = 'YOUR_ADMIN_ID_HERE' OR admin_telegram_id = '' OR admin_telegram_id IS NULL)
-                    """, (env_admin_id,))
+                        WHERE id = 1 AND (admin_telegram_id != ? OR admin_telegram_id IS NULL)
+                    """, (env_admin_id, env_admin_id))
                     await db.commit()
 
         # 6. Mavjud kategoriyalar yoki menyu bo'sh bo'lsa boshlang'ich ma'lumotlar qo'shish
