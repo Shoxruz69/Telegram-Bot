@@ -4,6 +4,7 @@ import os
 import re
 import urllib.request
 import ssl
+from datetime import datetime, timedelta
 from aiogram import Bot, Dispatcher
 from aiogram.types import BotCommand, MenuButtonWebApp, WebAppInfo
 from aiogram.fsm.storage.memory import MemoryStorage
@@ -59,6 +60,15 @@ async def keep_alive():
                 logging.info(f"Keep-alive (Bot) ping muvaffaqiyatli: {ping_url}")
             except Exception as e:
                 logging.warning(f"External keep-alive (Bot) ping xatosi: {e}")
+
+        # Toshkent vaqti bilan 19:00 da qarz eslatmalarini tekshirish
+        try:
+            now_tashkent = datetime.utcnow() + timedelta(hours=5)
+            if now_tashkent.hour == 19:
+                req_cron = urllib.request.Request(f"http://127.0.0.1:{port}/api/internal/cron/debt_reminders")
+                await asyncio.to_thread(urllib.request.urlopen, req_cron, timeout=15)
+        except Exception:
+            pass
 
         await asyncio.sleep(120)
 

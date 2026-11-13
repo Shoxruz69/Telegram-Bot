@@ -176,6 +176,7 @@ async def init_db():
                 total_amount INTEGER,
                 address TEXT,
                 promocode TEXT,
+                is_paid BOOLEAN DEFAULT TRUE,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users (user_id)
             )
@@ -202,7 +203,9 @@ async def init_db():
                 work_time_end TEXT DEFAULT '22:00',
                 order_reset_hours INTEGER DEFAULT 24,
                 welcome_message TEXT,
-                welcome_image TEXT
+                welcome_image TEXT,
+                debt_reminder_time TEXT DEFAULT '19:00',
+                last_debt_reminder_date TEXT DEFAULT ''
             )
         ''')
         await db.execute('''
@@ -275,17 +278,33 @@ async def init_db():
                         await db.execute(f"UPDATE {tbl} SET tenant_id = 1 WHERE tenant_id IS NULL")
             except Exception as ex:
                 print(f"[Migration note: {tbl}]: {ex}")
-        # 6. Settings jadvalida welcome_message va welcome_image borligini tekshirish
+        # 6. Settings jadvalida welcome_message, debt_reminder_time va last_debt_reminder_date borligini tekshirish
         try:
-            async with db.execute("SELECT column_name FROM information_schema.columns WHERE table_name = \'settings\'") as cursor:
-                cols = [(0, row["column_name"]) for row in await cursor.fetchall()]
+            async with db.execute("SELECT column_name FROM information_schema.columns WHERE table_name = 'settings'") as cursor:
+                s_cols = [row["column_name"] for row in await cursor.fetchall()]
                 if 'welcome_message' not in s_cols:
                     await db.execute("ALTER TABLE settings ADD COLUMN welcome_message TEXT")
                 if 'welcome_image' not in s_cols:
                     await db.execute("ALTER TABLE settings ADD COLUMN welcome_image TEXT")
+                if 'debt_reminder_time' not in s_cols:
+                    await db.execute("ALTER TABLE settings ADD COLUMN debt_reminder_time TEXT DEFAULT '19:00'")
+                if 'last_debt_reminder_date' not in s_cols:
+                    await db.execute("ALTER TABLE settings ADD COLUMN last_debt_reminder_date TEXT DEFAULT ''")
                 await db.commit()
         except Exception as sex:
             print(f"[Settings migration note]: {sex}")
+
+        # 7. Orders jadvalida is_paid borligini tekshirish
+        try:
+            async with db.execute("SELECT column_name FROM information_schema.columns WHERE table_name = 'orders'") as cursor:
+                o_cols = [row["column_name"] for row in await cursor.fetchall()]
+                if 'is_paid' not in o_cols:
+                    await db.execute("ALTER TABLE orders ADD COLUMN is_paid BOOLEAN DEFAULT TRUE")
+                    await db.execute("UPDATE orders SET is_paid = TRUE WHERE is_paid IS NULL")
+                    await db.execute("UPDATE orders SET is_paid = FALSE WHERE payment_method = 'Qarz' OR payment_method = 'Nasiya'")
+                await db.commit()
+        except Exception as oex:
+            print(f"[Orders migration note]: {oex}")
 
         # 5. Standart Admin / Oshxona profili (Cafe Express - mavjud .env token bilan)
         env_token = os.getenv("BOT_TOKEN", "").strip()
