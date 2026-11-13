@@ -4,7 +4,6 @@ import json
 import threading
 import uuid
 import urllib.parse
-import time
 from datetime import datetime, timezone, timedelta
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
@@ -148,8 +147,6 @@ class Setting(db.Model):
     order_reset_hours = db.Column(db.Integer, default=24) # 24: Har 24 soatda 1-dan boshlanadi, 12: Har 12 soatda, 0: Reset o'chirilgan
     welcome_message = db.Column(db.Text) # Start xabari matni
     welcome_image = db.Column(db.String(500)) # Start xabari rasmi
-    debt_reminder_time = db.Column(db.String(10), default="19:00") # Kunlik qarz eslatmasi vaqti (Toshkent vaqti)
-    last_debt_reminder_date = db.Column(db.String(20), default="") # Oxirgi eslatma sanasi (YYYY-MM-DD)
 
     def __repr__(self):
         return f"Karta: {self.card_number} ({self.card_name})"
@@ -220,7 +217,6 @@ class Order(db.Model):
     total_amount = db.Column(db.Integer)
     address = db.Column(db.String(500))
     promocode = db.Column(db.String(50), nullable=True)
-    is_paid = db.Column(db.Boolean, default=True) # To'langanlik holati (Qarz bo'lsa False)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
     
     user = db.relationship(
@@ -267,10 +263,6 @@ with app.app_context():
             db.session.execute(text("ALTER TABLE settings ADD COLUMN welcome_message TEXT"))
         if 'welcome_image' not in settings_cols:
             db.session.execute(text("ALTER TABLE settings ADD COLUMN welcome_image VARCHAR(500)"))
-        if 'debt_reminder_time' not in settings_cols:
-            db.session.execute(text("ALTER TABLE settings ADD COLUMN debt_reminder_time VARCHAR(10) DEFAULT '19:00'"))
-        if 'last_debt_reminder_date' not in settings_cols:
-            db.session.execute(text("ALTER TABLE settings ADD COLUMN last_debt_reminder_date VARCHAR(20) DEFAULT ''"))
 
         # Orders migration
         orders_cols = [col['name'] for col in inspector.get_columns('orders')]
@@ -278,17 +270,6 @@ with app.app_context():
             db.session.execute(text("ALTER TABLE orders ADD COLUMN daily_id INTEGER DEFAULT 1"))
         if 'promocode' not in orders_cols:
             db.session.execute(text("ALTER TABLE orders ADD COLUMN promocode VARCHAR(50)"))
-        if 'is_paid' not in orders_cols:
-            try:
-                db.session.execute(text("ALTER TABLE orders ADD COLUMN is_paid BOOLEAN DEFAULT TRUE"))
-            except Exception:
-                db.session.rollback()
-                db.session.execute(text("ALTER TABLE orders ADD COLUMN is_paid BOOLEAN DEFAULT 1"))
-            try:
-                db.session.execute(text("UPDATE orders SET is_paid = TRUE WHERE is_paid IS NULL"))
-                db.session.execute(text("UPDATE orders SET is_paid = FALSE WHERE payment_method = 'Qarz' OR payment_method = 'Nasiya'"))
-            except Exception:
-                pass
             
         # Categories migration
         cat_cols = [col['name'] for col in inspector.get_columns('categories')]
@@ -1571,7 +1552,6 @@ def api_admin_orders():
             'total_amount': o.total_amount or 0,
             'address': o.address or 'N/A',
             'promocode': getattr(o, 'promocode', None) or '',
-            'is_paid': getattr(o, 'is_paid', True) if getattr(o, 'is_paid', True) is not None else (o.payment_method not in ('Qarz', 'Nasiya')),
             'created_date': date_str,
             'created_time': time_str,
             'items': items_list
@@ -1608,312 +1588,6 @@ def api_admin_order_delete(order_id):
     db.session.delete(order)
     db.session.commit()
     return jsonify({'success': True})
-
-
-@app.route('/api/admin/orders/<int:order_id>/mark_paid', methods=['POST'])
-@login_required
-def api_admin_order_mark_paid(order_id):
-    t_id = get_current_tenant_id()
-    order = Order.query.filter_by(id=order_id, tenant_id=t_id).first()
-    if not order:
-        return jsonify({'success': False, 'error': 'Buyurtma topilmadi'}), 404
-    order.is_paid = True
-    db.session.commit()
-    return jsonify({'success': True, 'is_paid': True})
-
-
-@app.route('/api/admin/orders/<int:order_id>/mark_debt', methods=['POST'])
-@login_required
-def api_admin_order_mark_debt(order_id):
-    t_id = get_current_tenant_id()
-    order = Order.query.filter_by(id=order_id, tenant_id=t_id).first()
-    if not order:
-        return jsonify({'success': False, 'error': 'Buyurtma topilmadi'}), 404
-    order.payment_method = 'Qarz'
-    order.is_paid = False
-    db.session.commit()
-    return jsonify({'success': True, 'payment_method': 'Qarz', 'is_paid': False})
-
-
-def check_and_send_debt_reminders(force=False, tenant_id=None):
-    """
-    Har kuni 19:00 da (Toshkent vaqti) to'lanmagan qarzdorliklar bo'yicha mijozlarga
-    Telegram orqali eslatma yuboradi va Adminga kimlarga bordi, kimlarga bormadi
-    haqida batafsil hisobot jo'natadi.
-    """
-    now_utc = datetime.utcnow()
-    now_tashkent = now_utc + timedelta(hours=5)
-    today_str = now_tashkent.strftime("%Y-%m-%d")
-    current_hour = now_tashkent.hour
-    current_minute = now_tashkent.minute
-
-    tenants = [Tenant.query.get(tenant_id)] if tenant_id else Tenant.query.filter_by(is_active=True).all()
-    if not tenants:
-        tenants = Tenant.query.all()
-    if not tenants:
-        return {'success': False, 'message': 'Tenant topilmadi'}
-
-    summary_results = []
-
-    for tenant in tenants:
-        t_id = tenant.id
-        setting = Setting.query.filter_by(tenant_id=t_id).first()
-        target_time = (getattr(setting, 'debt_reminder_time', None) or '19:00').strip()
-        last_date = (getattr(setting, 'last_debt_reminder_date', None) or '').strip()
-
-        try:
-            t_hour, t_min = map(int, target_time.split(':'))
-        except Exception:
-            t_hour, t_min = 19, 0
-
-        # Agar majburiy (force) bo'lmasa, soat 19:00 ekanligi va bugun yuborilmaganligi tekshiriladi
-        if not force:
-            if current_hour != t_hour or current_minute < t_min:
-                continue
-            if last_date == today_str:
-                continue
-
-            # Takroriy yuborilishning oldini olish uchun darhol sanani belgilash
-            if setting:
-                setting.last_debt_reminder_date = today_str
-                db.session.commit()
-
-        bot_token = tenant.bot_token if (tenant and tenant.bot_token) else os.getenv("BOT_TOKEN")
-        admin_id = tenant.admin_telegram_id if (tenant and tenant.admin_telegram_id) else os.getenv("ADMIN_ID")
-        restaurant_name = tenant.name if tenant else "Cafe Express"
-        contact_phone = getattr(setting, 'contact_phone', None) or getattr(tenant, 'contact_phone', None) or os.getenv('ADMIN_PHONE', '')
-
-        # To'lanmagan qarz buyurtmalarini topish
-        debt_orders = Order.query.filter(
-            Order.tenant_id == t_id,
-            Order.status != 'Bekor qilindi',
-            ((Order.payment_method.in_(['Qarz', 'Nasiya', 'qarz', 'nasiya'])) | (Order.is_paid == False))
-        ).order_by(Order.id.asc()).all()
-
-        if not debt_orders:
-            # Qarzdorlik yo'q
-            if admin_id and bot_token and str(admin_id) not in ('', 'None', 'YOUR_ADMIN_ID_HERE'):
-                msg = (
-                    f"📊 <b>KUNLIK QARZDORLIK ESLATMASI (19:00)</b>\n"
-                    f"🏢 Oshxona: <b>{restaurant_name}</b>\n"
-                    f"📅 Sana: <b>{now_tashkent.strftime('%d.%m.%Y %H:%M')}</b>\n\n"
-                    f"✅ <b>Ajoyib xabar!</b> Hozirda to'lanmagan qarzdorliklar mavjud emas. Barcha hisob-kitoblar to'liq yopilgan. 🎉"
-                )
-                try:
-                    requests.post(
-                        f"https://api.telegram.org/bot{bot_token}/sendMessage",
-                        json={'chat_id': int(admin_id), 'text': msg, 'parse_mode': 'HTML'},
-                        timeout=10
-                    )
-                except Exception as ex:
-                    print(f"[Debt zero notify error]: {ex}")
-
-            summary_results.append({
-                'tenant_id': t_id,
-                'total_debtors': 0,
-                'total_debt': 0,
-                'sent_count': 0,
-                'failed_count': 0,
-                'sent': [],
-                'failed': []
-            })
-            continue
-
-        # Har bir mijoz bo'yicha qarzni birlashtirish
-        customers_map = {}
-        for ord in debt_orders:
-            phone = ""
-            if ord.user and ord.user.phone:
-                phone = ord.user.phone.strip()
-
-            cust_name = ""
-            if ord.address and "Mijoz:" in ord.address:
-                try:
-                    cust_name = ord.address.split("Mijoz:")[1].split("|")[0].strip()
-                except Exception:
-                    pass
-
-            if not phone and ord.address:
-                m = re.search(r'(\+?998\d{9})', ord.address)
-                if m:
-                    phone = m.group(1)
-
-            cust_key = phone if phone else f"uid_{ord.user_id}"
-            if not cust_name:
-                cust_name = phone or f"Mijoz #{ord.daily_id or ord.id}"
-
-            if cust_key not in customers_map:
-                customers_map[cust_key] = {
-                    'name': cust_name,
-                    'phone': phone,
-                    'user_id': ord.user_id,
-                    'total_debt': 0,
-                    'order_ids': []
-                }
-
-            customers_map[cust_key]['total_debt'] += (ord.total_amount or 0)
-            order_label = f"#{ord.daily_id or ord.id}"
-            if order_label not in customers_map[cust_key]['order_ids']:
-                customers_map[cust_key]['order_ids'].append(order_label)
-
-            if cust_name and customers_map[cust_key]['name'] == phone:
-                customers_map[cust_key]['name'] = cust_name
-
-        success_list = []
-        fail_list = []
-        grand_total_debt = 0
-
-        # Har bir mijozga Telegram orqali xabar yuborish
-        for ckey, cdata in customers_map.items():
-            grand_total_debt += cdata['total_debt']
-            total_formatted = f"{cdata['total_debt']:,}".replace(",", " ")
-            orders_str = ", ".join(cdata['order_ids'])
-
-            target_tg_id = None
-            raw_uid = cdata['user_id']
-            if raw_uid and str(raw_uid).isdigit() and int(raw_uid) < 900000000 and int(raw_uid) > 1000:
-                target_tg_id = int(raw_uid)
-            elif cdata['phone']:
-                found_u = User.query.filter(User.phone == cdata['phone'], User.user_id < 900000000, User.user_id > 1000).first()
-                if found_u:
-                    target_tg_id = found_u.user_id
-
-            if not target_tg_id or not bot_token:
-                fail_list.append({
-                    'name': cdata['name'],
-                    'phone': cdata['phone'] or "Ko'rsatilmagan",
-                    'amount': cdata['total_debt'],
-                    'orders': orders_str,
-                    'reason': "Telegram botga ulanmagan (faqat tel raqam)"
-                })
-                continue
-
-            cust_text = (
-                f"⚠️ <b>Hurmatli {cdata['name']}!</b>\n\n"
-                f"Sizning <b>{restaurant_name}</b> oldidagi qarzingiz mavjud:\n"
-                f"💰 <b>Qarz summasi: {total_formatted} so'm</b>\n"
-                f"📦 Buyurtmalar: <b>{orders_str}</b>\n\n"
-                f"Iltimos, hisob-kitob qilib to'lovni amalga oshirishingizni so'raymiz. 🙏"
-            )
-            if contact_phone:
-                cust_text += f"\n📞 Bog'lanish: <b>{contact_phone}</b>"
-
-            try:
-                r = requests.post(
-                    f"https://api.telegram.org/bot{bot_token}/sendMessage",
-                    json={'chat_id': target_tg_id, 'text': cust_text, 'parse_mode': 'HTML'},
-                    timeout=8
-                )
-                res_data = r.json()
-                if res_data.get('ok'):
-                    success_list.append({
-                        'name': cdata['name'],
-                        'phone': cdata['phone'] or "—",
-                        'amount': cdata['total_debt'],
-                        'orders': orders_str
-                    })
-                else:
-                    err_desc = res_data.get('description', 'Yuborib bo\'lmadi')
-                    if 'blocked' in err_desc.lower():
-                        reason_clean = "Bot bloklangan"
-                    elif 'chat not found' in err_desc.lower():
-                        reason_clean = "Telegram chat topilmadi"
-                    else:
-                        reason_clean = err_desc
-                    fail_list.append({
-                        'name': cdata['name'],
-                        'phone': cdata['phone'] or "—",
-                        'amount': cdata['total_debt'],
-                        'orders': orders_str,
-                        'reason': reason_clean
-                    })
-            except Exception as se:
-                fail_list.append({
-                    'name': cdata['name'],
-                    'phone': cdata['phone'] or "—",
-                    'amount': cdata['total_debt'],
-                    'orders': orders_str,
-                    'reason': f"Aloqa xatosi: {str(se)[:30]}"
-                })
-
-        # Adminga to'liq hisobot yuborish
-        if admin_id and bot_token and str(admin_id) not in ('', 'None', 'YOUR_ADMIN_ID_HERE'):
-            grand_total_str = f"{grand_total_debt:,}".replace(",", " ")
-            admin_report_lines = [
-                f"📊 <b>KUNLIK QARZDORLIK ESLATMASI (19:00)</b>",
-                f"🏢 Oshxona: <b>{restaurant_name}</b>",
-                f"📅 Sana: <b>{now_tashkent.strftime('%d.%m.%Y %H:%M')}</b>",
-                f"👥 Jami qarzdorlar: <b>{len(customers_map)} ta</b>",
-                f"💰 Umumiy qarz: <b>{grand_total_str} so'm</b>"
-            ]
-
-            if success_list:
-                admin_report_lines.append(f"\n✅ <b>XABAR YUBORILDI ({len(success_list)} ta mijozga):</b>")
-                for idx, s in enumerate(success_list, 1):
-                    amt_s = f"{s['amount']:,}".replace(",", " ")
-                    admin_report_lines.append(f"{idx}. <b>{s['name']}</b> ({s['phone']}) - <b>{amt_s} so'm</b> ({s['orders']})")
-
-            if fail_list:
-                admin_report_lines.append(f"\n❌ <b>XABAR BORMADI ({len(fail_list)} ta mijozga):</b>")
-                for idx, f in enumerate(fail_list, 1):
-                    amt_s = f"{f['amount']:,}".replace(",", " ")
-                    admin_report_lines.append(f"{idx}. <b>{f['name']}</b> ({f['phone']}) - <b>{amt_s} so'm</b> ({f['orders']})\n   ⚠️ <i>Sabab: {f['reason']}</i>")
-                admin_report_lines.append(f"\n💡 <i>Eslatma: Xabar bormagan mijozlarga telefon orqali qo'ng'iroq qilib eslatishingiz mumkin.</i>")
-
-            admin_full_msg = "\n".join(admin_report_lines)
-            try:
-                requests.post(
-                    f"https://api.telegram.org/bot{bot_token}/sendMessage",
-                    json={'chat_id': int(admin_id), 'text': admin_full_msg, 'parse_mode': 'HTML'},
-                    timeout=10
-                )
-            except Exception as ae:
-                print(f"[Admin debt report error]: {ae}")
-
-        summary_results.append({
-            'tenant_id': t_id,
-            'total_debtors': len(customers_map),
-            'total_debt': grand_total_debt,
-            'sent_count': len(success_list),
-            'failed_count': len(fail_list),
-            'sent': success_list,
-            'failed': fail_list
-        })
-
-    return {'success': True, 'results': summary_results}
-
-
-@app.route('/api/admin/debts/send_reminders', methods=['POST'])
-@login_required
-def api_admin_send_debt_reminders():
-    t_id = get_current_tenant_id()
-    result = check_and_send_debt_reminders(force=True, tenant_id=t_id)
-    return jsonify(result)
-
-
-@app.route('/api/internal/cron/debt_reminders', methods=['GET', 'POST'])
-def api_internal_cron_debt_reminders():
-    result = check_and_send_debt_reminders(force=False)
-    return jsonify(result)
-
-
-def start_debt_reminder_scheduler():
-    """19:00 Toshkent vaqti bo'yicha har 30 soniyada qarz eslatmasini tekshiruvchi fon jarayoni"""
-    def _worker():
-        time.sleep(10)
-        print("[Debt Scheduler]: Kunlik 19:00 qarz eslatmalari fon tekshiruvchisi ishga tushdi.")
-        while True:
-            try:
-                time.sleep(30)
-                with app.app_context():
-                    check_and_send_debt_reminders(force=False)
-            except Exception as e:
-                print(f"[Debt Scheduler loop error]: {e}")
-                time.sleep(15)
-
-    threading.Thread(target=_worker, daemon=True).start()
-
-start_debt_reminder_scheduler()
 
 
 @app.route('/api/admin/pos/order', methods=['POST'])
@@ -2037,7 +1711,6 @@ def api_admin_pos_order():
             addr_parts.append(f"Izoh: {comment}")
 
         full_address = " | ".join(addr_parts)
-        is_paid_val = False if payment_method in ('Qarz', 'Nasiya') else True
 
         new_order = Order(
             tenant_id=t_id,
@@ -2046,8 +1719,7 @@ def api_admin_pos_order():
             status="Tayyorlanmoqda",
             payment_method=payment_method,
             total_amount=total_amount,
-            address=full_address,
-            is_paid=is_paid_val
+            address=full_address
         )
         db.session.add(new_order)
         db.session.flush()
@@ -2075,14 +1747,13 @@ def api_admin_pos_order():
                 if bot_token and admin_id and str(admin_id) not in ("YOUR_ADMIN_ID_HERE", "", "None"):
                     order_items_text = "".join([f"  • {it['name']} x {it['quantity']} = {it['subtotal']:,} so'm\n" for it in items_response])
                     comment_line = f"💬 Izoh: {comment}\n" if comment else ""
-                    pay_display = f"⚠️ <b>Qarz (Nasiya)</b>" if payment_method in ('Qarz', 'Nasiya') else payment_method
                     msg = (
                         f"📞 <b>Yangi Telefon Buyurtma! #{next_daily_id}</b>\n\n"
                         f"👤 Mijoz: <b>{customer_name or 'Mijoz'}</b>\n"
                         f"📱 Tel: <b>{phone}</b>\n"
                         f"📦 Turi: <b>{order_type}</b>\n"
                         f"📍 Manzil: {raw_address or 'Olib ketish / Zalda'}\n"
-                        f"💳 To'lov: {pay_display}\n"
+                        f"💳 To'lov: {payment_method}\n"
                         f"{comment_line}\n"
                         f"🛒 <b>Tarkib:</b>\n{order_items_text}"
                         f"💰 <b>Jami: {total_amount:,} so'm</b>"
@@ -2947,11 +2618,8 @@ def api_admin_stats():
     today_revenue = 0
     cash_revenue = 0
     card_revenue = 0
-    debt_revenue = 0
     pending_orders = 0
     dish_sales = {}
-    debtor_keys = set()
-    total_active_debt = 0
 
     tz = timezone(timedelta(hours=5))
     req_date = request.args.get('date')
@@ -2972,19 +2640,11 @@ def api_admin_stats():
             if tashkent_dt.strftime("%Y-%m-%d") == today_date_str:
                 is_today = True
 
-        is_debt_order = (o.payment_method in ('Qarz', 'Nasiya') or getattr(o, 'is_paid', True) is False)
-        if o.status != 'Bekor qilindi' and is_debt_order:
-            total_active_debt += (o.total_amount or 0)
-            u_phone = o.user.phone if o.user else ''
-            debtor_keys.add(u_phone or f"uid_{o.user_id}")
-
         if is_today and o.status != 'Bekor qilindi':
             today_orders_count += 1
             amount = o.total_amount or 0
             today_revenue += amount
-            if is_debt_order:
-                debt_revenue += amount
-            elif o.payment_method == 'Karta':
+            if o.payment_method == 'Karta':
                 card_revenue += amount
             else:
                 cash_revenue += amount
@@ -3005,9 +2665,6 @@ def api_admin_stats():
             'pending_orders': pending_orders,
             'cash_revenue': cash_revenue,
             'card_revenue': card_revenue,
-            'debt_revenue': debt_revenue,
-            'total_active_debt': total_active_debt,
-            'active_debtors_count': len(debtor_keys),
             'top_dishes': top_dishes
         }
     })

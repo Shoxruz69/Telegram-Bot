@@ -942,7 +942,7 @@ async function fetchOrders(isFirstLoad = false) {
 }
 
 function updateOrderCounts() {
-  const counts = { all: 0, process: 0, completed: 0, cancelled: 0, debt: 0 };
+  const counts = { all: 0, process: 0, completed: 0, cancelled: 0 };
   let pendingCount = 0;
 
   state.orders.forEach(o => {
@@ -956,23 +956,18 @@ function updateOrderCounts() {
     } else if (s === 'Bekor qilindi') {
       counts.cancelled++;
     }
-    if (s !== 'Bekor qilindi' && (o.payment_method === 'Qarz' || o.payment_method === 'Nasiya' || o.is_paid === false)) {
-      counts.debt++;
-    }
   });
 
   const countAll = document.getElementById('count-all');
   const countProcess = document.getElementById('count-process');
   const countCompleted = document.getElementById('count-completed');
   const countCancelled = document.getElementById('count-cancelled');
-  const countDebt = document.getElementById('count-debt');
   const navOrdersBadge = document.getElementById('nav-orders-badge');
 
   if (countAll) countAll.textContent = counts.all;
   if (countProcess) countProcess.textContent = counts.process;
   if (countCompleted) countCompleted.textContent = counts.completed;
   if (countCancelled) countCancelled.textContent = counts.cancelled;
-  if (countDebt) countDebt.textContent = counts.debt;
 
   if (navOrdersBadge) {
     if (pendingCount > 0) {
@@ -1029,9 +1024,6 @@ function renderOrdersGrid() {
       if (order.status !== 'Tugatildi' && order.status !== 'Yetkazildi') return false;
     } else if (state.orderStatusFilter === 'cancelled') {
       if (order.status !== 'Bekor qilindi') return false;
-    } else if (state.orderStatusFilter === 'debt') {
-      const isDebtOrder = order.payment_method === 'Qarz' || order.payment_method === 'Nasiya' || order.is_paid === false;
-      if (!isDebtOrder) return false;
     }
 
     // Search query filter
@@ -1073,12 +1065,8 @@ function renderOrdersGrid() {
     const displayItems = isExpanded ? order.items : (order.items || []).slice(0, 3);
     const hasMore = (order.items || []).length > 3 && !isExpanded;
     const remainingCount = (order.items || []).length - 3;
-    const isDebt = order.payment_method === 'Qarz' || order.payment_method === 'Nasiya' || order.is_paid === false;
-    const isPaid = order.is_paid !== false;
     const isCard = order.payment_method === 'Karta';
-    const paymentText = isDebt 
-      ? (isPaid ? "Qarz (To'langan)" : "Qarz (To'lanmagan)") 
-      : (isCard ? t('card') : t('cash'));
+    const paymentText = isCard ? t('card') : t('cash');
 
     return `
       <div class="order-card ${order.status === 'Kutilmoqda' ? 'new-order-highlight' : ''}" id="order-card-${order.id}">
@@ -1128,19 +1116,12 @@ function renderOrdersGrid() {
 
           <!-- Badges (Payment & Address & Promocode) -->
           <div class="card-badges-row" style="margin-top: 10px;">
-            ${isDebt ? `
-              <span class="card-info-tag" style="background: ${isPaid ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.18)'}; border-color: ${isPaid ? '#10B981' : '#EF4444'}; color: ${isPaid ? '#10B981' : '#EF4444'}; font-weight: 700;">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                <span>${paymentText}</span>
-              </span>
-            ` : `
-              <span class="card-info-tag">
-                ${isCard 
-                  ? `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>`
-                  : `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/></svg>`}
-                <span>${paymentText}</span>
-              </span>
-            `}
+            <span class="card-info-tag">
+              ${isCard 
+                ? `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>`
+                : `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/></svg>`}
+              <span>${paymentText}</span>
+            </span>
             ${order.promocode ? `
               <span class="card-info-tag" style="background: rgba(16, 185, 129, 0.15); border-color: #10B981; color: #10B981; font-weight: 700;">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z"/></svg>
@@ -1173,12 +1154,6 @@ function renderOrdersGrid() {
             <button class="btn-card-secondary" style="padding: 6px 10px; display: inline-flex; align-items: center; justify-content: center;" onclick="printOrderReceipt(${order.id})" title="Chek chiqarish (Printer)">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
             </button>
-            ${(isDebt && !isPaid) ? `
-              <button class="btn-card-secondary" style="background: rgba(16, 185, 129, 0.12); color: #10B981; border: 1px solid #10B981; padding: 6px 10px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;" onclick="markOrderPaid(${order.id})" title="Qarz to'landi deb belgilash">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                <span>To'landi</span>
-              </button>
-            ` : ''}
             ${order.status === 'Kutilmoqda' ? `
               <button class="btn-card-primary" style="flex: 1;" onclick="quickUpdateStatus(${order.id}, 'Tayyorlanmoqda')">${t('pay_bills')}</button>
             ` : (order.status === 'Tayyorlanmoqda' || order.status === 'Tasdiqlandi') ? `
@@ -1252,12 +1227,7 @@ function openOrderDetailsModal(orderId) {
   if (modalCustomerName) modalCustomerName.textContent = order.user_phone || 'Mijoz';
   if (modalCustomerPhone) modalCustomerPhone.innerHTML = `<a href="tel:${order.user_phone}" style="color: inherit; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg> <span>${order.user_phone || 'N/A'}</span></a>`;
   const promoStr = order.promocode ? ` • <span style="color: #10B981; font-weight: 700;">${order.promocode}</span>` : '';
-  const isOrderDebt = order.payment_method === 'Qarz' || order.payment_method === 'Nasiya' || order.is_paid === false;
-  const isOrderPaid = order.is_paid !== false;
-  const payTypeStr = isOrderDebt 
-    ? `<span style="color: ${isOrderPaid ? '#10B981' : '#EF4444'}; font-weight: 700;">${isOrderPaid ? "✓ Qarz (To'langan)" : "⚠️ Qarz (To'lanmagan)"}</span>`
-    : (order.payment_method === 'Karta' ? t('card') : t('cash'));
-  if (modalOrderType) modalOrderType.innerHTML = `${t('order')} #${order.id} (${payTypeStr})${promoStr}`;
+  if (modalOrderType) modalOrderType.innerHTML = `${t('order')} #${order.id} (${order.payment_method === 'Karta' ? t('card') : t('cash')})${promoStr}`;
   if (modalAddress) {
     modalAddress.innerHTML = `<div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> <strong>${t('address_lbl')}</strong> <span>${order.address || t('not_specified')}</span>` +
       (order.latitude && order.longitude ? `<a href="https://maps.google.com/?q=${order.latitude},${order.longitude}" target="_blank" style="color: #0284C7; margin-left: 8px; display: inline-flex; align-items: center; gap: 3px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg> ${t('view_map')}</a>` : '') + `</div>`;
@@ -1329,15 +1299,6 @@ function openOrderDetailsModal(orderId) {
     } else {
       btnCancel.style.display = 'flex';
     }
-  }
-
-  const btnMarkPaid = document.getElementById('modal-btn-mark-paid');
-  const btnMarkDebt = document.getElementById('modal-btn-mark-debt');
-  if (btnMarkPaid) {
-    btnMarkPaid.style.display = (isOrderDebt && !isOrderPaid) ? 'flex' : 'none';
-  }
-  if (btnMarkDebt) {
-    btnMarkDebt.style.display = (!isOrderDebt && order.status !== 'Bekor qilindi') ? 'flex' : 'none';
   }
 
   // Open Modal
@@ -2354,13 +2315,6 @@ function renderStatsView() {
   // Payment Breakdown
   document.getElementById('stat-cash-sum').textContent = formatPrice(stats.cash_revenue || 0);
   document.getElementById('stat-card-sum').textContent = formatPrice(stats.card_revenue || 0);
-  const statDebtEl = document.getElementById('stat-debt-sum');
-  if (statDebtEl) statDebtEl.textContent = formatPrice(stats.debt_revenue || 0);
-
-  const activeDebtCountEl = document.getElementById('stat-active-debt-count');
-  if (activeDebtCountEl) activeDebtCountEl.textContent = `${stats.active_debtors_count || 0} ta mijoz`;
-  const activeDebtTotalEl = document.getElementById('stat-active-debt-total');
-  if (activeDebtTotalEl) activeDebtTotalEl.textContent = formatPrice(stats.total_active_debt || 0);
 
   // Top Dishes
   const topList = document.getElementById('stat-top-dishes-list');
@@ -3087,10 +3041,8 @@ function setPosPaymentMethod(method) {
   state.posPaymentMethod = method;
   const btnCash = document.getElementById('pos-pay-cash');
   const btnCard = document.getElementById('pos-pay-card');
-  const btnDebt = document.getElementById('pos-pay-debt');
   if (btnCash) btnCash.classList.toggle('active', method === 'Naqd');
   if (btnCard) btnCard.classList.toggle('active', method === 'Karta');
-  if (btnDebt) btnDebt.classList.toggle('active', method === 'Qarz');
 }
 
 async function submitPosOrder(e) {
@@ -3358,82 +3310,4 @@ async function printOrderReceipt(orderId) {
 function printSelectedOrderReceipt() {
   if (!state.selectedOrder) return;
   printOrderReceipt(state.selectedOrder.id);
-}
-
-async function markOrderPaid(orderId) {
-  if (!confirm("Ushbu buyurtma bo'yicha qarz to'landi deb belgilansinmi?")) return;
-  try {
-    const res = await fetch(`/api/admin/orders/${orderId}/mark_paid`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
-    });
-    const data = await res.json();
-    if (data.success) {
-      showToast("Qarz to'landi deb muvaffaqiyatli belgilandi! ✅", "success");
-      fetchOrders(false);
-      loadStatsData();
-    } else {
-      showToast(data.error || "Xatolik", "error");
-    }
-  } catch (e) {
-    showToast("Server bilan aloqa xatosi!", "error");
-  }
-}
-
-async function markOrderDebt(orderId) {
-  if (!confirm("Ushbu buyurtmani qarzga o'tkazishni tasdiqlaysizmi?")) return;
-  try {
-    const res = await fetch(`/api/admin/orders/${orderId}/mark_debt`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
-    });
-    const data = await res.json();
-    if (data.success) {
-      showToast("Buyurtma qarzga o'tkazildi! ⚠️", "success");
-      fetchOrders(false);
-      loadStatsData();
-    } else {
-      showToast(data.error || "Xatolik", "error");
-    }
-  } catch (e) {
-    showToast("Server bilan aloqa xatosi!", "error");
-  }
-}
-
-function markOrderPaidFromModal() {
-  if (!state.selectedOrder) return;
-  markOrderPaid(state.selectedOrder.id);
-  closeOrderDetailsModal();
-}
-
-function markOrderDebtFromModal() {
-  if (!state.selectedOrder) return;
-  markOrderDebt(state.selectedOrder.id);
-  closeOrderDetailsModal();
-}
-
-async function triggerDebtRemindersNow() {
-  if (!confirm("Barcha qarzdorlarga eslatma va Adminga hisobot xabari hoziroq yuborilsinmi?")) {
-    return;
-  }
-  showToast("Qarz eslatmalari yuborilmoqda... ⏳", "info");
-  try {
-    const res = await fetch('/api/admin/debts/send_reminders', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
-    });
-    const data = await res.json();
-    if (data.success) {
-      const res0 = (data.results && data.results[0]) || {};
-      const sentCount = res0.sent_count || 0;
-      const failCount = res0.failed_count || 0;
-      showToast(`Eslatmalar yuborildi! Yuborildi: ${sentCount} ta, Bormadi: ${failCount} ta. Adminga hisobot jo'natildi.`, 'success');
-      fetchOrders(false);
-      loadStatsData();
-    } else {
-      showToast(data.error || "Xatolik yuz berdi", "error");
-    }
-  } catch (e) {
-    showToast("Server bilan aloqa xatosi!", "error");
-  }
 }
