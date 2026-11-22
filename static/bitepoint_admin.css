@@ -1968,7 +1968,11 @@ body {
   width: 360px;
   min-width: 340px;
   position: sticky;
-  top: 90px;
+  top: 80px;
+  height: calc(100vh - 105px);
+  max-height: calc(100vh - 105px);
+  display: flex;
+  flex-direction: column;
 }
 
 .pos-cart-card {
@@ -1977,16 +1981,22 @@ body {
   border-radius: var(--radius-lg);
   display: flex;
   flex-direction: column;
-  max-height: calc(100vh - 130px);
+  height: 100%;
+  max-height: 100%;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+  position: relative;
 }
 
 .pos-cart-header {
-  padding: 16px;
+  padding: 14px 16px;
   border-bottom: 1px solid var(--border-subtle);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-shrink: 0;
+  background: var(--bg-card);
+  z-index: 2;
 }
 
 .btn-clear-pos {
@@ -2011,11 +2021,31 @@ body {
 .pos-cart-items-list {
   padding: 12px;
   overflow-y: auto;
-  flex: 1;
+  overflow-x: hidden;
+  flex: 1 1 0%;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  min-height: 180px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(212, 175, 55, 0.4) transparent;
+}
+
+.pos-cart-items-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.pos-cart-items-list::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.pos-cart-items-list::-webkit-scrollbar-thumb {
+  background: rgba(212, 175, 55, 0.35);
+  border-radius: 4px;
+}
+
+.pos-cart-items-list::-webkit-scrollbar-thumb:hover {
+  background: var(--gold-primary);
 }
 
 .pos-cart-empty {
@@ -2038,6 +2068,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  flex-shrink: 0;
 }
 
 .pos-cart-item-header {
@@ -2086,10 +2117,15 @@ body {
 }
 
 .pos-cart-footer {
-  padding: 16px;
+  padding: 14px 16px;
   border-top: 1px solid var(--border-subtle);
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--bg-card);
   border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  flex-shrink: 0;
+  margin-top: auto;
+  position: relative;
+  z-index: 5;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.35);
 }
 
 /* Thermal Paper Styling - Default is 'Bosma' (Modern, Bold, High-Contrast) */
@@ -2245,5 +2281,18 @@ body {
 
 @media (max-width: 1024px) {
   .pos-layout { flex-direction: column; }
-  .pos-cart-col { width: 100%; min-width: auto; position: static; }
+  .pos-cart-col { 
+    width: 100%; 
+    min-width: auto; 
+    position: static; 
+    height: auto; 
+    max-height: none; 
+  }
+  .pos-cart-card {
+    max-height: 80vh;
+    height: auto;
+  }
+  .pos-cart-items-list {
+    max-height: 45vh;
+  }
 }
