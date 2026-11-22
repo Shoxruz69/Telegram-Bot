@@ -50,6 +50,7 @@ const i18n = {
     more_items: "ta ko'proq...",
     no_orders_found: "Hozircha buyurtmalar yo'q",
     no_orders_sub: "Ushbu filtr bo'yicha hech qanday buyurtma topilmadi.",
+    share_telegram: "Telegram orqali ulashish (Taksi / Kuryer)",
 
     // Status Texts
     status_ready: "Tasdiqlandi",
@@ -210,6 +211,7 @@ const i18n = {
     more_items: "еще...",
     no_orders_found: "Заказов пока нет",
     no_orders_sub: "По данному фильтру заказов не найдено.",
+    share_telegram: "Отправить в Telegram (Такси / Курьер)",
 
     // Status Texts
     status_ready: "Подтвержден",
@@ -370,6 +372,7 @@ const i18n = {
     more_items: "more...",
     no_orders_found: "No orders yet",
     no_orders_sub: "No orders found matching this filter.",
+    share_telegram: "Share via Telegram (Taxi / Courier)",
 
     // Status Texts
     status_ready: "Ready",
@@ -739,6 +742,7 @@ function applyTranslationsToStaticElements() {
   mapText('#modal-change-lbl', t('modal_change'));
   mapText('#btn-pay-now-text', t('modal_pay_now'));
   mapText('#btn-cancel-order-text', t('modal_cancel_order'));
+  mapText('#modal-btn-share-telegram-text', t('share_telegram'));
 }
 
 async function fetchAdminMe() {
@@ -746,6 +750,7 @@ async function fetchAdminMe() {
     const res = await fetch('/api/admin/me');
     const data = await res.json();
     if (data.success && data.tenant) {
+      state.tenant = data.tenant;
       const brandEl = document.getElementById('sidebar-brand-name');
       if (brandEl) brandEl.innerText = data.tenant.name;
       const userEl = document.getElementById('sidebar-user-name');
@@ -1149,6 +1154,15 @@ function renderOrdersGrid() {
             <span class="total-label">${t('total_lbl')}</span>
             <span class="total-amount">${formatPrice(order.total_amount)}</span>
           </div>
+
+          <!-- Telegram Share for Taxi / Courier -->
+          <button class="btn-share-telegram" onclick="shareOrderToTelegram(${order.id})" title="Telegram orqali ulashish (Taksi / Kuryerga)">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.75-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .36z"/>
+            </svg>
+            <span>${t('share_telegram') || 'Telegramda ulashish (Taksi / Kuryer)'}</span>
+          </button>
+
           <div class="card-actions-row">
             <button class="btn-card-secondary" style="flex: 1;" onclick="openOrderDetailsModal(${order.id})">${t('see_details')}</button>
             <button class="btn-card-secondary" style="padding: 6px 10px; display: inline-flex; align-items: center; justify-content: center;" onclick="printOrderReceipt(${order.id})" title="Chek chiqarish (Printer)">
@@ -3343,4 +3357,78 @@ async function printOrderReceipt(orderId) {
 function printSelectedOrderReceipt() {
   if (!state.selectedOrder) return;
   printOrderReceipt(state.selectedOrder.id);
+}
+
+// ==========================================================================
+// SHARE ORDER TO TELEGRAM (TAXI / COURIER)
+// ==========================================================================
+
+function shareOrderToTelegram(orderId) {
+  const order = state.orders.find(o => o.id === orderId);
+  if (!order) return;
+
+  const restName = (state.tenant && state.tenant.name) || 'City Milliy Taomlar';
+  const orderNum = order.daily_id || order.id;
+
+  // Dishes list
+  const itemsText = (order.items && order.items.length > 0)
+    ? order.items.map(i => {
+        const matched = state.menuItems.find(m => m.id === i.menu_item_id || m.name === i.name);
+        const dishName = matched ? getDishName(matched) : i.name;
+        return `  • ${dishName} — ${i.quantity} dona (${formatPrice(i.price * i.quantity)})`;
+      }).join('\n')
+    : '  • Taomlar ko\'rsatilmagan';
+
+  // Payment text
+  let paymentText = '';
+  if (order.payment_method === 'Karta') {
+    paymentText = '💳 Karta (Oldindan to\'langan ✅)';
+  } else if (order.payment_method === 'Qarz') {
+    paymentText = '⚠️ Nasiya / Qarz';
+  } else {
+    paymentText = `💵 Naqd (${formatPrice(order.total_amount)} mijozdan olinadi 💰)`;
+  }
+
+  // Location / coordinates
+  let locationLine = '';
+  let mapUrl = '';
+  if (order.latitude && order.longitude && Number(order.latitude) !== 0 && Number(order.longitude) !== 0) {
+    mapUrl = `https://maps.google.com/?q=${order.latitude},${order.longitude}`;
+    locationLine = `\n🗺️ Lokatsiya (Xarita):\n${mapUrl}`;
+  }
+
+  const promoLine = order.promocode ? `\n🎟️ Promokod: ${order.promocode}` : '';
+  const customerPhone = order.user_phone || 'Kiritilmagan';
+  const addressVal = order.address ? order.address : 'Ko\'rsatilmagan';
+  const timeVal = `${order.created_time || ''} (${order.created_date || 'Bugun'})`;
+
+  const shareText = 
+`📦 BUYURTMA #${orderNum} (${restName})
+━━━━━━━━━━━━━━━━━━
+👤 Mijoz: ${customerPhone}
+📍 Manzil: ${addressVal}${locationLine}
+💳 To'lov: ${paymentText}${promoLine}
+
+🛒 Buyurtma tarkibi:
+${itemsText}
+
+💰 Jami summa: ${formatPrice(order.total_amount)}
+🕒 Vaqt: ${timeVal}
+━━━━━━━━━━━━━━━━━━
+🚕 Taksi / Kuryer uchun yetkazib berish ma'lumoti`;
+
+  // Copy to clipboard
+  if (navigator && navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(shareText).catch(() => {});
+  }
+
+  // Open Telegram share dialog
+  const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(mapUrl || '')}&text=${encodeURIComponent(shareText)}`;
+  window.open(telegramUrl, '_blank');
+  showToast("Telegram ulashish oynasi ochildi! 🚀", "success");
+}
+
+function shareSelectedOrderToTelegram() {
+  if (!state.selectedOrder) return;
+  shareOrderToTelegram(state.selectedOrder.id);
 }

@@ -1221,6 +1221,48 @@ body {
   color: var(--gold-light);
 }
 
+/* Telegram Share Button */
+.btn-share-telegram {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8.5px 12px;
+  background: linear-gradient(135deg, #2AABEE, #1E96D3);
+  color: #FFFFFF !important;
+  border: none;
+  border-radius: 9px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(42, 171, 238, 0.28);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  text-decoration: none;
+  user-select: none;
+  margin-bottom: 8px;
+}
+
+.btn-share-telegram:hover {
+  background: linear-gradient(135deg, #3DB4F2, #188BC5);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(42, 171, 238, 0.45);
+  color: #FFFFFF !important;
+}
+
+.btn-share-telegram:active {
+  transform: translateY(0);
+}
+
+.btn-share-telegram svg {
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.btn-share-telegram:hover svg {
+  transform: scale(1.1) rotate(-6deg);
+}
+
 /* Button Group */
 .card-actions-row {
   display: grid;

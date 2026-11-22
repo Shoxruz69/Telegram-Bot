@@ -1607,6 +1607,7 @@ def api_admin_orders():
 
         result.append({
             'id': o.id,
+            'daily_id': getattr(o, 'daily_id', None) or o.id,
             'user_id': o.user_id,
             'user_phone': user_phone,
             'latitude': user_lat,
