@@ -1968,9 +1968,8 @@ body {
   width: 360px;
   min-width: 340px;
   position: sticky;
-  top: 80px;
-  height: calc(100vh - 105px);
-  max-height: calc(100vh - 105px);
+  top: 0;
+  max-height: calc(100vh - 150px);
   display: flex;
   flex-direction: column;
 }
@@ -1981,15 +1980,14 @@ body {
   border-radius: var(--radius-lg);
   display: flex;
   flex-direction: column;
-  height: 100%;
-  max-height: 100%;
+  max-height: calc(100vh - 150px);
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
   overflow: hidden;
   position: relative;
 }
 
 .pos-cart-header {
-  padding: 14px 16px;
+  padding: 12px 16px;
   border-bottom: 1px solid var(--border-subtle);
   display: flex;
   align-items: center;
@@ -2019,10 +2017,10 @@ body {
 }
 
 .pos-cart-items-list {
-  padding: 12px;
+  padding: 10px 12px;
   overflow-y: auto;
   overflow-x: hidden;
-  flex: 1 1 0%;
+  flex: 1 1 auto;
   min-height: 0;
   display: flex;
   flex-direction: column;
@@ -2053,11 +2051,11 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 40px 16px;
+  padding: 24px 16px;
   text-align: center;
   color: var(--text-muted);
   font-size: 13px;
-  gap: 10px;
+  gap: 8px;
 }
 
 .pos-cart-item {
@@ -2117,7 +2115,7 @@ body {
 }
 
 .pos-cart-footer {
-  padding: 14px 16px;
+  padding: 12px 16px;
   border-top: 1px solid var(--border-subtle);
   background: var(--bg-card);
   border-radius: 0 0 var(--radius-lg) var(--radius-lg);
@@ -2125,7 +2123,7 @@ body {
   margin-top: auto;
   position: relative;
   z-index: 5;
-  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.25);
 }
 
 /* Thermal Paper Styling - Default is 'Bosma' (Modern, Bold, High-Contrast) */
