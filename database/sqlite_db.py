@@ -242,24 +242,24 @@ async def init_db():
                 default_tenant_hash = generate_password_hash("admin123")
                 await db.execute('''
                     INSERT INTO tenants (id, name, slug, bot_token, bot_username, admin_telegram_id, admin_username, admin_password_hash, is_active)
-                    VALUES (1, 'City Milliy Taomlar', 'express', ?, '@CafeExpressBot', ?, 'admin', ?, 1)
+                    VALUES (1, 'City Milliy Taomlar', 'express', ?, '@CityMilliyTaomlari_bot', ?, 'admin', ?, 1)
                 ''', (t_token, t_admin_id, default_tenant_hash))
                 await db.commit()
             else:
                 # Agar bazada nomi 'Cafe Express' bo'lsa - 'City Milliy Taomlar' ga yangilash
                 await db.execute("""
                     UPDATE tenants 
-                    SET name = 'City Milliy Taomlar' 
-                    WHERE id = 1 AND name = 'Cafe Express'
+                    SET name = 'City Milliy Taomlar', bot_username = '@CityMilliyTaomlari_bot'
+                    WHERE id = 1 AND (name = 'Cafe Express' OR bot_username = '@CafeExpressBot')
                 """)
                 await db.commit()
                 # Agar bazada bot_token placeholder bo'lsa va env da haqiqiy token bo'lsa - avtomatik yangilash
                 if env_token and env_token != "YOUR_BOT_TOKEN_HERE":
                     await db.execute("""
                         UPDATE tenants 
-                        SET bot_token = ?, is_active = 1 
-                        WHERE id = 1 AND (bot_token = 'YOUR_BOT_TOKEN_HERE' OR bot_token = '' OR bot_token IS NULL)
-                    """, (env_token,))
+                        SET bot_token = ?, bot_username = '@CityMilliyTaomlari_bot', is_active = 1 
+                        WHERE id = 1 AND (bot_token != ? OR bot_token IS NULL OR bot_username = '@CafeExpressBot')
+                    """, (env_token, env_token))
                     await db.commit()
                 if env_admin_id and env_admin_id != "YOUR_ADMIN_ID_HERE":
                     await db.execute("""

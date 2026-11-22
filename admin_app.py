@@ -385,7 +385,7 @@ with app.app_context():
                     name="City Milliy Taomlar",
                     slug="express",
                     bot_token=env_token or "YOUR_BOT_TOKEN_HERE",
-                    bot_username="@CafeExpressBot",
+                    bot_username="@CityMilliyTaomlari_bot",
                     admin_telegram_id=env_admin_id,
                     admin_username="admin",
                     is_active=True
@@ -401,8 +401,9 @@ with app.app_context():
                         t1.name = "City Milliy Taomlar"
                         db.session.commit()
                         print("[Tenant 1 name updated]: City Milliy Taomlar")
-                    if env_token and env_token != "YOUR_BOT_TOKEN_HERE" and (not t1.bot_token or t1.bot_token == "YOUR_BOT_TOKEN_HERE"):
+                    if env_token and env_token != "YOUR_BOT_TOKEN_HERE" and (t1.bot_token != env_token or t1.bot_username != "@CityMilliyTaomlari_bot"):
                         t1.bot_token = env_token
+                        t1.bot_username = "@CityMilliyTaomlari_bot"
                         t1.is_active = True
                         db.session.commit()
                         print(f"[Tenant 1 token auto-synced from env]: {env_token[:8]}...")
@@ -1504,9 +1505,9 @@ def api_admin_me():
         'success': True,
         'tenant': {
             'id': tenant.id if tenant else 1,
-            'name': tenant.name if tenant else "Cafe Express",
+            'name': tenant.name if tenant else "City Milliy Taomlar",
             'slug': tenant.slug if tenant else "express",
-            'bot_username': tenant.bot_username if tenant else "@CafeExpressBot",
+            'bot_username': tenant.bot_username if tenant else "@CityMilliyTaomlari_bot",
             'admin_username': tenant.admin_username if tenant else "admin"
         }
     })
