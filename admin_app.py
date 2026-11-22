@@ -801,6 +801,39 @@ def api_reverse_geocode():
 
     return jsonify({'success': False, 'address': f"GPS: {lat}, {lon}"})
 
+@app.route('/api/update_phone', methods=['POST'])
+def api_update_phone():
+    try:
+        data = request.get_json(silent=True) or {}
+        user_id = str(data.get('user_id', '')).strip()
+        phone = str(data.get('phone', '')).strip()
+        tenant_param = str(data.get('tenant', '')).strip()
+
+        tenant_obj = None
+        if tenant_param:
+            tenant_obj = Tenant.query.filter((Tenant.slug == tenant_param.lower()) | (Tenant.id == tenant_param)).first()
+        if not tenant_obj:
+            tenant_obj = Tenant.query.first()
+        tenant_id = tenant_obj.id if tenant_obj else 1
+
+        if not phone:
+            return jsonify({'success': False, 'error': "Telefon raqam bo'sh"}), 400
+
+        if user_id and user_id.isdigit() and int(user_id) > 1000:
+            uid_int = int(user_id)
+            u = User.query.filter_by(user_id=uid_int, tenant_id=tenant_id).first()
+            if not u:
+                u = User(user_id=uid_int, tenant_id=tenant_id, phone=phone, latitude=0.0, longitude=0.0)
+                db.session.add(u)
+            else:
+                u.phone = phone
+            db.session.commit()
+            return jsonify({'success': True, 'phone': phone})
+
+        return jsonify({'success': True, 'phone': phone})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 
 # --- WebApp API ---
 @app.route('/webapp')
@@ -1157,6 +1190,24 @@ def api_checkout():
         db.session.commit()
         order_id = new_order.id
         order_no = new_order.daily_id or order_id
+
+        # Foydalanuvchi ma'lumotlarini (telefon va oxirgi lokatsiya) saqlash/yangilash
+        if user_id and str(user_id).isdigit() and int(user_id) > 1000:
+            uid_int = int(user_id)
+            try:
+                u = User.query.filter_by(user_id=uid_int, tenant_id=tenant_id).first()
+                if not u:
+                    u = User(user_id=uid_int, tenant_id=tenant_id, phone=phone, latitude=float(latitude or 0), longitude=float(longitude or 0))
+                    db.session.add(u)
+                else:
+                    if phone:
+                        u.phone = phone
+                    if latitude and longitude:
+                        u.latitude = float(latitude)
+                        u.longitude = float(longitude)
+                db.session.commit()
+            except Exception as ue:
+                print(f"[User checkout sync note]: {ue}")
 
         # Admin va mijozga FONDA xabar yuborish (UI ni kuttiradigan narsa yo'q)
         promo_line = f"🎟️ Promokod: {applied_promo.code} (-{applied_promo.discount_percent}% / -{promo_discount_amount:,} so'm)\n" if applied_promo else ""

@@ -910,6 +910,46 @@
         <p id="success-notify" style="color:#78716C;font-size:12px;">Tasdiqlangach Telegramda xabar olasiz</p>
     </div>
 
+    <!-- Phone Registration Modal (New Users) -->
+    <div class="modal-overlay" id="phone-modal">
+        <div class="modal-content" style="text-align: center; max-width: 440px; margin: 0 auto;">
+            <div class="modal-handle"></div>
+            <div style="font-size: 38px; margin: 6px 0 4px;">📱</div>
+            <h3 style="font-size: 19px; font-weight: 800; margin-bottom: 6px; color: var(--gold-primary);">Telefon raqamingiz</h3>
+            <p style="font-size: 13px; color: var(--text-muted); line-height: 1.45; margin-bottom: 18px;">
+                Buyurtmangiz yetib borganda kuryer siz bilan bog'lanishi uchun telefon raqamingizni tasdiqlang:
+            </p>
+
+            <!-- Telegram orqali 1 bosishda ulash -->
+            <button type="button" id="btn-tg-share-contact" onclick="requestTelegramContact()" 
+                style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 13px; background: #2AABEE; color: #fff; border: none; border-radius: 14px; font-size: 14.5px; font-weight: 700; cursor: pointer; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(42, 171, 238, 0.25);">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.52 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/></svg>
+                <span>Telegram raqamni yuborish</span>
+            </button>
+
+            <div style="display: flex; align-items: center; gap: 8px; margin: 10px 0 14px;">
+                <div style="flex: 1; height: 1px; background: var(--border-gold); opacity: 0.35;"></div>
+                <span style="font-size: 11.5px; color: var(--text-muted); font-weight: 600;">yoki qo'lda kiritish</span>
+                <div style="flex: 1; height: 1px; background: var(--border-gold); opacity: 0.35;"></div>
+            </div>
+
+            <div style="margin-bottom: 14px;">
+                <input type="tel" id="modal-phone-input" class="form-input" placeholder="+998 90 123 45 67" value="+998 " 
+                    style="font-size: 17px; font-weight: 700; text-align: center; letter-spacing: 1px; padding: 13px; margin-bottom: 0;">
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+                <button type="button" class="btn" onclick="closePhoneModal()" style="flex: 1; padding: 13px; border-radius: 12px; font-weight: 600; background: rgba(255,255,255,0.06); border: 1px solid var(--border-gold); color: var(--text-muted);">
+                    Keyinroq
+                </button>
+                <button type="button" class="btn btn-primary" onclick="submitUserPhone()" 
+                    style="flex: 2; padding: 13px; border-radius: 12px; font-size: 14.5px; font-weight: 800;">
+                    Saqlash →
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Cart / Checkout Modal -->
     <div class="modal-overlay" id="cart-modal">
         <div class="modal-content">
@@ -929,12 +969,23 @@
             </div>
 
             <div class="checkout-form">
-                <input type="tel" id="form-phone" placeholder="Telefon raqam (+998901234567)" class="form-input">
-                <input type="text" id="form-address" placeholder="Manzil (Tuman, ko'cha, uy...)" class="form-input">
-                <button type="button" class="loc-btn" id="loc-btn" onclick="getLocation(false)">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 4px;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> <span id="lbl-loc-btn">Lokatsiyani aniqlash</span>
-                </button>
-                <small id="loc-status" style="display:block;margin-top:2px;font-size:11px;color:var(--text-muted);text-align:center;"></small>
+                <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                    <input type="tel" id="form-phone" placeholder="Telefon raqam (+998901234567)" class="form-input" style="flex: 1; margin-bottom: 0;">
+                    <button type="button" class="btn" onclick="openPhoneModal()" style="width: auto; padding: 0 14px; border-radius: 12px; font-size: 12.5px; font-weight: 700; background: rgba(212, 175, 55, 0.12); border: 1px solid var(--border-gold); color: var(--gold-primary); white-space: nowrap; display: flex; align-items: center; gap: 4px;">
+                        <span>📱 Ulash</span>
+                    </button>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px;">
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="form-address" placeholder="Manzil (Tuman, ko'cha, uy...)" class="form-input" style="flex: 1; margin-bottom: 0;">
+                        <button type="button" class="loc-btn" id="loc-btn" onclick="getLocation(false)" style="margin: 0; width: auto; padding: 0 12px; white-space: nowrap; display: flex; align-items: center; gap: 4px;">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> 
+                            <span id="lbl-loc-btn">GPS yangilash</span>
+                        </button>
+                    </div>
+                    <small id="loc-status" style="display:block;font-size:11px;color:var(--text-muted);text-align:left;padding-left:4px;"></small>
+                </div>
 
                 <!-- Promokod Input Row -->
                 <div class="promocode-box" style="display: flex; flex-direction: column; gap: 6px; margin-top: 6px;">
@@ -1622,7 +1673,101 @@
         // ==========================================
         // FAST, RELIABLE, AUTOMATIC LOCATION SYSTEM
         // ==========================================
-        // FAST, RELIABLE, ZERO-LAG LOCATION SYSTEM
+        // PHONE MODAL & REGISTRATION (NEW USERS)
+        // ==========================================
+        function openPhoneModal() {
+            const modal = document.getElementById('phone-modal');
+            if (modal) {
+                modal.classList.add('active');
+                const phoneInput = document.getElementById('modal-phone-input');
+                const curPhone = localStorage.getItem('user_phone') || (document.getElementById('form-phone') ? document.getElementById('form-phone').value : '') || '';
+                if (phoneInput) {
+                    phoneInput.value = curPhone || '+998 ';
+                    setTimeout(() => phoneInput.focus(), 300);
+                }
+            }
+        }
+
+        function closePhoneModal() {
+            const modal = document.getElementById('phone-modal');
+            if (modal) modal.classList.remove('active');
+        }
+
+        function saveAndApplyPhone(phone) {
+            if (!phone) return;
+            const clean = phone.trim();
+            localStorage.setItem('user_phone', clean);
+            
+            const formPhone = document.getElementById('form-phone');
+            if (formPhone) formPhone.value = clean;
+            
+            const modalPhone = document.getElementById('modal-phone-input');
+            if (modalPhone) modalPhone.value = clean;
+            
+            closePhoneModal();
+
+            // Backend ga yuborish
+            const tgUid = getTelegramUserId();
+            if (tgUid && tgUid !== '0') {
+                fetch('/api/update_phone', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: tgUid, phone: clean, tenant: tenantSlug })
+                }).catch(err => console.log('Phone sync note:', err));
+            }
+
+            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
+                window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+            }
+        }
+
+        function submitUserPhone() {
+            const input = document.getElementById('modal-phone-input');
+            const val = input ? input.value.trim() : '';
+            const digits = val.replace(/\D/g, '');
+            if (digits.length < 9) {
+                const msg = (currentLang === 'ru') ? "Пожалуйста, введите корректный номер телефона!" : "Iltimos, to'liq telefon raqamingizni kiriting (+998...)";
+                if (tg && tg.showAlert) tg.showAlert(msg);
+                else alert(msg);
+                return;
+            }
+            const formatted = digits.startsWith('998') ? `+${digits}` : `+998${digits.slice(-9)}`;
+            saveAndApplyPhone(formatted);
+        }
+
+        function requestTelegramContact() {
+            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.requestContact) {
+                window.Telegram.WebApp.requestContact((granted, event) => {
+                    if (granted) {
+                        let p = null;
+                        if (event && event.responseUnsafe && event.responseUnsafe.contact) {
+                            p = event.responseUnsafe.contact.phone_number;
+                        } else if (event && event.phone_number) {
+                            p = event.phone_number;
+                        }
+                        if (p) {
+                            const formatted = p.startsWith('+') ? p : `+${p}`;
+                            saveAndApplyPhone(formatted);
+                        } else {
+                            setTimeout(async () => {
+                                const tgUid = getTelegramUserId();
+                                const res = await fetch(`/api/data?user_id=${encodeURIComponent(tgUid)}&tenant=${encodeURIComponent(tenantSlug)}`);
+                                const d = await res.json();
+                                if (d.user && d.user.phone) {
+                                    saveAndApplyPhone(d.user.phone);
+                                }
+                            }, 1200);
+                        }
+                    }
+                });
+            } else {
+                const input = document.getElementById('modal-phone-input');
+                if (input) input.focus();
+            }
+        }
+
+        // ==========================================
+        // FAST, RELIABLE, DYNAMIC LOCATION SYSTEM
         // ==========================================
         async function reverseGeocode(lat, lon, forceUpdate = false) {
             try {
@@ -1635,6 +1780,11 @@
                         addrInput.value = cleanAddr;
                         localStorage.setItem('user_address', cleanAddr);
                     }
+                    const status = document.getElementById('loc-status');
+                    if (status) {
+                        status.innerText = `📍 ${cleanAddr}`;
+                        status.style.color = '#10B981';
+                    }
                 }
             } catch(e) {
                 console.log("Reverse geocode note:", e);
@@ -1643,34 +1793,44 @@
 
         function setCapturedLocation(lat, lon, forceAddressUpdate = false) {
             if (!lat || !lon) return;
+            
+            // Joylashuv sezilarli o'zgarganini tekshirish (100 metrdan ko'p masofa)
+            const prevLat = userLat || parseFloat(localStorage.getItem('user_lat') || '0');
+            const prevLon = userLon || parseFloat(localStorage.getItem('user_lon') || '0');
+            const dist = (prevLat && prevLon) ? Math.hypot(lat - prevLat, lon - prevLon) : 999;
+            
+            // Agar boshqa hudud bo'lsa (masalan Quvasoydan Farg'onaga o'tganda), MANZILNI MAJBURIY YANGILASH!
+            const shouldForce = forceAddressUpdate || (dist > 0.001);
+
             userLat = lat;
             userLon = lon;
             localStorage.setItem('user_lat', String(lat));
             localStorage.setItem('user_lon', String(lon));
+            localStorage.setItem('user_loc_time', String(Date.now()));
 
             const btn = document.getElementById('loc-btn');
             const status = document.getElementById('loc-status');
             if (btn) {
-                btn.innerText = t('loc_done');
+                btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align: middle; margin-right: 3px;"><polyline points="20 6 9 17 4 12"></polyline></svg> ${t('loc_done')}`;
                 btn.classList.add('done');
             }
             if (status) {
-                status.innerText = `${userLat.toFixed(5)}, ${userLon.toFixed(5)}`;
+                status.innerText = `GPS: ${userLat.toFixed(5)}, ${userLon.toFixed(5)}`;
             }
 
             const addrInput = document.getElementById('form-address');
             if (addrInput) {
-                if (forceAddressUpdate || !addrInput.value || addrInput.value.startsWith('GPS:') || addrInput.value === 'Toshkent') {
+                if (shouldForce || !addrInput.value || addrInput.value.startsWith('GPS:') || addrInput.value === 'Toshkent') {
                     addrInput.value = `GPS: ${userLat.toFixed(5)}, ${userLon.toFixed(5)}`;
                 }
             }
 
             // Real physical address reverse geocode via fast backend API
-            reverseGeocode(lat, lon, forceAddressUpdate);
+            reverseGeocode(lat, lon, shouldForce);
         }
 
         function autoFetchLocation() {
-            // 1. Check cached GPS first (0ms instant response)
+            // 1. Keshdagi oxirgi GPS ni ko'rsatib turish
             const cachedLat = localStorage.getItem('user_lat');
             const cachedLon = localStorage.getItem('user_lon');
             const cachedAddr = localStorage.getItem('user_address');
@@ -1683,12 +1843,12 @@
                 setCapturedLocation(parseFloat(cachedLat), parseFloat(cachedLon), false);
             }
 
-            // 2. Silent Telegram LocationManager check (without any browser popups)
+            // 2. Telegram LocationManager orqali yangilash
             if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.LocationManager) {
                 try {
                     const lm = window.Telegram.WebApp.LocationManager;
                     lm.init(() => {
-                        if (lm.isLocationAvailable && lm.isAccessGranted) {
+                        if (lm.isLocationAvailable) {
                             lm.getLocation((loc) => {
                                 if (loc && loc.latitude && loc.longitude) {
                                     setCapturedLocation(loc.latitude, loc.longitude, false);
@@ -1699,21 +1859,19 @@
                 } catch(e) {}
             }
 
-            // 3. Silent check if browser already has granted permission (without popping up permission modal)
-            if (navigator.permissions && navigator.permissions.query) {
-                navigator.permissions.query({ name: 'geolocation' }).then((result) => {
-                    if (result && result.state === 'granted' && navigator.geolocation) {
-                        navigator.geolocation.getCurrentPosition(
-                            (pos) => {
-                                if (pos && pos.coords) {
-                                    setCapturedLocation(pos.coords.latitude, pos.coords.longitude, false);
-                                }
-                            },
-                            () => {},
-                            { enableHighAccuracy: false, timeout: 3000, maximumAge: 300000 }
-                        );
-                    }
-                }).catch(() => {});
+            // 3. Hardware GPS (navigator.geolocation) - joriy haqiqiy lokatsiyani olish
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        if (pos && pos.coords) {
+                            setCapturedLocation(pos.coords.latitude, pos.coords.longitude, false);
+                        }
+                    },
+                    (err) => {
+                        console.log("GPS auto-fetch note:", err);
+                    },
+                    { enableHighAccuracy: true, timeout: 6000, maximumAge: 30000 }
+                );
             }
         }
 
@@ -1742,7 +1900,7 @@
                 } catch(e) {}
             }
 
-            // 2. Hardware GPS via browser navigator.geolocation
+            // 2. Hardware GPS via browser navigator.geolocation with ZERO cache (always fresh satellite/tower fix)
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
                     (pos) => {
@@ -1763,10 +1921,10 @@
                                     btn.innerText = t('loc_btn');
                                 }
                             },
-                            { enableHighAccuracy: false, timeout: 4000, maximumAge: 60000 }
+                            { enableHighAccuracy: false, timeout: 5000, maximumAge: 0 }
                         );
                     },
-                    { enableHighAccuracy: true, timeout: 6000, maximumAge: 60000 }
+                    { enableHighAccuracy: true, timeout: 7000, maximumAge: 0 }
                 );
             } else {
                 if (!isSilent && btn && !foundLocation) {
@@ -1818,19 +1976,25 @@
                 renderCategories(cachedCategories);
 
                 // Auto-fill user from backend or localStorage
-                const savedPhone = localStorage.getItem('user_phone');
+                const savedPhone = localStorage.getItem('user_phone') || (data.user && data.user.phone) || '';
                 if (savedPhone) {
                     document.getElementById('form-phone').value = savedPhone;
-                } else if (data.user && data.user.phone) {
-                    document.getElementById('form-phone').value = data.user.phone;
-                    localStorage.setItem('user_phone', data.user.phone);
+                    localStorage.setItem('user_phone', savedPhone);
+                } else {
+                    // Yangi mijoz birinchi marta kirganda telefon raqamini so'rash
+                    setTimeout(() => {
+                        const curP = localStorage.getItem('user_phone');
+                        if (!curP) {
+                            openPhoneModal();
+                        }
+                    }, 800);
                 }
 
                 if (data.user && data.user.latitude && data.user.longitude && !userLat) {
-                    setCapturedLocation(data.user.latitude, data.user.longitude);
+                    setCapturedLocation(data.user.latitude, data.user.longitude, false);
                 }
 
-                // Automatic background location detection without UI freeze and without permission popups
+                // Automatic background location detection
                 autoFetchLocation();
             } catch (e) {
                 console.error("Error loading data", e);
@@ -2181,9 +2345,8 @@
             const cartModal = document.getElementById('cart-modal');
             if (cartModal) cartModal.classList.add('active');
 
-            if (!userLat || !userLon) {
-                autoFetchLocation();
-            }
+            // Savat ochilganda joriy haqiqiy GPS lokatsiyani yangilash
+            getLocation(true);
         }
 
         function closeModal() {
@@ -2270,11 +2433,13 @@
             const address = addressEl ? addressEl.value.trim() : '';
 
             if (!phone) {
+                openPhoneModal();
                 if (tg && tg.showAlert) tg.showAlert(t('fill_phone'));
                 else alert(t('fill_phone'));
                 return;
             }
             if (!address) {
+                getLocation(false);
                 if (tg && tg.showAlert) tg.showAlert(t('fill_address'));
                 else alert(t('fill_address'));
                 return;
