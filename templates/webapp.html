@@ -1843,7 +1843,7 @@
         }
 
         function autoFetchLocation() {
-            // 1. Keshdagi oxirgi GPS ni ko'rsatib turish
+            // 1. Keshdagi oxirgi GPS va manzilni darhol formaga qo'yish
             const cachedLat = localStorage.getItem('user_lat');
             const cachedLon = localStorage.getItem('user_lon');
             const cachedAddr = localStorage.getItem('user_address');
@@ -1852,27 +1852,32 @@
                 localStorage.removeItem('user_address');
                 localStorage.removeItem('user_lat');
                 localStorage.removeItem('user_lon');
-            } else if (cachedLat && cachedLon && !userLat) {
-                setCapturedLocation(parseFloat(cachedLat), parseFloat(cachedLon), false);
+            } else {
+                if (cachedAddr) {
+                    const addrInput = document.getElementById('form-address');
+                    if (addrInput && !addrInput.value) {
+                        addrInput.value = cachedAddr;
+                    }
+                    const status = document.getElementById('loc-status');
+                    if (status) {
+                        status.innerText = `📍 ${cachedAddr}`;
+                        status.style.color = '#10B981';
+                    }
+                }
+                if (cachedLat && cachedLon && !userLat) {
+                    userLat = parseFloat(cachedLat);
+                    userLon = parseFloat(cachedLon);
+                }
             }
 
-            // 2. Telegram LocationManager orqali yangilash
-            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.LocationManager) {
-                try {
-                    const lm = window.Telegram.WebApp.LocationManager;
-                    lm.init(() => {
-                        if (lm.isLocationAvailable) {
-                            lm.getLocation((loc) => {
-                                if (loc && loc.latitude && loc.longitude) {
-                                    setCapturedLocation(loc.latitude, loc.longitude, false);
-                                }
-                            });
-                        }
-                    });
-                } catch(e) {}
+            // 2. Agar bu kirish sessiyasida lokatsiya allaqachon tekshirilgan bo'lsa, qayta so'ramaslik
+            const sessionChecked = sessionStorage.getItem('loc_session_checked');
+            if (sessionChecked === '1') {
+                return;
             }
+            sessionStorage.setItem('loc_session_checked', '1');
 
-            // 3. Hardware GPS (navigator.geolocation) - joriy haqiqiy lokatsiyani olish
+            // 3. Orqa fonda joriy GPS lokatsiyani bir marta avtomatik aniqlash (foydalanuvchini bezovta qilmasdan)
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
                     (pos) => {
@@ -1881,9 +1886,9 @@
                         }
                     },
                     (err) => {
-                        console.log("GPS auto-fetch note:", err);
+                        console.log("Auto-fetch location note:", err);
                     },
-                    { enableHighAccuracy: true, timeout: 6000, maximumAge: 30000 }
+                    { enableHighAccuracy: true, timeout: 6000, maximumAge: 60000 }
                 );
             }
         }
@@ -2358,8 +2363,12 @@
             const cartModal = document.getElementById('cart-modal');
             if (cartModal) cartModal.classList.add('active');
 
-            // Savat ochilganda joriy haqiqiy GPS lokatsiyani yangilash
-            getLocation(true);
+            // Savatcha ochilganda mavjud manzilni ko'rsatish (qayta GPS popup so'ramaslik)
+            const addrInput = document.getElementById('form-address');
+            const savedAddr = localStorage.getItem('user_address');
+            if (addrInput && !addrInput.value && savedAddr) {
+                addrInput.value = savedAddr;
+            }
         }
 
         function closeModal() {
