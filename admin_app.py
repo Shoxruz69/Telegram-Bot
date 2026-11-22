@@ -3084,6 +3084,38 @@ def api_bot_status():
         "server_time": datetime.now(timezone.utc).isoformat()
     }), 200
 
+_supervisor_started = False
+_supervisor_lock = threading.Lock()
+
+def ensure_bot_running():
+    global _supervisor_started
+    if not _supervisor_started:
+        with _supervisor_lock:
+            if not _supervisor_started:
+                _supervisor_started = True
+                start_bot_supervisor()
+
+@app.before_request
+def trigger_bot_startup():
+    ensure_bot_running()
+
+@app.route('/api/bot_start', methods=['GET', 'POST'])
+def api_bot_start():
+    """Bot supervisorni qo'lda yoki avtomatik ishga tushirish triggeri"""
+    ensure_bot_running()
+    return jsonify({
+        "status": "triggered",
+        "supervisor": {
+            "started": supervisor_status["started"],
+            "lock_acquired": supervisor_status["lock_acquired"],
+            "running": supervisor_status["running"],
+            "last_started_at": supervisor_status["last_started_at"],
+            "log_count": len(supervisor_status["recent_logs"])
+        },
+        "recent_logs": supervisor_status["recent_logs"][-30:],
+        "server_time": datetime.now(timezone.utc).isoformat()
+    }), 200
+
 def start_bot_supervisor():
     """
     Ensure bot.py is always running in background on Render/production.
@@ -3139,8 +3171,6 @@ def start_bot_supervisor():
 
     th = threading.Thread(target=supervisor, daemon=True, name="BotSupervisor")
     th.start()
-
-start_bot_supervisor()
 
 if __name__ == '__main__':
     print("Cafe Express Admin panel ishga tushdi: http://127.0.0.1:5000/admin")
