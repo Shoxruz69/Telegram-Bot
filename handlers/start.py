@@ -3,7 +3,7 @@ import html
 import logging
 from aiogram import Router, Bot
 from aiogram.filters import CommandStart, Command
-from aiogram.types import Message, FSInputFile
+from aiogram.types import Message, FSInputFile, InlineKeyboardMarkup, InlineKeyboardButton
 from database.db import add_user, get_user, get_tenant_by_bot_token, get_welcome_settings
 from keyboards.reply import get_webapp_keyboard
 
@@ -27,7 +27,7 @@ async def resolve_tenant(bot: Bot, tenant: dict = None) -> dict:
 
     return {
         'id': 1,
-        'name': 'Cafe Express',
+        'name': 'City Milliy Taomlar',
         'slug': 'express'
     }
 
@@ -35,7 +35,7 @@ async def resolve_tenant(bot: Bot, tenant: dict = None) -> dict:
 @router.message(lambda msg: bool(msg.text and msg.text.strip().lower() in ['/start', 'start', '/boshlash', 'boshlash']))
 async def cmd_start(message: Message, bot: Bot, tenant: dict = None):
     cur_tenant = await resolve_tenant(bot, tenant)
-    tenant_name = cur_tenant.get('name', 'Cafe Express')
+    tenant_name = cur_tenant.get('name', 'City Milliy Taomlar')
     tenant_slug = cur_tenant.get('slug', 'express')
     tenant_id = cur_tenant.get('id', 1)
 
@@ -69,8 +69,8 @@ async def cmd_start(message: Message, bot: Bot, tenant: dict = None):
         welcome_text = custom_txt
     else:
         welcome_text = (
-            f"☕ <b>{greeting_header} xush kelibsiz, {user_name}!</b>\n\n"
-            f"🚀 <b>Fast & Fresh Delivery</b> — Mazali taomlar, pissa, burger va ichimliklarni tez fursatda yetkazib beramiz!\n\n"
+            f"✨ <b>{greeting_header} xush kelibsiz, {user_name}!</b>\n\n"
+            f"🥘 <b>City Milliy Taomlar</b> — Eng mazali milliy va tansiq taomlarni tez fursatda yetkazib beramiz!\n\n"
             f"📋 <b>Bot Buyruqlari:</b>\n"
             f"🔹 /start — Botni qayta ishga tushirish va menyuni ochish\n"
             f"🔹 /menu — Barcha taomlar va ichimliklar menyusi\n"
@@ -124,7 +124,7 @@ async def cmd_start(message: Message, bot: Bot, tenant: dict = None):
 @router.message(lambda msg: bool(msg.text and msg.text.strip().lower() in ['/menu', 'menu', 'menyu', '🍴 menyu', '🍔 menyu']))
 async def cmd_menu(message: Message, bot: Bot, tenant: dict = None):
     cur_tenant = await resolve_tenant(bot, tenant)
-    tenant_name = cur_tenant.get('name', 'Cafe Express')
+    tenant_name = cur_tenant.get('name', 'City Milliy Taomlar')
     tenant_slug = cur_tenant.get('slug', 'express')
 
     await message.answer(
@@ -133,29 +133,68 @@ async def cmd_menu(message: Message, bot: Bot, tenant: dict = None):
         reply_markup=get_webapp_keyboard(message.from_user.id, tenant_slug=tenant_slug)
     )
 
+@router.message(lambda msg: bool(msg.text and any(k in msg.text.lower() for k in ['call markazi', 'call markaz', '95 260 40 40', 'call', 'qo\'ng\'iroq', 'qongiroq'])))
+async def cmd_call_center(message: Message, bot: Bot, tenant: dict = None):
+    cur_tenant = await resolve_tenant(bot, tenant)
+    tenant_name = cur_tenant.get('name', 'City Milliy Taomlar')
+    tenant_slug = cur_tenant.get('slug', 'express')
+
+    text = (
+        f"📞 <b>{html.escape(tenant_name)} — Call Markazi</b>\n\n"
+        f"Savollar, buyurtmalar yoki yetkazib berish bo'yicha bog'lanish uchun:\n\n"
+        f"☎️ <b>Telefon:</b> <a href=\"tel:+998952604040\">+998 95 260 40 40</a>\n"
+        f"⏰ <b>Ish vaqti:</b> 09:00 dan 23:00 gacha\n\n"
+        f"<i>Raqam ustiga bosib to'g'ridan-to'g'ri qo'ng'iroq qilishingiz mumkin!</i>"
+    )
+    inline_kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="💬 Telegram Support (@City_4040)", url="https://t.me/City_4040")]
+    ])
+    await message.answer(
+        text,
+        parse_mode="HTML",
+        reply_markup=inline_kb
+    )
+
+@router.message(lambda msg: bool(msg.text and any(k in msg.text.lower() for k in ['telegram suport', 'telegram support', 'suport', 'support', 'adminga yozish', 'qollab'])))
+async def cmd_telegram_support(message: Message, bot: Bot, tenant: dict = None):
+    cur_tenant = await resolve_tenant(bot, tenant)
+    tenant_name = cur_tenant.get('name', 'City Milliy Taomlar')
+
+    text = (
+        f"💬 <b>{html.escape(tenant_name)} — Telegram Qo'llab-quvvatlash</b>\n\n"
+        f"Savollaringiz, takliflaringiz yoki yordam kerak bo'lsa, adminga to'g'ridan-to'g'ri yozishingiz mumkin:\n\n"
+        f"👉 <b>Telegram:</b> <a href=\"https://t.me/City_4040\">@City_4040</a>\n\n"
+        f"<i>Pastdagi tugmani bosing va adminga o'ting:</i>"
+    )
+    inline_kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="✈️ Telegram Support ochish (@City_4040)", url="https://t.me/City_4040")]
+    ])
+    await message.answer(
+        text,
+        parse_mode="HTML",
+        reply_markup=inline_kb
+    )
+
 @router.message(Command("help"))
 @router.message(lambda msg: bool(msg.text and msg.text.strip().lower() in ['/help', 'help', 'yordam', '/yordam', '📞 yordam', 'ℹ️ yordam', "bog'lanish", 'aloqa']))
 async def cmd_help(message: Message, bot: Bot, tenant: dict = None):
     cur_tenant = await resolve_tenant(bot, tenant)
-    tenant_name = cur_tenant.get('name', 'Cafe Express')
+    tenant_name = cur_tenant.get('name', 'City Milliy Taomlar')
     tenant_slug = cur_tenant.get('slug', 'express')
     tenant_id = cur_tenant.get('id', 1)
 
     # Bog'lanish kontaktlari
-    admin_contact = "+998 88 732 55 15" if tenant_id == 1 else ""
+    admin_contact = "+998 95 260 40 40"
     admin_id = str(cur_tenant.get('admin_telegram_id', '')).strip()
-    admin_user = str(cur_tenant.get('admin_username', '')).strip()
-    bot_user = str(cur_tenant.get('bot_username', '')).strip().lstrip('@')
 
-    contact_lines = []
-    if admin_contact:
-        contact_lines.append(f"📞 Telefon: <b>{admin_contact}</b>")
+    contact_lines = [
+        f"📞 Call-markaz: <b>{admin_contact}</b>",
+        f"💬 Telegram Support: <a href=\"https://t.me/City_4040\">@City_4040</a>"
+    ]
     if admin_id and admin_id.isdigit():
-        contact_lines.append(f"💬 Telegram: <a href=\"tg://user?id={admin_id}\">Admin bilan bog'lanish</a>")
-    elif bot_user:
-        contact_lines.append(f"🤖 Bot: @{bot_user}")
+        contact_lines.append(f"👤 Admin: <a href=\"tg://user?id={admin_id}\">Admin bilan bog'lanish</a>")
 
-    contact_block = "\n".join(contact_lines) if contact_lines else "📞 Bog'lanish: Admin paneli orqali"
+    contact_block = "\n".join(contact_lines)
 
     help_text = (
         f"📞 <b>{html.escape(tenant_name)} — Bog'lanish va Yordam</b>\n\n"
@@ -165,10 +204,14 @@ async def cmd_help(message: Message, bot: Bot, tenant: dict = None):
         f"{contact_block}"
     )
 
+    inline_kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="💬 Telegram Support (@City_4040)", url="https://t.me/City_4040")]
+    ])
+
     await message.answer(
         help_text,
         parse_mode="HTML",
-        reply_markup=get_webapp_keyboard(message.from_user.id, tenant_slug=tenant_slug)
+        reply_markup=inline_kb
     )
 
 @router.message(Command("myid"))

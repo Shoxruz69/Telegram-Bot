@@ -31,7 +31,7 @@ async def handle_custom_command(message: Message, bot: Bot, tenant: dict = None)
 
     cur_tenant = await resolve_tenant(bot, tenant)
     tenant_id = cur_tenant.get('id', 1)
-    tenant_name = cur_tenant.get('name', 'Cafe Express')
+    tenant_name = cur_tenant.get('name', 'City Milliy Taomlar')
     tenant_slug = cur_tenant.get('slug', 'express')
 
     cmd_data = await get_custom_command(tenant_id, clean_cmd)

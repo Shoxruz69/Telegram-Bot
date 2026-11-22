@@ -299,10 +299,17 @@ async def init_db():
                 default_tenant_hash = generate_password_hash("admin123")
                 await db.execute('''
                     INSERT INTO tenants (id, name, slug, bot_token, bot_username, admin_telegram_id, admin_username, admin_password_hash, is_active)
-                    VALUES (1, 'Cafe Express', 'express', ?, '@CafeExpressBot', ?, 'admin', ?, 1)
+                    VALUES (1, 'City Milliy Taomlar', 'express', ?, '@CafeExpressBot', ?, 'admin', ?, 1)
                 ''', (t_token, t_admin_id, default_tenant_hash))
                 await db.commit()
             else:
+                # Agar bazada nomi 'Cafe Express' bo'lsa - 'City Milliy Taomlar' ga yangilash
+                await db.execute("""
+                    UPDATE tenants 
+                    SET name = 'City Milliy Taomlar' 
+                    WHERE id = 1 AND name = 'Cafe Express'
+                """)
+                await db.commit()
                 # Agar bazada bot_token placeholder bo'lsa va env da haqiqiy token bo'lsa - avtomatik yangilash
                 if env_token and env_token != "YOUR_BOT_TOKEN_HERE":
                     await db.execute("""

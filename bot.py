@@ -84,7 +84,7 @@ async def main():
     if not tenant_info:
         tenant_info = {
             'id': 1,
-            'name': 'Cafe Express',
+            'name': 'City Milliy Taomlar',
             'slug': 'express',
             'admin_telegram_id': os.getenv("ADMIN_ID", "")
         }

@@ -19,7 +19,7 @@ async def resolve_tenant(bot: Bot, tenant: dict = None) -> dict:
             return db_tenant
     except Exception as ex:
         logging.warning(f"resolve_tenant in menu error: {ex}")
-    return {'id': 1, 'name': 'Cafe Express', 'slug': 'express'}
+    return {'id': 1, 'name': 'City Milliy Taomlar', 'slug': 'express'}
 
 @router.message(F.text == "🍴 Menyu")
 async def show_categories(message: Message, bot: Bot, tenant: dict = None):

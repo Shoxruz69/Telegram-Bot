@@ -2450,7 +2450,7 @@ function updateBotPreview() {
 
   if (!previewImg || !previewTxt) return;
 
-  const currentCafeName = (state.tenant && state.tenant.name) || 'Cafe Express';
+  const currentCafeName = (state.tenant && state.tenant.name) || 'City Milliy Taomlar';
 
   // Update Preview Image
   const imgVal = urlInput ? urlInput.value.trim() : '';
@@ -3240,7 +3240,7 @@ function generateCustomerReceiptHtml(order) {
   items.forEach(it => { totalDishes += (it.quantity || 1); });
 
   return `
-    <div class="thermal-slip-title">${order.restaurant_name || 'CAFE EXPRESS'}</div>
+    <div class="thermal-slip-title">${order.restaurant_name || 'CITY MILLIY TAOMLAR'}</div>
     ${order.restaurant_phone ? `<div class="thermal-slip-sub">📞 Tel: ${order.restaurant_phone}</div>` : ''}
     <div class="thermal-divider-double"></div>
     <div style="display: flex; justify-content: space-between; align-items: baseline; font-weight: 900; margin-bottom: 4px;">

@@ -382,7 +382,7 @@ with app.app_context():
             if Tenant.query.count() == 0:
                 t1 = Tenant(
                     id=1,
-                    name="Cafe Express",
+                    name="City Milliy Taomlar",
                     slug="express",
                     bot_token=env_token or "YOUR_BOT_TOKEN_HERE",
                     bot_username="@CafeExpressBot",
@@ -393,10 +393,14 @@ with app.app_context():
                 t1.set_password("admin123")
                 db.session.add(t1)
                 db.session.commit()
-                print("[Admin seeded]: Cafe Express (admin / admin123)")
+                print("[Admin seeded]: City Milliy Taomlar (admin / admin123)")
             else:
                 t1 = Tenant.query.get(1)
                 if t1:
+                    if t1.name == "Cafe Express":
+                        t1.name = "City Milliy Taomlar"
+                        db.session.commit()
+                        print("[Tenant 1 name updated]: City Milliy Taomlar")
                     if env_token and env_token != "YOUR_BOT_TOKEN_HERE" and (not t1.bot_token or t1.bot_token == "YOUR_BOT_TOKEN_HERE"):
                         t1.bot_token = env_token
                         t1.is_active = True
@@ -880,7 +884,7 @@ def api_data():
                 print(f"[api_data user auto-register error]: {e}")
 
     return jsonify({
-        'restaurant_name': tenant_obj.name if tenant_obj else "Cafe Express",
+        'restaurant_name': tenant_obj.name if tenant_obj else "City Milliy Taomlar",
         'logo_url': (setting.welcome_image if setting and setting.welcome_image else '/static/cafe_logo.png'),
         'categories': [{
             'id': c.id, 
@@ -1736,7 +1740,7 @@ def api_admin_pos_order():
         time_str = now_tashkent.strftime("%H:%M")
 
         t_obj = Tenant.query.get(t_id) or Tenant.query.first()
-        restaurant_name = t_obj.name if t_obj else "Cafe Express"
+        restaurant_name = t_obj.name if t_obj else "City Milliy Taomlar"
         contact_phone = getattr(setting, 'contact_phone', None) or getattr(t_obj, 'contact_phone', None) or os.getenv('ADMIN_PHONE', '')
 
         # Telegram xabarnoma (Orqa fonda)
@@ -1808,7 +1812,7 @@ def api_admin_order_receipt(order_id):
 
         setting = Setting.query.filter_by(tenant_id=t_id).first()
         t_obj = Tenant.query.get(t_id) or Tenant.query.first()
-        restaurant_name = t_obj.name if t_obj else "Cafe Express"
+        restaurant_name = t_obj.name if t_obj else "City Milliy Taomlar"
         contact_phone = getattr(setting, 'contact_phone', None) or getattr(t_obj, 'contact_phone', None) or os.getenv('ADMIN_PHONE', '')
 
         created_dt = order.created_at
@@ -2402,14 +2406,14 @@ def api_admin_get_settings():
     setting = Setting.query.filter_by(tenant_id=t_id).first()
     t_obj = Tenant.query.get(t_id) or Tenant.query.first()
     if not setting:
-        default_name = t_obj.name if t_obj else "Cafe Express"
+        default_name = t_obj.name if t_obj else "City Milliy Taomlar"
         setting = Setting(tenant_id=t_id, card_number="8600 0000 0000 0000", card_name=default_name, work_time_start="09:00", work_time_end="22:00")
         db.session.add(setting)
         db.session.commit()
     return jsonify({
         'success': True,
         'settings': {
-            'restaurant_name': t_obj.name if t_obj else 'Cafe Express',
+            'restaurant_name': t_obj.name if t_obj else 'City Milliy Taomlar',
             'admin_username': t_obj.admin_username if t_obj else 'admin',
             'admin_telegram_id': t_obj.admin_telegram_id if t_obj else '',
             'card_number': setting.card_number or '',

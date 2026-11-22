@@ -37,7 +37,11 @@ def get_webapp_keyboard(user_id: int = None, tenant_slug: str = None):
 
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text="🍔 Menyu (Mini App)", web_app=WebAppInfo(url=url))]
+            [KeyboardButton(text="🍔 Menyu (Mini App)", web_app=WebAppInfo(url=url))],
+            [
+                KeyboardButton(text="📞 Call Markazi: 95 260 40 40"),
+                KeyboardButton(text="💬 Telegram Suport")
+            ]
         ],
         resize_keyboard=True
     )
