@@ -1164,6 +1164,15 @@
             🧾 Mijoz cheki
           </button>
         </div>
+        <!-- Shrift Tanlash (Bosma / Qolda / Monospace) -->
+        <div class="receipt-font-selector">
+          <span style="font-size: 11.5px; color: var(--text-secondary); font-weight: 600;">Chek shrifti:</span>
+          <div style="display: flex; gap: 6px;">
+            <button type="button" class="receipt-font-btn active" id="rf-btn-bosma" onclick="setReceiptFontStyle('bosma')">🖨️ Bosma (Aniq)</button>
+            <button type="button" class="receipt-font-btn" id="rf-btn-hand" onclick="setReceiptFontStyle('hand')">✍️ Qo'lda</button>
+            <button type="button" class="receipt-font-btn" id="rf-btn-mono" onclick="setReceiptFontStyle('mono')">🧾 Kassa</button>
+          </div>
+        </div>
       </div>
 
       <!-- Preview Slip Area -->

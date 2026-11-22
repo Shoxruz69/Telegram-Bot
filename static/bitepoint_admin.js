@@ -3132,6 +3132,9 @@ function openPrintReceiptModal(order) {
   const preview = document.getElementById('receipt-preview-content');
   if (!modal || !preview) return;
 
+  const curFont = state.receiptFont || localStorage.getItem('bitepoint_receipt_font') || 'bosma';
+  state.receiptFont = curFont;
+
   const kitchenHtml = generateKitchenTicketHtml(order);
   const customerHtml = generateCustomerReceiptHtml(order);
 
@@ -3139,20 +3142,44 @@ function openPrintReceiptModal(order) {
     <div style="display: flex; flex-direction: column; align-items: center; gap: 20px;">
       <div>
         <div style="text-align: center; color: #F59E0B; font-size: 12px; font-weight: 700; margin-bottom: 6px;">🍳 OSHXONA CHEKI (1-NUSXA)</div>
-        <div class="thermal-paper-slip">
+        <div class="thermal-paper-slip font-${curFont}">
           ${kitchenHtml}
         </div>
       </div>
       <div>
         <div style="text-align: center; color: #10B981; font-size: 12px; font-weight: 700; margin-bottom: 6px;">🧾 MIJOZ CHEKI (2-NUSXA)</div>
-        <div class="thermal-paper-slip">
+        <div class="thermal-paper-slip font-${curFont}">
           ${customerHtml}
         </div>
       </div>
     </div>
   `;
 
+  // Update font switch buttons
+  ['bosma', 'hand', 'mono'].forEach(s => {
+    const btn = document.getElementById(`rf-btn-${s}`);
+    if (btn) btn.classList.toggle('active', s === curFont);
+  });
+
   modal.classList.add('active');
+}
+
+function setReceiptFontStyle(style) {
+  state.receiptFont = style;
+  try { localStorage.setItem('bitepoint_receipt_font', style); } catch (e) {}
+
+  // Update button active state
+  ['bosma', 'hand', 'mono'].forEach(s => {
+    const btn = document.getElementById(`rf-btn-${s}`);
+    if (btn) btn.classList.toggle('active', s === style);
+  });
+
+  // Update preview slips
+  const slips = document.querySelectorAll('.thermal-paper-slip');
+  slips.forEach(slip => {
+    slip.classList.remove('font-bosma', 'font-hand', 'font-mono');
+    slip.classList.add(`font-${style}`);
+  });
 }
 
 function closePrintReceiptModal() {
@@ -3168,39 +3195,42 @@ function generateKitchenTicketHtml(order) {
   return `
     <div class="thermal-slip-title">🔥 OSHXONA CHEKI 🔥</div>
     <div class="thermal-divider-double"></div>
-    <div style="display: flex; justify-content: space-between; font-weight: 800; font-size: 14px;">
-      <span>BUYURTMA №:</span>
-      <span>#${order.daily_id || order.id}</span>
+    <div style="display: flex; justify-content: space-between; align-items: baseline; font-weight: 900; margin-bottom: 4px;">
+      <span style="font-size: 14px;">BUYURTMA №:</span>
+      <span style="font-size: 20px; letter-spacing: 0.5px;">#${order.daily_id || order.id}</span>
     </div>
-    <div>Sana: ${order.date_str}   Vaqt: ${order.time_str}</div>
-    <div>Turi: <b>${order.order_type || 'Yetkazib berish'}</b></div>
-    <div>Mijoz: <b>${order.customer_name || 'Mijoz'}</b></div>
-    <div>Tel: ${order.phone || '—'}</div>
-    ${order.address ? `<div>Manzil: ${order.address}</div>` : ''}
+    <div style="font-size: 12px; line-height: 1.4;">
+      <div><b>Sana:</b> ${order.date_str} &nbsp;|&nbsp; <b>Vaqt:</b> ${order.time_str}</div>
+      <div><b>Turi:</b> ${order.order_type || 'Yetkazib berish'}</div>
+      <div><b>Mijoz:</b> <b>${order.customer_name || 'Mijoz'}</b></div>
+      <div><b>Tel:</b> ${order.phone || '—'}</div>
+      ${order.address ? `<div><b>Manzil:</b> ${order.address}</div>` : ''}
+    </div>
     <div class="thermal-divider"></div>
-    <div style="display: flex; justify-content: space-between; font-weight: 800; border-bottom: 1px solid #000; padding-bottom: 2px;">
+    <div style="display: flex; justify-content: space-between; font-weight: 900; font-size: 13px; border-bottom: 2px solid #000; padding-bottom: 4px;">
       <span>TAOM NOMI</span>
       <span>SONI</span>
     </div>
-    <div style="padding-top: 4px;">
+    <div style="padding-top: 6px;">
       ${items.map((it, idx) => `
-        <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; margin-bottom: 4px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 14.5px; font-weight: 800; margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px dotted #ccc;">
           <span>${idx + 1}. ${it.name}</span>
-          <span>x ${it.quantity}</span>
+          <span style="font-size: 15px; font-weight: 900; background: #000; color: #fff !important; padding: 1px 7px; border-radius: 4px; white-space: nowrap;">x ${it.quantity}</span>
         </div>
       `).join('')}
     </div>
     <div class="thermal-divider"></div>
-    <div style="display: flex; justify-content: space-between; font-weight: 800;">
+    <div style="display: flex; justify-content: space-between; font-weight: 900; font-size: 14.5px;">
       <span>JAMI TAOMLAR:</span>
       <span>${totalDishes} ta</span>
     </div>
     ${order.comment ? `
-      <div class="thermal-divider"></div>
-      <div style="font-weight: 700;">⚠️ IZOH: ${order.comment}</div>
+      <div style="border: 2px dashed #000; padding: 6px 8px; margin: 10px 0 6px; font-weight: 800; font-size: 13px; background: #fafafa;">
+        ⚠️ IZOH: ${order.comment}
+      </div>
     ` : ''}
     <div class="thermal-divider-double"></div>
-    <div style="text-align: center; font-weight: 800; font-size: 11px;">*** TAYYORLASH UCHUN ***</div>
+    <div style="text-align: center; font-weight: 900; font-size: 12px; letter-spacing: 1px;">*** TAYYORLASH UCHUN ***</div>
   `;
 }
 
@@ -3211,49 +3241,51 @@ function generateCustomerReceiptHtml(order) {
 
   return `
     <div class="thermal-slip-title">${order.restaurant_name || 'CAFE EXPRESS'}</div>
-    ${order.restaurant_phone ? `<div class="thermal-slip-sub">Tel: ${order.restaurant_phone}</div>` : ''}
+    ${order.restaurant_phone ? `<div class="thermal-slip-sub">📞 Tel: ${order.restaurant_phone}</div>` : ''}
     <div class="thermal-divider-double"></div>
-    <div style="display: flex; justify-content: space-between; font-weight: 800; font-size: 14px;">
-      <span>BUYURTMA №:</span>
-      <span>#${order.daily_id || order.id}</span>
+    <div style="display: flex; justify-content: space-between; align-items: baseline; font-weight: 900; margin-bottom: 4px;">
+      <span style="font-size: 13.5px;">BUYURTMA №:</span>
+      <span style="font-size: 19px; letter-spacing: 0.5px;">#${order.daily_id || order.id}</span>
     </div>
-    <div>Sana: ${order.date_str}   Vaqt: ${order.time_str}</div>
-    <div>Turi: ${order.order_type || 'Yetkazib berish'}</div>
-    <div>Mijoz: ${order.customer_name || 'Mijoz'} (${order.phone || '—'})</div>
-    ${order.address ? `<div>Manzil: ${order.address}</div>` : ''}
-    <div>To'lov: <b>${order.payment_method || 'Naqd'}</b></div>
+    <div style="font-size: 12px; line-height: 1.4;">
+      <div><b>Sana:</b> ${order.date_str} &nbsp;|&nbsp; <b>Vaqt:</b> ${order.time_str}</div>
+      <div><b>Turi:</b> ${order.order_type || 'Yetkazib berish'}</div>
+      <div><b>Mijoz:</b> ${order.customer_name || 'Mijoz'} (${order.phone || '—'})</div>
+      ${order.address ? `<div><b>Manzil:</b> ${order.address}</div>` : ''}
+      <div><b>To'lov turi:</b> <b>${order.payment_method || 'Naqd'}</b></div>
+    </div>
     <div class="thermal-divider"></div>
-    <div style="display: flex; justify-content: space-between; font-weight: 700; border-bottom: 1px solid #000; padding-bottom: 2px;">
+    <div style="display: flex; justify-content: space-between; font-weight: 900; font-size: 13px; border-bottom: 2px solid #000; padding-bottom: 4px;">
       <span>MAHSULOT</span>
       <span>JAMI</span>
     </div>
-    <div style="padding-top: 4px;">
+    <div style="padding-top: 6px;">
       ${items.map(it => {
         const sub = (it.price || 0) * (it.quantity || 1);
         return `
-          <div style="margin-bottom: 4px;">
-            <div style="font-weight: 700;">${it.name}</div>
-            <div style="display: flex; justify-content: space-between; font-size: 11px; padding-left: 6px;">
-              <span>${it.quantity} x ${(it.price || 0).toLocaleString()}</span>
-              <span style="font-weight: 700;">${sub.toLocaleString()}</span>
+          <div style="margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px dotted #ccc;">
+            <div style="font-weight: 800; font-size: 14px;">${it.name}</div>
+            <div style="display: flex; justify-content: space-between; font-size: 12px; padding-left: 6px; color: #222;">
+              <span>${it.quantity} dona x ${(it.price || 0).toLocaleString()}</span>
+              <span style="font-weight: 800; font-size: 13px;">${sub.toLocaleString()} so'm</span>
             </div>
           </div>
         `;
       }).join('')}
     </div>
     <div class="thermal-divider"></div>
-    <div style="display: flex; justify-content: space-between; font-size: 12px;">
+    <div style="display: flex; justify-content: space-between; font-size: 12.5px; font-weight: 700;">
       <span>Taomlar soni:</span>
       <span>${totalDishes} ta</span>
     </div>
-    <div style="display: flex; justify-content: space-between; font-size: 15px; font-weight: 900; margin-top: 4px;">
+    <div style="display: flex; justify-content: space-between; font-size: 16.5px; font-weight: 900; margin: 6px 0; padding: 6px 0; border-top: 2px solid #000; border-bottom: 2px solid #000;">
       <span>JAMI TO'LOV:</span>
       <span>${(order.total_amount || 0).toLocaleString()} so'm</span>
     </div>
     <div class="thermal-divider-double"></div>
-    <div style="text-align: center; font-size: 11.5px; line-height: 1.4;">
+    <div style="text-align: center; font-size: 12px; line-height: 1.45; font-weight: 600;">
       Xaridingiz uchun rahmat!<br>
-      <b>Yoqimli ishtaha!</b>
+      <b style="font-size: 13px;">Yoqimli ishtaha!</b>
     </div>
   `;
 }
@@ -3267,21 +3299,22 @@ function printThermalReceipt(which = 'both') {
   const printArea = document.getElementById('thermal-receipt-print-area');
   if (!printArea) return;
 
+  const curFont = state.receiptFont || localStorage.getItem('bitepoint_receipt_font') || 'bosma';
   const kitchenHtml = generateKitchenTicketHtml(order);
   const customerHtml = generateCustomerReceiptHtml(order);
 
   let printContent = '';
   if (which === 'both') {
     printContent = `
-      <div class="thermal-paper-slip" style="box-shadow: none; margin: 0 auto 10px; width: 100%;">${kitchenHtml}</div>
+      <div class="thermal-paper-slip font-${curFont}" style="box-shadow: none; margin: 0 auto 10px; width: 100%;">${kitchenHtml}</div>
       <div class="thermal-cut-mark">✂ - - - - - - - - - - - - - - - - ✂</div>
       <div class="receipt-page-break"></div>
-      <div class="thermal-paper-slip" style="box-shadow: none; margin: 0 auto; width: 100%;">${customerHtml}</div>
+      <div class="thermal-paper-slip font-${curFont}" style="box-shadow: none; margin: 0 auto; width: 100%;">${customerHtml}</div>
     `;
   } else if (which === 'kitchen') {
-    printContent = `<div class="thermal-paper-slip" style="box-shadow: none; margin: 0 auto; width: 100%;">${kitchenHtml}</div>`;
+    printContent = `<div class="thermal-paper-slip font-${curFont}" style="box-shadow: none; margin: 0 auto; width: 100%;">${kitchenHtml}</div>`;
   } else if (which === 'customer') {
-    printContent = `<div class="thermal-paper-slip" style="box-shadow: none; margin: 0 auto; width: 100%;">${customerHtml}</div>`;
+    printContent = `<div class="thermal-paper-slip font-${curFont}" style="box-shadow: none; margin: 0 auto; width: 100%;">${customerHtml}</div>`;
   }
 
   printArea.innerHTML = printContent;

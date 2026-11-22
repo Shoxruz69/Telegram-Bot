@@ -2050,54 +2050,111 @@ body {
   border-radius: 0 0 var(--radius-lg) var(--radius-lg);
 }
 
-/* Thermal Paper Styling */
+/* Thermal Paper Styling - Default is 'Bosma' (Modern, Bold, High-Contrast) */
 .thermal-paper-slip {
-  width: 300px;
+  width: 320px;
   background: #FFFFFF;
   color: #000000;
-  padding: 18px 14px;
-  font-family: 'Courier New', Courier, monospace;
-  font-size: 12px;
-  line-height: 1.35;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.7);
-  border-radius: 2px;
+  padding: 20px 16px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 12.5px;
+  line-height: 1.45;
+  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.7);
+  border-radius: 4px;
   margin-bottom: 20px;
+  -webkit-font-smoothing: antialiased;
 }
 
 .thermal-paper-slip * {
   color: #000000 !important;
 }
 
+/* Font Style Variants */
+.thermal-paper-slip.font-bosma {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  letter-spacing: -0.1px;
+}
+
+.thermal-paper-slip.font-hand {
+  font-family: 'Segoe Print', 'Caveat', 'Comic Sans MS', cursive, sans-serif;
+  letter-spacing: 0.3px;
+  font-size: 13px;
+}
+
+.thermal-paper-slip.font-mono {
+  font-family: 'Consolas', 'Monaco', 'Lucida Console', 'Liberation Mono', monospace;
+  letter-spacing: 0;
+  font-size: 12px;
+}
+
+/* Font Selector Buttons in Receipt Modal */
+.receipt-font-selector {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border-subtle);
+}
+
+.receipt-font-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.receipt-font-btn:hover {
+  background: rgba(212, 175, 55, 0.15);
+  color: var(--gold-primary);
+  border-color: var(--gold-primary);
+}
+
+.receipt-font-btn.active {
+  background: var(--gold-primary);
+  color: #121114 !important;
+  border-color: var(--gold-primary);
+  font-weight: 800;
+  box-shadow: 0 2px 8px rgba(212, 175, 55, 0.3);
+}
+
 .thermal-slip-title {
   text-align: center;
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 900;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
   margin-bottom: 4px;
 }
 
 .thermal-slip-sub {
   text-align: center;
-  font-size: 11px;
+  font-size: 11.5px;
+  font-weight: 600;
   margin-bottom: 8px;
 }
 
 .thermal-divider {
-  border-top: 1px dashed #000000;
-  margin: 8px 0;
+  border-top: 1.5px dashed #000000;
+  margin: 9px 0;
 }
 
 .thermal-divider-double {
-  border-top: 2px dashed #000000;
+  border-top: 2px solid #000000;
   margin: 10px 0;
 }
 
 .thermal-cut-mark {
   text-align: center;
-  font-size: 10px;
+  font-size: 11px;
   margin: 16px 0 10px;
-  color: #666 !important;
+  color: #333 !important;
   letter-spacing: 2px;
+  font-weight: 700;
 }
 
 /* Print CSS */
@@ -2119,9 +2176,19 @@ body {
     margin: 0 !important;
     padding: 2mm !important;
     background: #FFFFFF !important;
-    font-family: 'Courier New', Courier, monospace !important;
-    font-size: 12px !important;
-    line-height: 1.3 !important;
+    font-size: 12.5px !important;
+    line-height: 1.4 !important;
+  }
+  #thermal-receipt-print-area .font-bosma {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+  }
+  #thermal-receipt-print-area .font-hand {
+    font-family: 'Segoe Print', 'Caveat', 'Comic Sans MS', cursive, sans-serif !important;
+    font-weight: 700 !important;
+    font-size: 13px !important;
+  }
+  #thermal-receipt-print-area .font-mono {
+    font-family: 'Consolas', 'Monaco', 'Lucida Console', 'Liberation Mono', monospace !important;
   }
   .receipt-page-break {
     page-break-after: always;
