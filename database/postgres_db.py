@@ -1,10 +1,17 @@
 import os
 import json
 import base64
+import re
 import asyncpg
+try:
+    import aiosqlite
+except ImportError:
+    class aiosqlite:
+        Row = dict
 from contextlib import asynccontextmanager
 from werkzeug.security import generate_password_hash, check_password_hash
 
+BACKUP_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tenants_backup.json')
 PRIMARY_BOT_TOKEN = base64.b64decode("OTIwOTk2OTQ5MTpBQUZwMjVpekppalVKdEthLUFUeDVaRk03RTJwWUYyZUlqWQ==").decode("utf-8").strip()
 
 def get_primary_bot_token():
@@ -285,8 +292,8 @@ async def init_db():
                 print(f"[Migration note: {tbl}]: {ex}")
         # 6. Settings jadvalida welcome_message va welcome_image borligini tekshirish
         try:
-            async with db.execute("SELECT column_name FROM information_schema.columns WHERE table_name = \'settings\'") as cursor:
-                cols = [(0, row["column_name"]) for row in await cursor.fetchall()]
+            async with db.execute("SELECT column_name FROM information_schema.columns WHERE table_name = 'settings'") as cursor:
+                s_cols = [row["column_name"] for row in await cursor.fetchall()]
                 if 'welcome_message' not in s_cols:
                     await db.execute("ALTER TABLE settings ADD COLUMN welcome_message TEXT")
                 if 'welcome_image' not in s_cols:
@@ -512,7 +519,7 @@ async def add_user(user_id, phone, lat, lon, tenant_id=1):
                 final_lon = lon if (lon and lon != 0.0) else existing[2]
                 await db.execute('UPDATE users SET phone = ?, latitude = ?, longitude = ? WHERE user_id = ? AND tenant_id = ?', (final_phone, final_lat, final_lon, user_id, tenant_id))
             else:
-                await db.execute('INSERT INTO users (user_id, tenant_id, phone, latitude, longitude) ON CONFLICT (user_id, tenant_id) DO NOTHING VALUES (?, ?, ?, ?, ?)', (user_id, tenant_id, phone or '', lat or 0.0, lon or 0.0))
+                await db.execute('INSERT INTO users (user_id, tenant_id, phone, latitude, longitude) VALUES (?, ?, ?, ?, ?) ON CONFLICT (user_id, tenant_id) DO NOTHING', (user_id, tenant_id, phone or '', lat or 0.0, lon or 0.0))
         await db.commit()
 
 async def get_user(user_id, tenant_id=1):

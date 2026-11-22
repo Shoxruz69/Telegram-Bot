@@ -60,7 +60,11 @@ async def cmd_start(message: Message, bot: Bot, tenant: dict = None):
         greeting_header = f"{html.escape(name_clean)} botiga"
 
     # Admin tomonidan kiritilgan maxsus xabar va rasm bormi?
-    welcome_msg_custom, welcome_img_custom = await get_welcome_settings(tenant_id)
+    welcome_msg_custom, welcome_img_custom = None, None
+    try:
+        welcome_msg_custom, welcome_img_custom = await get_welcome_settings(tenant_id)
+    except Exception as wse:
+        logging.warning(f"cmd_start welcome_settings note: {wse}")
 
     if welcome_msg_custom and welcome_msg_custom.strip():
         custom_txt = welcome_msg_custom.strip()

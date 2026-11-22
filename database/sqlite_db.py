@@ -1,6 +1,7 @@
 import os
 import json
 import base64
+import re
 import aiosqlite
 from contextlib import asynccontextmanager
 from werkzeug.security import generate_password_hash, check_password_hash

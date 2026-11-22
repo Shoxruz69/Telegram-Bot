@@ -74,7 +74,10 @@ async def keep_alive():
 
 async def main():
     # 1. Ma'lumotlar bazasini initsializatsiya qilish
-    await init_db()
+    try:
+        await init_db()
+    except Exception as dbe:
+        logging.error(f"❌ init_db xatosi: {dbe}")
 
     # Eski bot (CafeExpress) ishlab turgan bo'lsa yoki Render env'da qolib ketgan bo'lsa uni tozalash va to'xtatish
     env_old = os.getenv("BOT_TOKEN", "").strip()
