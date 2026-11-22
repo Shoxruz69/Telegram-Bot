@@ -407,9 +407,10 @@ with app.app_context():
                         t1.is_active = True
                         db.session.commit()
                         print(f"[Tenant 1 token auto-synced from env]: {env_token[:8]}...")
-                    if env_admin_id and env_admin_id != "YOUR_ADMIN_ID_HERE" and (not t1.admin_telegram_id or t1.admin_telegram_id == "YOUR_ADMIN_ID_HERE"):
+                    if env_admin_id and env_admin_id != "YOUR_ADMIN_ID_HERE" and t1.admin_telegram_id != env_admin_id:
                         t1.admin_telegram_id = env_admin_id
                         db.session.commit()
+                        print(f"[Tenant 1 admin ID synced from env]: {env_admin_id}")
         except Exception as te:
             print("[Tenant seed error]:", te)
 
