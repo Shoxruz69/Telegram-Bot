@@ -577,6 +577,18 @@
             visibility: visible;
         }
 
+        .cart-layer {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+        }
+
+        .phone-layer {
+            position: fixed;
+            inset: 0;
+            z-index: 1100;
+        }
+
         .modal-content {
             background: var(--card-dark);
             border-top: 1px solid var(--border-gold);
@@ -910,48 +922,8 @@
         <p id="success-notify" style="color:#78716C;font-size:12px;">Tasdiqlangach Telegramda xabar olasiz</p>
     </div>
 
-    <!-- Phone Registration Modal (New Users) -->
-    <div class="modal-overlay" id="phone-modal">
-        <div class="modal-content" style="text-align: center; max-width: 440px; margin: 0 auto;">
-            <div class="modal-handle"></div>
-            <div style="font-size: 38px; margin: 6px 0 4px;">📱</div>
-            <h3 style="font-size: 19px; font-weight: 800; margin-bottom: 6px; color: var(--gold-primary);">Telefon raqamingiz</h3>
-            <p style="font-size: 13px; color: var(--text-muted); line-height: 1.45; margin-bottom: 18px;">
-                Buyurtmangiz yetib borganda kuryer siz bilan bog'lanishi uchun telefon raqamingizni tasdiqlang:
-            </p>
-
-            <!-- Telegram orqali 1 bosishda ulash -->
-            <button type="button" id="btn-tg-share-contact" onclick="requestTelegramContact()" 
-                style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 13px; background: #2AABEE; color: #fff; border: none; border-radius: 14px; font-size: 14.5px; font-weight: 700; cursor: pointer; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(42, 171, 238, 0.25);">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.52 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/></svg>
-                <span>Telegram raqamni yuborish</span>
-            </button>
-
-            <div style="display: flex; align-items: center; gap: 8px; margin: 10px 0 14px;">
-                <div style="flex: 1; height: 1px; background: var(--border-gold); opacity: 0.35;"></div>
-                <span style="font-size: 11.5px; color: var(--text-muted); font-weight: 600;">yoki qo'lda kiritish</span>
-                <div style="flex: 1; height: 1px; background: var(--border-gold); opacity: 0.35;"></div>
-            </div>
-
-            <div style="margin-bottom: 14px;">
-                <input type="tel" id="modal-phone-input" class="form-input" placeholder="+998 90 123 45 67" value="+998 " 
-                    style="font-size: 17px; font-weight: 700; text-align: center; letter-spacing: 1px; padding: 13px; margin-bottom: 0;">
-            </div>
-
-            <div style="display: flex; gap: 10px;">
-                <button type="button" class="btn" onclick="closePhoneModal()" style="flex: 1; padding: 13px; border-radius: 12px; font-weight: 600; background: rgba(255,255,255,0.06); border: 1px solid var(--border-gold); color: var(--text-muted);">
-                    Keyinroq
-                </button>
-                <button type="button" class="btn btn-primary" onclick="submitUserPhone()" 
-                    style="flex: 2; padding: 13px; border-radius: 12px; font-size: 14.5px; font-weight: 800;">
-                    Saqlash →
-                </button>
-            </div>
-        </div>
-    </div>
-
     <!-- Cart / Checkout Modal -->
-    <div class="modal-overlay" id="cart-modal">
+    <div class="modal-overlay cart-layer" id="cart-modal">
         <div class="modal-content">
             <div class="modal-handle"></div>
             <div class="modal-header">
@@ -1014,6 +986,46 @@
             <button class="final-checkout-btn" id="submit-btn" onclick="checkout()">
                 <span id="btn-submit-text">Buyurtma berish</span> — <span id="modal-total">0</span> <span class="currency-unit">so'm</span>
             </button>
+        </div>
+    </div>
+
+    <!-- Phone Registration Modal (New Users) -->
+    <div class="modal-overlay phone-layer" id="phone-modal">
+        <div class="modal-content" style="text-align: center; max-width: 440px; margin: 0 auto;">
+            <div class="modal-handle"></div>
+            <div style="font-size: 38px; margin: 6px 0 4px;">📱</div>
+            <h3 style="font-size: 19px; font-weight: 800; margin-bottom: 6px; color: var(--gold-primary);">Telefon raqamingiz</h3>
+            <p style="font-size: 13px; color: var(--text-muted); line-height: 1.45; margin-bottom: 18px;">
+                Buyurtmangiz yetib borganda kuryer siz bilan bog'lanishi uchun telefon raqamingizni tasdiqlang:
+            </p>
+
+            <!-- Telegram orqali 1 bosishda ulash -->
+            <button type="button" id="btn-tg-share-contact" onclick="requestTelegramContact()" 
+                style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 13px; background: #2AABEE; color: #fff; border: none; border-radius: 14px; font-size: 14.5px; font-weight: 700; cursor: pointer; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(42, 171, 238, 0.25);">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.52 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/></svg>
+                <span>Telegram raqamni yuborish</span>
+            </button>
+
+            <div style="display: flex; align-items: center; gap: 8px; margin: 10px 0 14px;">
+                <div style="flex: 1; height: 1px; background: var(--border-gold); opacity: 0.35;"></div>
+                <span style="font-size: 11.5px; color: var(--text-muted); font-weight: 600;">yoki qo'lda kiritish</span>
+                <div style="flex: 1; height: 1px; background: var(--border-gold); opacity: 0.35;"></div>
+            </div>
+
+            <div style="margin-bottom: 14px;">
+                <input type="tel" id="modal-phone-input" class="form-input" placeholder="+998 90 123 45 67" value="+998 " 
+                    style="font-size: 17px; font-weight: 700; text-align: center; letter-spacing: 1px; padding: 13px; margin-bottom: 0;">
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+                <button type="button" class="btn" onclick="closePhoneModal()" style="flex: 1; padding: 13px; border-radius: 12px; font-weight: 600; background: rgba(255,255,255,0.06); border: 1px solid var(--border-gold); color: var(--text-muted);">
+                    Keyinroq
+                </button>
+                <button type="button" class="btn btn-primary" onclick="submitUserPhone()" 
+                    style="flex: 2; padding: 13px; border-radius: 12px; font-size: 14.5px; font-weight: 800;">
+                    Saqlash →
+                </button>
+            </div>
         </div>
     </div>
 
@@ -1678,13 +1690,14 @@
         function openPhoneModal() {
             const modal = document.getElementById('phone-modal');
             if (modal) {
-                modal.classList.add('active');
+                const formPhone = document.getElementById('form-phone');
+                const curPhone = (formPhone && formPhone.value ? formPhone.value.trim() : '') || localStorage.getItem('user_phone') || '';
                 const phoneInput = document.getElementById('modal-phone-input');
-                const curPhone = localStorage.getItem('user_phone') || (document.getElementById('form-phone') ? document.getElementById('form-phone').value : '') || '';
                 if (phoneInput) {
                     phoneInput.value = curPhone || '+998 ';
                     setTimeout(() => phoneInput.focus(), 300);
                 }
+                modal.classList.add('active');
             }
         }
 
