@@ -3059,7 +3059,37 @@ def call_redirect():
 </html>
 """
 
-# --- Background Telegram Bot Supervisor ---
+# --- Background Telegram Bot Supervisor & Diagnostic Status ---
+supervisor_status = {
+    "started": False,
+    "lock_acquired": False,
+    "python_exe": None,
+    "bot_script": None,
+    "pid": None,
+    "last_exit_code": None,
+    "last_started_at": None,
+    "recent_logs": []
+}
+
+@app.route('/api/bot_status', methods=['GET'])
+def api_bot_status():
+    """Bot holati va so'nggi loglarini ko'rish uchun diagnostika endpointi"""
+    return jsonify({
+        "status": "ok",
+        "supervisor": {
+            "started": supervisor_status["started"],
+            "lock_acquired": supervisor_status["lock_acquired"],
+            "python_exe": supervisor_status["python_exe"],
+            "bot_script": supervisor_status["bot_script"],
+            "pid": supervisor_status["pid"],
+            "last_exit_code": supervisor_status["last_exit_code"],
+            "last_started_at": supervisor_status["last_started_at"],
+            "log_count": len(supervisor_status["recent_logs"])
+        },
+        "recent_logs": supervisor_status["recent_logs"][-30:],
+        "server_time": datetime.now(timezone.utc).isoformat()
+    }), 200
+
 def start_bot_supervisor():
     """
     Ensure bot.py is always running in background on Render/production.
@@ -3068,40 +3098,83 @@ def start_bot_supervisor():
     import socket
     import subprocess
     import sys
+    import shutil
     import time
 
     def supervisor():
-        # Bind a singleton socket on port 28991
+        supervisor_status["started"] = True
+        
+        # Singleton socket lock (port 28991)
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             s.bind(('127.0.0.1', 28991))
             s.listen(1)
+            supervisor_status["lock_acquired"] = True
         except Exception:
+            supervisor_status["lock_acquired"] = False
             print("[Bot Supervisor]: Another process is already running/supervising bot.py.", flush=True)
             return
 
         print("[Bot Supervisor]: Singleton lock acquired. Starting bot.py watchdog...", flush=True)
         time.sleep(2)
 
+        # Resolve correct python executable
+        cand_py = sys.executable or ""
+        if cand_py and not any(cand_py.lower().endswith(x) for x in ["gunicorn", "gunicorn.exe", "uwsgi"]):
+            py_exe = cand_py
+        else:
+            py_exe = shutil.which("python3") or shutil.which("python") or "python3"
+
+        proj_dir = os.path.dirname(os.path.abspath(__file__))
+        bot_script = os.path.join(proj_dir, "bot.py")
+
+        supervisor_status["python_exe"] = py_exe
+        supervisor_status["bot_script"] = bot_script
+
+        env = os.environ.copy()
+        env["PYTHONUNBUFFERED"] = "1"
+
         while True:
             try:
-                print("[Bot Supervisor]: Launching python bot.py ...", flush=True)
+                start_msg = f"[{datetime.now(timezone.utc).strftime('%H:%M:%S')}] Launching: {py_exe} {bot_script}"
+                print(f"[Bot Supervisor]: {start_msg}", flush=True)
+                supervisor_status["recent_logs"].append(start_msg)
+                supervisor_status["last_started_at"] = datetime.now(timezone.utc).isoformat()
+
                 proc = subprocess.Popen(
-                    [sys.executable, "bot.py"],
+                    [py_exe, bot_script],
+                    cwd=proj_dir,
+                    env=env,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.STDOUT,
                     text=True,
                     bufsize=1
                 )
-                for line in proc.stdout:
-                    print(f"[Bot Log] {line.strip()}", flush=True)
+                supervisor_status["pid"] = proc.pid
+
+                for raw_line in proc.stdout:
+                    clean_line = raw_line.strip()
+                    if clean_line:
+                        print(f"[Bot Log] {clean_line}", flush=True)
+                        supervisor_status["recent_logs"].append(clean_line)
+                        if len(supervisor_status["recent_logs"]) > 150:
+                            supervisor_status["recent_logs"] = supervisor_status["recent_logs"][-100:]
+
                 proc.wait()
-                print(f"[Bot Supervisor]: bot.py exited with code {proc.returncode}. Restarting in 5s...", flush=True)
+                supervisor_status["last_exit_code"] = proc.returncode
+                supervisor_status["pid"] = None
+                exit_msg = f"[{datetime.now(timezone.utc).strftime('%H:%M:%S')}] bot.py exited with code {proc.returncode}. Restarting in 5s..."
+                print(f"[Bot Supervisor]: {exit_msg}", flush=True)
+                supervisor_status["recent_logs"].append(exit_msg)
             except Exception as ex:
-                print(f"[Bot Supervisor error]: {ex}", flush=True)
+                err_msg = f"[{datetime.now(timezone.utc).strftime('%H:%M:%S')}] Supervisor error: {ex}"
+                print(f"[Bot Supervisor error]: {err_msg}", flush=True)
+                supervisor_status["recent_logs"].append(err_msg)
             time.sleep(5)
 
-    threading.Thread(target=supervisor, daemon=True, name="BotSupervisor").start()
+    th = threading.Thread(target=supervisor, daemon=True, name="BotSupervisor")
+    th.start()
 
 start_bot_supervisor()
 

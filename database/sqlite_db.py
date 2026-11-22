@@ -397,7 +397,7 @@ async def get_tenant_by_admin_username(username):
 async def get_all_active_tenants():
     async with get_db() as db:
         db.row_factory = aiosqlite.Row
-        async with db.execute("SELECT * FROM tenants WHERE is_active IN (1, '1', 'True', 'true', 1.0) OR is_active IS TRUE") as cursor:
+        async with db.execute("SELECT * FROM tenants WHERE is_active = 1 OR is_active IS TRUE") as cursor:
             rows = await cursor.fetchall()
             tenants = [dict(r) for r in rows]
             for t in tenants:

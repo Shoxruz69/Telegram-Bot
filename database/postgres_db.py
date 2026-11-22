@@ -312,7 +312,7 @@ async def init_db():
                 default_tenant_hash = generate_password_hash("admin123")
                 await db.execute('''
                     INSERT INTO tenants (id, name, slug, bot_token, bot_username, admin_telegram_id, admin_username, admin_password_hash, is_active)
-                    VALUES (1, 'City Milliy Taomlar', 'express', ?, '@CityMilliyTaomlari_bot', ?, 'admin', ?, 1)
+                    VALUES (1, 'City Milliy Taomlar', 'express', ?, '@CityMilliyTaomlari_bot', ?, 'admin', ?, TRUE)
                 ''', (primary_token, env_admin_id, default_tenant_hash))
                 await db.commit()
             else:
@@ -323,7 +323,7 @@ async def init_db():
                         bot_username = '@CityMilliyTaomlari_bot',
                         bot_token = ?,
                         admin_telegram_id = ?,
-                        is_active = 1
+                        is_active = TRUE
                     WHERE id = 1
                 """, (primary_token, env_admin_id))
                 await db.commit()
@@ -367,7 +367,7 @@ async def init_db():
                         if not row:
                             await db.execute('''
                                 INSERT INTO tenants (name, slug, bot_token, bot_username, admin_telegram_id, admin_username, admin_password_hash, is_active)
-                                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                                VALUES (?, ?, ?, ?, ?, ?, ?, TRUE)
                             ''', (
                                 bt.get('name', 'Oshxona'),
                                 t_slug,
@@ -375,8 +375,7 @@ async def init_db():
                                 bt.get('bot_username', ''),
                                 bt.get('admin_telegram_id', ''),
                                 bt.get('admin_username', f"{t_slug}_admin"),
-                                bt.get('admin_password_hash', generate_password_hash('admin123')),
-                                1
+                                bt.get('admin_password_hash', generate_password_hash('admin123'))
                             ))
                             await db.commit()
                             print(f"[Backup restore]: Oshxona tiklandi: {bt.get('name')} ({t_slug})")
@@ -385,7 +384,7 @@ async def init_db():
                             is_curr_ph = any(ph in curr_tok.upper() for ph in ['YOUR_', '_HERE', 'PLACEHOLDER']) or not curr_tok
                             is_new_real = token_to_use and not any(ph in token_to_use.upper() for ph in ['YOUR_', '_HERE', 'PLACEHOLDER'])
                             if is_curr_ph and is_new_real:
-                                await db.execute("UPDATE tenants SET bot_token = ?, is_active = 1 WHERE id = ?", (token_to_use, row[0]))
+                                await db.execute("UPDATE tenants SET bot_token = ?, is_active = TRUE WHERE id = ?", (token_to_use, row[0]))
                                 await db.commit()
                                 print(f"[Backup restore]: Oshxona tokeni yangilandi ({t_slug})")
             except Exception as bke:
@@ -459,7 +458,7 @@ async def get_tenant_by_admin_username(username):
 async def get_all_active_tenants():
     async with get_db() as db:
         db.row_factory = aiosqlite.Row
-        async with db.execute("SELECT * FROM tenants WHERE is_active IN (1, '1', 'True', 'true', 1.0) OR is_active IS TRUE") as cursor:
+        async with db.execute("SELECT * FROM tenants WHERE is_active IS TRUE") as cursor:
             rows = await cursor.fetchall()
             tenants = [dict(r) for r in rows]
             for t in tenants:
