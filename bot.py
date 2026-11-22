@@ -182,7 +182,7 @@ async def main():
         await bot.set_chat_menu_button(
             menu_button=MenuButtonWebApp(text="🍔 Menyu", web_app=WebAppInfo(url=web_app_url))
         )
-        await bot.delete_webhook(drop_pending_updates=True)
+        await bot.delete_webhook(drop_pending_updates=False)
         logging.info(f"✅ Bot @{bot_username} muvaffaqiyatli sozlandi. WebApp: {web_app_url}")
     except Exception as se:
         logging.warning(f"Bot komandalarini sozlashda ogohlantirish: {se}")

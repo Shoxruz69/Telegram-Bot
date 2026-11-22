@@ -2989,6 +2989,122 @@ flask_admin.add_view(ThemedModelView(Category, db.session, name="📁 Kategoriya
 flask_admin.add_view(SettingAdminView(Setting, db.session, name="⚙️ Sozlamalar"))
 flask_admin.add_view(ThemedModelView(User, db.session, name="👤 Mijozlar"))
 
+@app.route('/call')
+def call_redirect():
+    """Call markazi telefon raqamiga to'g'ridan-to'g'ri o'tish (tel:+998952604040)"""
+    return """<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Call Markazi - City Milliy Taomlar</title>
+    <meta http-equiv="refresh" content="0; url=tel:+998952604040">
+    <script>
+        window.location.href = "tel:+998952604040";
+    </script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0F172A;
+            color: #F8FAFC;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+            text-align: center;
+        }
+        .card {
+            background: #1E293B;
+            border: 1px solid rgba(255, 192, 67, 0.3);
+            border-radius: 20px;
+            padding: 32px 24px;
+            max-width: 360px;
+            width: 100%;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .icon { font-size: 52px; margin-bottom: 12px; }
+        h2 { font-size: 20px; margin: 0 0 8px 0; color: #FFC043; }
+        p { font-size: 14px; color: #94A3B8; margin: 0 0 24px 0; }
+        .btn-call {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            padding: 14px 20px;
+            background: linear-gradient(135deg, #10B981, #059669);
+            color: #FFFFFF;
+            text-decoration: none;
+            border-radius: 12px;
+            font-size: 17px;
+            font-weight: 700;
+            box-sizing: border-box;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="icon">📞</div>
+        <h2>City Milliy Taomlar</h2>
+        <p>Qo'ng'iroq ilovasi ochilmoqda...</p>
+        <a href="tel:+998952604040" class="btn-call">
+            📞 +998 95 260 40 40
+        </a>
+    </div>
+</body>
+</html>
+"""
+
+# --- Background Telegram Bot Supervisor ---
+def start_bot_supervisor():
+    """
+    Ensure bot.py is always running in background on Render/production.
+    Uses socket lock so multiple workers don't start duplicate bot instances.
+    """
+    import socket
+    import subprocess
+    import sys
+    import time
+
+    def supervisor():
+        # Bind a singleton socket on port 28991
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            s.bind(('127.0.0.1', 28991))
+            s.listen(1)
+        except Exception:
+            print("[Bot Supervisor]: Another process is already running/supervising bot.py.", flush=True)
+            return
+
+        print("[Bot Supervisor]: Singleton lock acquired. Starting bot.py watchdog...", flush=True)
+        time.sleep(2)
+
+        while True:
+            try:
+                print("[Bot Supervisor]: Launching python bot.py ...", flush=True)
+                proc = subprocess.Popen(
+                    [sys.executable, "bot.py"],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    text=True,
+                    bufsize=1
+                )
+                for line in proc.stdout:
+                    print(f"[Bot Log] {line.strip()}", flush=True)
+                proc.wait()
+                print(f"[Bot Supervisor]: bot.py exited with code {proc.returncode}. Restarting in 5s...", flush=True)
+            except Exception as ex:
+                print(f"[Bot Supervisor error]: {ex}", flush=True)
+            time.sleep(5)
+
+    threading.Thread(target=supervisor, daemon=True, name="BotSupervisor").start()
+
+start_bot_supervisor()
+
 if __name__ == '__main__':
     print("Cafe Express Admin panel ishga tushdi: http://127.0.0.1:5000/admin")
     app.run(host='127.0.0.1', port=5000)

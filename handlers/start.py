@@ -9,6 +9,15 @@ from keyboards.reply import get_webapp_keyboard
 
 router = Router()
 
+def get_base_url():
+    raw = os.getenv("RENDER_EXTERNAL_URL", "") or os.getenv("WEB_APP_URL", "") or "https://telegram-bot-2-j4nb.onrender.com"
+    raw = raw.strip().rstrip("/")
+    if not raw.startswith("http://") and not raw.startswith("https://"):
+        raw = f"https://{raw}"
+    if raw.endswith("/webapp"):
+        raw = raw[:-7]
+    return raw or "https://telegram-bot-2-j4nb.onrender.com"
+
 async def resolve_tenant(bot: Bot, tenant: dict = None) -> dict:
     """Oshxona ma'lumotlarini aniqlash (argument, bot obyekti yoki DB orqali)"""
     if tenant and isinstance(tenant, dict) and tenant.get('name'):
@@ -82,7 +91,15 @@ async def cmd_start(message: Message, bot: Bot, tenant: dict = None):
             f"👇 Quyidagi tugma orqali menyuni ochib buyurtma berishingiz mumkin:"
         )
 
-    kb = get_webapp_keyboard(message.from_user.id, tenant_slug=tenant_slug)
+    base_url = get_base_url()
+    call_url = f"{base_url}/call"
+    inline_kb = InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text="📞 Call Markazi: 95 260 40 40", url=call_url),
+            InlineKeyboardButton(text="💬 Telegram Support", url="https://t.me/City_4040")
+        ]
+    ])
+    reply_kb = get_webapp_keyboard(message.from_user.id, tenant_slug=tenant_slug)
 
     # Rasm: admin yuklagan maxsus rasm yoki faqat Cafe Express (tenant 1) uchun standart logo
     photo_target = None
@@ -104,7 +121,7 @@ async def cmd_start(message: Message, bot: Bot, tenant: dict = None):
                 photo=photo_target, 
                 caption=welcome_text, 
                 parse_mode="HTML", 
-                reply_markup=kb
+                reply_markup=inline_kb
             )
             photo_sent = True
         except Exception as pe:
@@ -115,14 +132,21 @@ async def cmd_start(message: Message, bot: Bot, tenant: dict = None):
             await message.answer(
                 welcome_text, 
                 parse_mode="HTML", 
-                reply_markup=kb
+                reply_markup=inline_kb
             )
         except Exception as me:
             logging.error(f"Xabar yuborishda xatolik: {me}")
             await message.answer(
-                f"{tenant_name} botiga xush kelibsiz!\n\nMenyuni ko'rish uchun pastdagi Menyu tugmasini bosing:",
-                reply_markup=kb
+                f"{tenant_name} botiga xush kelibsiz!",
+                reply_markup=inline_kb
             )
+
+    # Pastdagi doimiy menyu tugmasini o'rnatish
+    await message.answer(
+        "Taomlarni ko'rish va buyurtma berish uchun pastdagi <b>🍔 Menyu (Mini App)</b> tugmasini bosing:",
+        parse_mode="HTML",
+        reply_markup=reply_kb
+    )
 
 @router.message(Command("menu"))
 @router.message(lambda msg: bool(msg.text and msg.text.strip().lower() in ['/menu', 'menu', 'menyu', '🍴 menyu', '🍔 menyu']))
@@ -141,20 +165,30 @@ async def cmd_menu(message: Message, bot: Bot, tenant: dict = None):
 async def cmd_call_center(message: Message, bot: Bot, tenant: dict = None):
     cur_tenant = await resolve_tenant(bot, tenant)
     tenant_name = cur_tenant.get('name', 'City Milliy Taomlar')
-    tenant_slug = cur_tenant.get('slug', 'express')
 
-    text = (
-        f"📞 <b>{html.escape(tenant_name)} — Call Markazi</b>\n\n"
-        f"Savollar, buyurtmalar yoki yetkazib berish bo'yicha bog'lanish uchun:\n\n"
-        f"☎️ <b>Telefon:</b> <a href=\"tel:+998952604040\">+998 95 260 40 40</a>\n"
-        f"⏰ <b>Ish vaqti:</b> 09:00 dan 23:00 gacha\n\n"
-        f"<i>Raqam ustiga bosib to'g'ridan-to'g'ri qo'ng'iroq qilishingiz mumkin!</i>"
-    )
+    try:
+        await bot.send_contact(
+            chat_id=message.chat.id,
+            phone_number="+998952604040",
+            first_name=tenant_name,
+            last_name="Call Markazi"
+        )
+    except Exception as ce:
+        logging.warning(f"send_contact error: {ce}")
+
+    base_url = get_base_url()
+    call_url = f"{base_url}/call"
     inline_kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="💬 Telegram Support (@City_4040)", url="https://t.me/City_4040")]
+        [
+            InlineKeyboardButton(text="📞 Qo'ng'iroq qilish", url=call_url),
+            InlineKeyboardButton(text="💬 Telegram Support", url="https://t.me/City_4040")
+        ]
     ])
     await message.answer(
-        text,
+        f"📞 <b>{html.escape(tenant_name)} — Call Markazi</b>\n\n"
+        f"☎️ Telefon: <b>+998 95 260 40 40</b>\n"
+        f"⏰ Ish vaqti: 09:00 dan 23:00 gacha\n\n"
+        f"<i>Yuqoridagi kontakt kartasi yoki quyidagi tugma orqali to'g'ridan-to'g'ri telefoningiz naboriga o'tishingiz mumkin!</i>",
         parse_mode="HTML",
         reply_markup=inline_kb
     )
@@ -164,17 +198,13 @@ async def cmd_telegram_support(message: Message, bot: Bot, tenant: dict = None):
     cur_tenant = await resolve_tenant(bot, tenant)
     tenant_name = cur_tenant.get('name', 'City Milliy Taomlar')
 
-    text = (
-        f"💬 <b>{html.escape(tenant_name)} — Telegram Qo'llab-quvvatlash</b>\n\n"
-        f"Savollaringiz, takliflaringiz yoki yordam kerak bo'lsa, adminga to'g'ridan-to'g'ri yozishingiz mumkin:\n\n"
-        f"👉 <b>Telegram:</b> <a href=\"https://t.me/City_4040\">@City_4040</a>\n\n"
-        f"<i>Pastdagi tugmani bosing va adminga o'ting:</i>"
-    )
     inline_kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="✈️ Telegram Support ochish (@City_4040)", url="https://t.me/City_4040")]
     ])
     await message.answer(
-        text,
+        f"💬 <b>{html.escape(tenant_name)} — Telegram Qo'llab-quvvatlash</b>\n\n"
+        f"Savollaringiz yoki yordam kerak bo'lsa, quyidagi tugmani bosib adminga to'g'ridan-to'g'ri o'tishingiz mumkin:\n\n"
+        f"👉 <b>Telegram:</b> <a href=\"https://t.me/City_4040\">@City_4040</a>",
         parse_mode="HTML",
         reply_markup=inline_kb
     )
