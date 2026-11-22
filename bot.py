@@ -5,6 +5,25 @@ import re
 import urllib.request
 import ssl
 import base64
+
+# Pydantic 2.8+ / Python 3.11 FailFast hash compatibility patch
+try:
+    import pydantic
+    if hasattr(pydantic, 'FailFast'):
+        pydantic.FailFast.__hash__ = lambda self: hash(type(self))
+    from pydantic import fields as pydantic_fields
+    if hasattr(pydantic_fields, 'FailFast'):
+        pydantic_fields.FailFast.__hash__ = lambda self: hash(type(self))
+except Exception:
+    pass
+
+try:
+    import pydantic_core
+    if hasattr(pydantic_core, 'FailFast'):
+        pydantic_core.FailFast.__hash__ = lambda self: hash(type(self))
+except Exception:
+    pass
+
 from aiogram import Bot, Dispatcher
 from aiogram.types import BotCommand, MenuButtonWebApp, WebAppInfo
 from aiogram.fsm.storage.memory import MemoryStorage

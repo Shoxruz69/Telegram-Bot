@@ -3153,6 +3153,23 @@ def start_bot_supervisor():
                 supervisor_status["last_started_at"] = datetime.now(timezone.utc).isoformat()
                 supervisor_status["running"] = True
 
+                # Pydantic 2.8+ / Python 3.11 FailFast hash compatibility patch
+                try:
+                    import pydantic
+                    if hasattr(pydantic, 'FailFast'):
+                        pydantic.FailFast.__hash__ = lambda self: hash(type(self))
+                    from pydantic import fields as pydantic_fields
+                    if hasattr(pydantic_fields, 'FailFast'):
+                        pydantic_fields.FailFast.__hash__ = lambda self: hash(type(self))
+                except Exception:
+                    pass
+                try:
+                    import pydantic_core
+                    if hasattr(pydantic_core, 'FailFast'):
+                        pydantic_core.FailFast.__hash__ = lambda self: hash(type(self))
+                except Exception:
+                    pass
+
                 import bot
                 asyncio.run(bot.main())
                 
