@@ -14,25 +14,19 @@ def format_url(url_str):
         return f"https://{url_str}"
     return url_str
 
-if env_web_app:
-    base_url = format_url(env_web_app)
-    WEB_APP_URL = base_url if base_url.endswith("/webapp") else f"{base_url}/webapp"
-elif render_url:
-    base_url = format_url(render_url)
-    WEB_APP_URL = base_url if base_url.endswith("/webapp") else f"{base_url}/webapp"
-else:
-    WEB_APP_URL = "https://your-app.onrender.com/webapp"
-    import logging
-    logging.warning("DIQQAT: WEB_APP_URL yoki RENDER_EXTERNAL_URL topilmadi! Render Environment Variables ni tekshiring.")
+raw_base = format_url(env_web_app or render_url or "https://telegram-bot-2-j4nb.onrender.com")
+if not raw_base or "your-app" in raw_base:
+    raw_base = "https://telegram-bot-2-j4nb.onrender.com"
+
+WEB_APP_URL = raw_base if raw_base.endswith("/webapp") else f"{raw_base}/webapp"
 
 def get_webapp_keyboard(user_id: int = None, tenant_slug: str = None):
-    params = []
-    if tenant_slug:
-        params.append(f"tenant={tenant_slug}")
+    slug = tenant_slug or "express"
+    params = [f"tenant={slug}"]
     if user_id:
         params.append(f"user_id={user_id}")
     
-    query = f"?{'&'.join(params)}" if params else ""
+    query = f"?{'&'.join(params)}"
     url = f"{WEB_APP_URL}{query}"
 
     return ReplyKeyboardMarkup(
